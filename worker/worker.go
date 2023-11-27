@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"os/exec"
 	"sync"
 	"time"
 
@@ -182,23 +181,6 @@ func handleGetStatus(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(status)
 }
 
-func handleGetTasks2(w http.ResponseWriter, r *http.Request) {
-	// Parse query parameters
-	//status := r.URL.Query().Get("status")
-
-	taskListMu.Lock()
-	defer taskListMu.Unlock()
-
-	responseJSON, err := json.Marshal(taskList)
-	if err != nil {
-		http.Error(w, "Error encoding tasks to JSON", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(responseJSON)
-}
 func handleGetTasks(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters
 	status := r.URL.Query().Get("status")
@@ -307,40 +289,6 @@ func stringList(list []string) string {
 		stringList += item + "\n"
 	}
 	return stringList
-}
-
-func module1(arguments []string) (string, int) {
-	// Command to run the Python script
-	scriptPath := "./worker/modules/module1.py"
-	cmd := exec.Command("python3", append([]string{scriptPath}, arguments...)...)
-
-	// Capture the output of the script
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Println("Error:", err)
-	}
-
-	// Convert the output byte slice to a string
-	outputString := string(output)
-
-	return outputString, 0
-}
-
-func module2(arguments []string) (string, int) {
-	// Command to run the Bash script
-	scriptPath := "./worker/modules/module2.sh"
-	cmd := exec.Command("bash", append([]string{scriptPath}, arguments...)...)
-
-	// Capture the output of the script
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Println("Error:", err)
-	}
-
-	// Convert the output byte slice to a string
-	outputString := string(output)
-
-	return outputString, 0
 }
 
 func StartWorker() {
