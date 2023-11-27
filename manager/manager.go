@@ -17,6 +17,7 @@ type ManagerConfig struct {
 	CallbackURL string            `json:"callbackURL"`
 	SlaveURLs   map[string]string `json:"slaveURLs"`
 	OAuthToken  string            `json:"oauthToken"`
+	Port			   string `json:"port"`
 }
 
 type Message struct {
@@ -31,8 +32,9 @@ var (
 	slaveURLs   = map[string]string{
 		"slave1": "http://127.0.0.1:8182",
 	}
-	oauthToken = "your_oauth_token" // Replace with your actual OAuth token
+	oauthToken = "your_oauth_tokens" // Replace with your actual OAuth token
 	mu         sync.Mutex
+	port = "8080"
 )
 
 func loadManagerConfig(filename string) {
@@ -52,6 +54,7 @@ func loadManagerConfig(filename string) {
 	callbackURL = config.CallbackURL
 	slaveURLs = config.SlaveURLs
 	oauthToken = config.OAuthToken
+	port = config.Port
 
 	return
 }
@@ -88,7 +91,7 @@ func sendToSlave(slaveURL string, message Message) {
 
 func handleSendMessage(w http.ResponseWriter, r *http.Request) {
 	oauthKey := r.Header.Get("Authorization")
-	if oauthKey != "your_oauth_key" {
+	if oauthKey != oauthToken {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -149,7 +152,7 @@ func StartManager() {
 	r.HandleFunc("/callback/{id}", handleCallback).Methods("POST") // Callback endpoint
 
 	http.Handle("/", r)
-	err := http.ListenAndServe(":8180", nil)
+	err := http.ListenAndServe(":" + port, nil)
 	if err != nil {
 		fmt.Println(err)
 	}
