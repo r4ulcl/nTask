@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
+	"os/exec"
 	"sync"
 	"time"
-	"math/rand"
-	"os/exec"
 
 	"github.com/gorilla/mux"
 )
@@ -18,23 +18,24 @@ import (
 type WorkerConfig struct {
 	MaxConcurrentTasks int    `json:"maxConcurrentTasks"`
 	OAuthToken         string `json:"oauthToken"`
-	Port			   string `json:"port"`
+	Port               string `json:"port"`
 }
 
 type Message struct {
-	ID           string   `json:"id"`
-	Module       string   `json:"module"`
-	Arguments    []string `json:"arguments"`
-	CallbackURL  string   `json:"callbackURL"`
+	ID          string   `json:"id"`
+	Module      string   `json:"module"`
+	Arguments   []string `json:"arguments"`
+	CallbackURL string   `json:"callbackURL"`
 }
 
 type Task struct {
-	ID           string
-	Module       string
-	Arguments    []string 
-	CallbackURL  string
-	Status       string
-	Goroutine    *sync.WaitGroup
+	ID          string
+	Module      string
+	Arguments   []string
+	CallbackURL string
+	Status      string
+	Result      string
+	Goroutine   *sync.WaitGroup
 }
 
 type Status struct {
@@ -43,41 +44,36 @@ type Status struct {
 	MessageID    string `json:"messageID"`
 }
 
-
 var (
 	taskList   = make(map[string]*Task)
 	taskListMu sync.Mutex
 	workMutex  sync.Mutex
 	//maxConcurrentTasks = 1
-	semaphoreCh  = make(chan struct{}, 1)
-	isWorking  = false
-	messageID    = ""
-	oauthToken   = "your_oauth_token" // Replace with your actual OAuth token
-	port 		= "8081"
+	semaphoreCh = make(chan struct{}, 1)
+	isWorking   = false
+	messageID   = ""
+	oauthToken  = "your_oauth_token" // Replace with your actual OAuth token
+	port        = "8081"
 )
 
 func loadWorkerConfig(filename string) {
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
 		fmt.Printf("Error reading worker config file: %s\n", err)
-		return 
+		return
 	}
 
 	var config WorkerConfig
 	err = json.Unmarshal(content, &config)
 	if err != nil {
 		fmt.Printf("Error unmarshalling worker config: %s\n", err)
-		return 
+		return
 	}
 
-	semaphoreCh  = make(chan struct{}, config.MaxConcurrentTasks)
+	semaphoreCh = make(chan struct{}, config.MaxConcurrentTasks)
 	oauthToken = config.OAuthToken
 	port = config.Port
-
-
-	return
 }
-
 
 func handleReceiveMessage(w http.ResponseWriter, r *http.Request) {
 	oauthKey := r.Header.Get("Authorization")
@@ -98,10 +94,10 @@ func handleReceiveMessage(w http.ResponseWriter, r *http.Request) {
 	// Create a new Task
 	task := &Task{
 		ID:          message.ID,
-		Module:	 	 message.Module,
-		Arguments:	 message.Arguments,
+		Module:      message.Module,
+		Arguments:   message.Arguments,
 		CallbackURL: message.CallbackURL,
-		Status: 	 "pending",
+		Status:      "Pending",
 		Goroutine:   &sync.WaitGroup{},
 	}
 
@@ -116,7 +112,7 @@ func handleReceiveMessage(w http.ResponseWriter, r *http.Request) {
 
 	// Respond immediately without waiting for the task to complete
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, "Message received")
+	fmt.Fprintln(w, message.ID)
 }
 
 func processTask(message Message, task *Task) {
@@ -150,9 +146,12 @@ func processTask(message Message, task *Task) {
 	task.Status = "Done"
 
 	// Remove the task from the list
-	taskListMu.Lock()
-	delete(taskList, task.ID)
-	taskListMu.Unlock()
+	//taskListMu.Lock()
+	//delete(taskList, task.ID)
+	//taskListMu.Unlock()
+
+	// Save the output in the task
+	task.Result = m
 
 	// Notify the master about the result with the unique ID
 	result := Message{
@@ -175,25 +174,82 @@ func handleGetStatus(w http.ResponseWriter, r *http.Request) {
 	defer workMutex.Unlock()
 
 	status := Status{
-		IsWorking:    isWorking,
-		MessageID:    messageID,
+		IsWorking: isWorking,
+		MessageID: messageID,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(status)
 }
 
-func handleGetTasks(w http.ResponseWriter, r *http.Request) {
+func handleGetTasks2(w http.ResponseWriter, r *http.Request) {
+	// Parse query parameters
+	//status := r.URL.Query().Get("status")
+
 	taskListMu.Lock()
 	defer taskListMu.Unlock()
 
-	tasks := taskList
-
-	//TODO if empty
-
-	responseJSON, err := json.Marshal(tasks)
+	responseJSON, err := json.Marshal(taskList)
 	if err != nil {
 		http.Error(w, "Error encoding tasks to JSON", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(responseJSON)
+}
+func handleGetTasks(w http.ResponseWriter, r *http.Request) {
+	// Parse query parameters
+	status := r.URL.Query().Get("status")
+
+	taskListMu.Lock()
+	defer taskListMu.Unlock()
+
+	var filteredTasks map[string]Task
+
+	// Filter tasks by status if the status parameter is provided
+	if status != "" {
+		filteredTasks = make(map[string]Task)
+		for id, task := range taskList {
+			if status == task.Status {
+				filteredTasks[id] = *task
+			}
+		}
+	} else {
+		filteredTasks = make(map[string]Task)
+		for id, task := range taskList {
+			filteredTasks[id] = *task
+		}
+	}
+
+	responseJSON, err := json.Marshal(filteredTasks)
+	if err != nil {
+		http.Error(w, "Error encoding tasks to JSON", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(responseJSON)
+}
+
+func handleGetTask(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	taskID := vars["id"]
+
+	taskListMu.Lock()
+	defer taskListMu.Unlock()
+
+	task, exists := taskList[taskID]
+	if !exists {
+		http.Error(w, "Task not found", http.StatusNotFound)
+		return
+	}
+
+	responseJSON, err := json.Marshal(task)
+	if err != nil {
+		http.Error(w, "Error encoding task info to JSON", http.StatusInternalServerError)
 		return
 	}
 
@@ -275,7 +331,6 @@ func module2(arguments []string) (string, int) {
 	scriptPath := "./worker/modules/module2.sh"
 	cmd := exec.Command("bash", append([]string{scriptPath}, arguments...)...)
 
-
 	// Capture the output of the script
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -288,7 +343,6 @@ func module2(arguments []string) (string, int) {
 	return outputString, 0
 }
 
-
 func StartWorker() {
 	fmt.Println("Running as worker...")
 
@@ -298,7 +352,11 @@ func StartWorker() {
 	r.HandleFunc("/receive", handleReceiveMessage).Methods("POST")
 	r.HandleFunc("/status", handleGetStatus).Methods("GET")
 	r.HandleFunc("/tasks", handleGetTasks).Methods("GET")
+	r.HandleFunc("/task/{id}", handleGetTask).Methods("GET")
 
 	http.Handle("/", r)
-	http.ListenAndServe(":" + port, nil)
+	err := http.ListenAndServe(":"+port, nil)
+	if err != nil {
+		fmt.Println(err)
+	}
 }

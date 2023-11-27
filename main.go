@@ -1,10 +1,10 @@
 package main
 
 import (
-//	"os"
+	//	"os"
 	"flag"
 
-//	"fmt"
+	//	"fmt"
 	"github.com/r4ulcl/NetTask/manager"
 	"github.com/r4ulcl/NetTask/worker"
 )
@@ -21,5 +21,5 @@ func main() {
 		manager.StartManager()
 	} else {
 		worker.StartWorker()
-	} 
+	}
 }

@@ -17,24 +17,25 @@ type ManagerConfig struct {
 	CallbackURL string            `json:"callbackURL"`
 	SlaveURLs   map[string]string `json:"slaveURLs"`
 	OAuthToken  string            `json:"oauthToken"`
-	Port			   string `json:"port"`
+	Port        string            `json:"port"`
 }
 
 type Message struct {
-	ID           string   `json:"id"`
-	Module         string   `json:"module"`
+	ID          string   `json:"id"`
+	Module      string   `json:"module"`
 	Arguments   []string `json:"arguments"`
-	CallbackURL  string   `json:"callbackURL"`
+	CallbackURL string   `json:"callbackURL"`
 }
 
 var (
 	callbackURL = "http://127.0.0.1:8180/callback/" // Update the callback URL accordingly
 	slaveURLs   = map[string]string{
 		"slave1": "http://127.0.0.1:8182",
+		"slave2": "http://127.0.0.1:8182",
 	}
 	oauthToken = "your_oauth_tokens" // Replace with your actual OAuth token
 	mu         sync.Mutex
-	port = "8080"
+	port       = "8080"
 )
 
 func loadManagerConfig(filename string) {
@@ -55,20 +56,24 @@ func loadManagerConfig(filename string) {
 	slaveURLs = config.SlaveURLs
 	oauthToken = config.OAuthToken
 	port = config.Port
-
-	return
 }
 
-func broadcastMessage(message Message) {
+func broadcastMessage(message Message) (string, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
+	stringResponse := ""
+	var err error
 	for _, slaveURL := range slaveURLs {
-		go sendToSlave(slaveURL, message)
+		stringResponse, err = sendToSlave(slaveURL, message)
+		if err != nil {
+			return "", err
+		}
 	}
+	return stringResponse, nil
 }
 
-func sendToSlave(slaveURL string, message Message) {
+func sendToSlave(slaveURL string, message Message) (string, error) {
 	// Include the callback URL in the message
 	message.CallbackURL = callbackURL + message.ID
 
@@ -77,16 +82,30 @@ func sendToSlave(slaveURL string, message Message) {
 	req, err := http.NewRequest("POST", slaveURL+"/receive", bytes.NewBuffer(payload))
 	if err != nil {
 		fmt.Printf("Failed to create request to %s: %v\n", slaveURL, err)
-		return
+		return "", err
 	}
 
 	req.Header.Set("Authorization", oauthToken)
-	
+
+	bodyString := ""
+
 	client := &http.Client{}
-	_, err = client.Do(req)
+	response, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("Failed to send message to %s: %v\n", slaveURL, err)
+	} else {
+		defer response.Body.Close()
+
+		bodyBytes, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			fmt.Printf("Failed to read response body: %v\n", err)
+		} else {
+			bodyString = string(bodyBytes)
+			fmt.Printf("Response Body: %s\n", bodyString)
+		}
 	}
+
+	return bodyString, nil
 }
 
 func handleSendMessage(w http.ResponseWriter, r *http.Request) {
@@ -111,19 +130,26 @@ func handleSendMessage(w http.ResponseWriter, r *http.Request) {
 	// Callback URL is now generated dynamically
 	message.CallbackURL = callbackURL + message.ID
 
+	response := ""
 	if recipient != "" {
 		slaveURL, ok := slaveURLs[recipient]
 		if !ok {
 			http.Error(w, "Invalid recipient", http.StatusBadRequest)
 			return
 		}
-		sendToSlave(slaveURL, message)
+		response, err = sendToSlave(slaveURL, message)
+		if err != nil {
+			return
+		}
 	} else {
-		broadcastMessage(message)
+		response, err = broadcastMessage(message)
+		if err != nil {
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, "Message sent")
+	fmt.Fprintln(w, response)
 }
 
 func handleCallback(w http.ResponseWriter, r *http.Request) {
@@ -152,7 +178,7 @@ func StartManager() {
 	r.HandleFunc("/callback/{id}", handleCallback).Methods("POST") // Callback endpoint
 
 	http.Handle("/", r)
-	err := http.ListenAndServe(":" + port, nil)
+	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		fmt.Println(err)
 	}
