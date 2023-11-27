@@ -18,6 +18,7 @@ import (
 type WorkerConfig struct {
 	MaxConcurrentTasks int    `json:"maxConcurrentTasks"`
 	OAuthToken         string `json:"oauthToken"`
+	Port			   string `json:"port"`
 }
 
 type Message struct {
@@ -29,7 +30,10 @@ type Message struct {
 
 type Task struct {
 	ID           string
+	Module       string
+	Arguments    []string 
 	CallbackURL  string
+	Status       string
 	Goroutine    *sync.WaitGroup
 }
 
@@ -38,6 +42,7 @@ type Status struct {
 	RemainingSec int    `json:"remainingSec"`
 	MessageID    string `json:"messageID"`
 }
+
 
 var (
 	taskList   = make(map[string]*Task)
@@ -48,6 +53,7 @@ var (
 	isWorking  = false
 	messageID    = ""
 	oauthToken   = "your_oauth_token" // Replace with your actual OAuth token
+	port 		= "8081"
 )
 
 func loadWorkerConfig(filename string) {
@@ -66,6 +72,7 @@ func loadWorkerConfig(filename string) {
 
 	semaphoreCh  = make(chan struct{}, config.MaxConcurrentTasks)
 	oauthToken = config.OAuthToken
+	port = config.Port
 
 
 	return
@@ -91,7 +98,10 @@ func handleReceiveMessage(w http.ResponseWriter, r *http.Request) {
 	// Create a new Task
 	task := &Task{
 		ID:          message.ID,
+		Module:	 	 message.Module,
+		Arguments:	 message.Arguments,
 		CallbackURL: message.CallbackURL,
+		Status: 	 "pending",
 		Goroutine:   &sync.WaitGroup{},
 	}
 
@@ -119,6 +129,9 @@ func processTask(message Message, task *Task) {
 	// Acquire a slot from the semaphore
 	semaphoreCh <- struct{}{}
 
+	//Set task status
+	task.Status = "Working"
+
 	workMutex.Lock()
 	isWorking = true
 	workMutex.Unlock()
@@ -132,6 +145,9 @@ func processTask(message Message, task *Task) {
 	workMutex.Lock()
 	isWorking = false
 	workMutex.Unlock()
+
+	//Set task status
+	task.Status = "Done"
 
 	// Remove the task from the list
 	taskListMu.Lock()
@@ -150,7 +166,7 @@ func processTask(message Message, task *Task) {
 
 func handleGetStatus(w http.ResponseWriter, r *http.Request) {
 	oauthKey := r.Header.Get("Authorization")
-	if oauthKey != "your_oauth_key" {
+	if oauthKey != oauthToken {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -165,6 +181,25 @@ func handleGetStatus(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(status)
+}
+
+func handleGetTasks(w http.ResponseWriter, r *http.Request) {
+	taskListMu.Lock()
+	defer taskListMu.Unlock()
+
+	tasks := taskList
+
+	//TODO if empty
+
+	responseJSON, err := json.Marshal(tasks)
+	if err != nil {
+		http.Error(w, "Error encoding tasks to JSON", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(responseJSON)
 }
 
 func processModule(module string, arguments []string) (string, int) {
@@ -262,7 +297,8 @@ func StartWorker() {
 	r := mux.NewRouter()
 	r.HandleFunc("/receive", handleReceiveMessage).Methods("POST")
 	r.HandleFunc("/status", handleGetStatus).Methods("GET")
+	r.HandleFunc("/tasks", handleGetTasks).Methods("GET")
 
 	http.Handle("/", r)
-	http.ListenAndServe(":8182", nil)
+	http.ListenAndServe(":" + port, nil)
 }
