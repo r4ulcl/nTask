@@ -12,6 +12,7 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 
 	"github.com/gorilla/mux"
+	"github.com/r4ulcl/NetTask/manager/API"
 	"github.com/r4ulcl/NetTask/manager/database"
 	"github.com/r4ulcl/NetTask/manager/utils"
 )
@@ -34,18 +35,10 @@ func loadManagerConfig(filename string) (utils.ManagerConfig, error) {
 	return config, nil
 }
 
-func incorrectOauth(clientOauthKey, oauthToken string) bool {
-	return clientOauthKey != oauthToken
-}
-
-func incorrectOauthWorker(clientOauthKey, oauthTokenWorkers string) bool {
-	return clientOauthKey != oauthTokenWorkers
-}
-
 //verifyWorkersLoop check and set if the workers are UP infinite
 func verifyWorkersLoop(OauthTokenWorkers string, db *sql.DB) {
 	for {
-		verifyWorkers(OauthTokenWorkers, db)
+		go verifyWorkers(OauthTokenWorkers, db)
 		time.Sleep(5 * time.Second)
 	}
 }
@@ -71,7 +64,9 @@ func verifyWorker(db *sql.DB, OauthTokenWorkers string, worker utils.Worker) err
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", workerURL+"/status", nil)
 	if err != nil {
-		fmt.Printf("Failed to create request to %s: %v\n", workerURL, err)
+		fmt.Printf("Failed to create request to %s: %v\nDelete worker: %s", workerURL, err, worker.Name)
+		//Incorrect DATA, delete worker
+		database.RmWorkerName(db, worker.Name)
 		return err
 	}
 
@@ -104,11 +99,9 @@ func verifyWorker(db *sql.DB, OauthTokenWorkers string, worker utils.Worker) err
 		return err
 	}
 
+	// If worker status is not the same as storage in DB update
 	if status.Working != worker.Working {
-		fmt.Println("DIFFERENT!")
-	} else {
-		fmt.Println("SAME!")
-
+		database.SetWorkerworkingTo(status.Working, db, worker)
 	}
 
 	return nil
@@ -243,36 +236,56 @@ func StartManager() {
 
 	// worker
 	r.HandleFunc("/worker", func(w http.ResponseWriter, r *http.Request) {
-		handleWorkerGet(w, r, config, db)
+		API.HandleWorkerGet(w, r, config, db)
 	}).Methods("GET") //get workers
 
 	r.HandleFunc("/worker", func(w http.ResponseWriter, r *http.Request) {
-		handleWorkerAdd(w, r, config, db)
+		API.HandleWorkerPost(w, r, config, db)
 	}).Methods("POST") //add worker
 
 	r.HandleFunc("/worker/{NAME}", func(w http.ResponseWriter, r *http.Request) {
-		handleWorkerRMName(w, r, config, db)
+		API.HandleWorkerDeleteName(w, r, config, db)
 	}).Methods("DELETE") //delete worker
 
 	r.HandleFunc("/worker/{NAME}", func(w http.ResponseWriter, r *http.Request) {
-		handleWorkerStatus(w, r, config, db)
+		API.HandleWorkerStatus(w, r, config, db)
 	}).Methods("GET") //check status 1 worker
 
-	/*
-		// task
-		r.HandleFunc("/task", handleTask).Methods("GET")
-		r.HandleFunc("/task/add", handleTaskAdd).Methods("POST")
-		r.HandleFunc("/task/stop", handletasktop).Methods("POST")
-		r.HandleFunc("/task/rm", handleTaskRM).Methods("POST")
-		r.HandleFunc("/task/status/{id}", handletasktatus).Methods("GET")
+	// -------------------------------------------------------------------
 
+	// task
+	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+		API.HandleTaskGet(w, r, config, db)
+	}).Methods("GET") //check tasks
+
+	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+		API.HandleTaskPost(w, r, config, db)
+	}).Methods("POST") //Add task
+
+	r.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
+		API.HandleTaskDelete(w, r, config, db)
+	}).Methods("DELETE") //Delete task
+
+	r.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
+		API.HandleTaskStatus(w, r, config, db)
+	}).Methods("GET") // get status task
+
+	//r.HandleFunc("/task/{ID}", handletasktop).Methods("PATCH")
+
+	// -------------------------------------------------------------------
+
+	/*
 		// vuln
 		r.HandleFunc("/vuln/", handleDummy).Methods("GET")
 		r.HandleFunc("/vuln/add", handleDummy).Methods("POST")
 		r.HandleFunc("/vuln/rm", handleDummy).Methods("POST")
 		r.HandleFunc("/vuln/info/{id}", handleDummy).Methods("GET")
 
+		// -------------------------------------------------------------------
+
 		// Scope
+
+		// -------------------------------------------------------------------
 
 		// Asset
 	*/

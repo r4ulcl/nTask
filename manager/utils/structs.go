@@ -32,3 +32,12 @@ type Worker struct {
 	Working bool   `json:"working"`
 	UP      bool   `json:"up"`
 }
+
+type Task struct {
+	ID         string `json:"id"`
+	Created_at string `json:"created_at"`
+	Updated_at string `json:"updated_at"`
+	Status     string `json:"status"`
+	WorkerName string `json:"workerName"`
+	Output     string `json:"output"`
+}

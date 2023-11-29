@@ -149,3 +149,14 @@ func SetWorkerUPto(up bool, db *sql.DB, worker utils.Worker) error {
 
 	return nil
 }
+
+func SetWorkerworkingTo(working bool, db *sql.DB, worker utils.Worker) error {
+	_, err := db.Exec("UPDATE worker SET working = ? WHERE name = ?",
+		working, worker.Name)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	return nil
+}
