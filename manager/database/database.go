@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -27,7 +28,8 @@ func ConnectDB(username, password, host, port, database string) (*sql.DB, error)
 		return nil, err
 	}
 
-	err = InitDB(db)
+	sqlFile := "manager/database/sql.sql"
+	err = initFromFile(db, sqlFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -35,20 +37,32 @@ func ConnectDB(username, password, host, port, database string) (*sql.DB, error)
 	return db, nil
 }
 
-func InitDB(db *sql.DB) error {
-
-	b, err := ioutil.ReadFile("manager/database/sql.sql") // just pass the file name
-	if err != nil {
-		fmt.Print(err)
-	}
-
-	databaseSQL := string(b) // convert content to a 'string'
-
-	//Init db
-	_, err = db.Exec(databaseSQL)
-
+func initFromFile(db *sql.DB, filePath string) error {
+	// Read the SQL file
+	sqlFile, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return err
 	}
+
+	// Split the content of the SQL file into individual statements
+	sqlStatements := strings.Split(string(sqlFile), ";")
+
+	// Execute each SQL statement
+	for _, statement := range sqlStatements {
+		// Trim leading and trailing whitespaces
+		sqlStatement := strings.TrimSpace(statement)
+
+		// Skip empty statements
+		if sqlStatement == "" {
+			continue
+		}
+
+		// Execute the SQL statement
+		_, err := db.Exec(sqlStatement)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
