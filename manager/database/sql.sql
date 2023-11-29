@@ -5,3 +5,8 @@ CREATE TABLE IF NOT EXISTS worker (
     data JSON,
     UNIQUE (ip, port)
 );
+
+CREATE TABLE IF NOT EXISTS task (
+    ID VARCHAR(255) PRIMARY KEY,
+    data JSON
+);
