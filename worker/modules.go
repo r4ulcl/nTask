@@ -2,7 +2,9 @@ package worker
 
 import (
 	"fmt"
+	"math/rand"
 	"os/exec"
+	"time"
 )
 
 func module1(arguments []string) (string, int) {
@@ -37,4 +39,25 @@ func module2(arguments []string) (string, int) {
 	outputString := string(output)
 
 	return outputString, 0
+}
+
+func workAndNotify(seconds int, id string) {
+	//workMutex.Lock()
+	Working = true
+	messageID = id
+	//workMutex.Unlock()
+
+	// Simulate work with an unknown duration
+	workDuration := getRandomDuration()
+	fmt.Printf("Working for %s (ID: %s)\n", workDuration.String(), id)
+	time.Sleep(workDuration)
+
+	//workMutex.Lock()
+	Working = false
+	messageID = ""
+	//workMutex.Unlock()
+}
+
+func getRandomDuration() time.Duration {
+	return time.Duration(rand.Intn(10)+1) * time.Second
 }
