@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 
@@ -10,16 +9,9 @@ import (
 )
 
 func AddWorker(db *sql.DB, worker utils.Worker) error {
-	// Marshal the Worker struct to JSON
-	jsonData, err := json.Marshal(worker)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-
 	// Insert the JSON data into the MySQL table
-	_, err = db.Exec("INSERT INTO worker (name, ip, port, data) VALUES (?, ?, ?, ?)",
-		worker.Name, worker.IP, worker.Port, jsonData)
+	_, err := db.Exec("INSERT INTO worker (name, ip, port, working, up) VALUES (?, ?, ?, ?, ?)",
+		worker.Name, worker.IP, worker.Port, worker.Working, worker.UP)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -67,7 +59,7 @@ func GetWorkers(db *sql.DB) ([]utils.Worker, error) {
 	var workers []utils.Worker
 
 	// Query all workers from the worker table
-	rows, err := db.Query("SELECT data FROM worker")
+	rows, err := db.Query("SELECT name, ip, port, working, up FROM worker")
 	if err != nil {
 		fmt.Println(err)
 		return workers, err
@@ -77,22 +69,26 @@ func GetWorkers(db *sql.DB) ([]utils.Worker, error) {
 	// Iterate over the rows
 	for rows.Next() {
 		// Declare variables to store JSON data
-		var storedData []byte
+		var name string
+		var ip string
+		var port string
+		var working bool
+		var up bool
 
 		// Scan the values from the row into variables
-		err := rows.Scan(&storedData)
+		err := rows.Scan(&name, &ip, &port, &working, &up)
 		if err != nil {
 			fmt.Println(err)
 			return workers, err
 		}
 
-		// Unmarshal JSON data into a Person struct
+		// Data into a Person struct
 		var worker utils.Worker
-		err = json.Unmarshal(storedData, &worker)
-		if err != nil {
-			fmt.Println(err)
-			return workers, err
-		}
+		worker.Name = name
+		worker.IP = ip
+		worker.Port = port
+		worker.Working = working
+		worker.UP = up
 
 		// Append the person to the slice
 		workers = append(workers, worker)
@@ -110,33 +106,31 @@ func GetWorkers(db *sql.DB) ([]utils.Worker, error) {
 func GetWorker(db *sql.DB, name string) (utils.Worker, error) {
 	var worker utils.Worker
 	// Retrieve the JSON data from the MySQL table
-	var storedData []byte
-	err := db.QueryRow("SELECT data FROM worker WHERE name = ?", name).Scan(&storedData)
+	var name2 string
+	var ip string
+	var port string
+	var working bool
+	var up bool
+	err := db.QueryRow("SELECT name, ip, port, working, up FROM worker WHERE name = ?", name).Scan(&name2, &ip, &port, &working, &up)
 	if err != nil {
 		log.Println(err)
 		return worker, err
 	}
 
-	// Unmarshal the JSON data back to a struct
-	err = json.Unmarshal(storedData, &worker)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// Data back to a struct
+	worker.Name = name
+	worker.IP = ip
+	worker.Port = port
+	worker.Working = working
+	worker.UP = up
 
 	return worker, nil
 }
 
 func UpdateWorker(db *sql.DB, worker utils.Worker) error {
-	// Marshal the Worker struct to JSON
-	jsonData, err := json.Marshal(worker)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-
 	// Update the JSON data in the MySQL table based on the worker's name
-	_, err = db.Exec("UPDATE worker SET ip = ?, port = ?, data = ? WHERE name = ?",
-		worker.IP, worker.Port, jsonData, worker.Name)
+	_, err := db.Exec("UPDATE worker SET name = ?, ip = ?, port = ?, working = ?, UP = ? WHERE name = ?",
+		worker.IP, worker.Port, worker.Working, worker.UP, worker.Name)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -146,11 +140,12 @@ func UpdateWorker(db *sql.DB, worker utils.Worker) error {
 
 //SetWorkerDown set worker status to status var, false -> cant connect
 func SetWorkerUPto(up bool, db *sql.DB, worker utils.Worker) error {
-
-	//Set status to var
-	worker.UP = up
-
-	UpdateWorker(db, worker)
+	_, err := db.Exec("UPDATE worker SET UP = ? WHERE name = ?",
+		up, worker.Name)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
 
 	return nil
 }
