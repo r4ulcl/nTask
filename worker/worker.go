@@ -2,50 +2,21 @@
 package worker
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/gorilla/mux"
-	"github.com/r4ulcl/NetTask/manager/utils"
+	globalStructs "github.com/r4ulcl/NetTask/globalStructs"
+	"github.com/r4ulcl/NetTask/worker/API"
+	"github.com/r4ulcl/NetTask/worker/utils"
 )
 
-type WorkerConfig struct {
-	Name               string `json:"name"`
-	MaxConcurrentTasks int    `json:"maxConcurrentTasks"`
-	ManagerIP          string `json:"managerIP"`
-	ManagerPort        string `json:"managerPort"`
-	OAuthToken         string `json:"oauthToken"`
-	Port               string `json:"port"`
-}
-
-type Message struct {
-	ID          string   `json:"id"`
-	Module      string   `json:"module"`
-	Arguments   []string `json:"arguments"`
-	CallbackURL string   `json:"callbackURL"`
-}
-
-type Task struct {
-	ID          string
-	Module      string
-	Arguments   []string
-	CallbackURL string
-	Status      string
-	Result      string
-	Goroutine   *sync.WaitGroup
-}
-
-type Status struct {
-	Working   bool   `json:"working"`
-	MessageID string `json:"messageID"`
-}
-
 var (
-	taskList   = make(map[string]*Task)
+	taskList   = make(map[string]*globalStructs.Task)
 	taskListMu sync.Mutex
 	workMutex  sync.Mutex
 	//maxConcurrentTasks = 1
@@ -53,63 +24,31 @@ var (
 	messageID = ""
 )
 
-func loadWorkerConfig(filename string) (WorkerConfig, error) {
-	var config WorkerConfig
+func loadWorkerConfig(filename string) (*utils.WorkerConfig, error) {
+	var config utils.WorkerConfig
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
 		fmt.Printf("Error reading worker config file: %s\n", err)
-		return config, err
+		return &config, err
 	}
 
 	err = json.Unmarshal(content, &config)
 	if err != nil {
 		fmt.Printf("Error unmarshalling worker config: %s\n", err)
-		return config, err
+		return &config, err
 	}
 
-	return config, nil
-}
-
-func addWorker(name, port, managerIP, managerPort, oauthToken string) error {
-	worker := utils.Worker{
-		Name:    name,
-		Port:    port,
-		Working: false,
-		UP:      true,
+	// if Name is empty use hostname
+	if config.Name == "" {
+		hostname := ""
+		hostname, err = os.Hostname()
+		if err != nil {
+			fmt.Println("Error getting hostname:", err)
+		}
+		config.Name = hostname
 	}
 
-	payload, _ := json.Marshal(worker)
-
-	req, err := http.NewRequest("POST", "http://"+managerIP+":"+managerPort+"/worker", bytes.NewBuffer(payload))
-	if err != nil {
-		fmt.Println("Error creating request:", err)
-		return err
-	}
-
-	// Add custom headers, including the OAuth header
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", oauthToken)
-
-	// Create an HTTP client and make the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println("Error making request:", err)
-		return err
-	}
-	defer resp.Body.Close()
-
-	//IF response is not 200 error!!
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("error adding the worker %s", body)
-	}
-
-	return nil
+	return &config, nil
 }
 
 func StartWorker() {
@@ -120,12 +59,11 @@ func StartWorker() {
 		fmt.Println(err)
 	}
 
-	status := Status{
-		Working:   false,
-		MessageID: "",
+	status := &globalStructs.WorkerStatus{
+		Working: false,
 	}
 
-	err = addWorker(workerConfig.Name, workerConfig.Port, workerConfig.ManagerIP, workerConfig.ManagerPort, workerConfig.OAuthToken)
+	err = utils.AddWorker(workerConfig)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -133,10 +71,23 @@ func StartWorker() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
-		handleGetStatus(w, r, status, workerConfig)
+		API.HandleGetStatus(w, r, status, workerConfig)
 	}).Methods("GET") //check worker status
 
+	//Task
+	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+		API.HandleTaskPost(w, r, status, workerConfig)
+	}).Methods("POST") //Add task
+
+	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+		API.HandleTaskDelete(w, r, status, workerConfig)
+	}).Methods("DELETE") //delete task
+
 	/*
+		r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+			API.HandleTaskGet(w, r, status, workerConfig)
+		}).Methods("GET") //check task status
+
 		r.HandleFunc("/task", handletaskMessage).Methods("POST")
 		r.HandleFunc("/status", handleGetStatus).Methods("GET")
 		r.HandleFunc("/tasks", handleGetTasks).Methods("GET")

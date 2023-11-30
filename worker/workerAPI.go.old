@@ -1,23 +1,15 @@
 package worker
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"sync"
+	"time"
+
+	"github.com/gorilla/mux"
 )
-
-func handleGetStatus(w http.ResponseWriter, r *http.Request, status Status, config WorkerConfig) {
-	oauthKeyClient := r.Header.Get("Authorization")
-	if oauthKeyClient != config.OAuthToken {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(status)
-}
-
-/*
 
 func handletaskMessage(w http.ResponseWriter, r *http.Request) {
 	oauthKey := r.Header.Get("Authorization")
@@ -226,4 +218,5 @@ func processModule(module string, arguments []string) (string, int) {
 		return "Unknown task", 0
 	}
 }
-*/
+
+//*/
