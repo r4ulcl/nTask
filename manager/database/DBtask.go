@@ -96,7 +96,7 @@ func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB) ([]globalStruc
 	}
 	sql += " ORDER BY priority DESC, created_at ASC;"
 
-	fmt.Println(sql)
+	//fmt.Println(sql)
 	return GetTasksSQL(sql, db)
 }
 

@@ -1,4 +1,4 @@
-package worker
+package modules
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func module1(arguments []string) (string, int) {
+func Module1(arguments []string) (string, error) {
 	// Command to run the Python script
 	scriptPath := "./worker/modules/module1.py"
 	cmd := exec.Command("python3", append([]string{scriptPath}, arguments...)...)
@@ -15,16 +15,16 @@ func module1(arguments []string) (string, int) {
 	// Capture the output of the script
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println("Error:", err)
+		return "", err
 	}
 
 	// Convert the output byte slice to a string
 	outputString := string(output)
 
-	return outputString, 0
+	return outputString, nil
 }
 
-func module2(arguments []string) (string, int) {
+func Module2(arguments []string) (string, error) {
 	// Command to run the Bash script
 	scriptPath := "./worker/modules/module2.sh"
 	cmd := exec.Command("bash", append([]string{scriptPath}, arguments...)...)
@@ -32,32 +32,42 @@ func module2(arguments []string) (string, int) {
 	// Capture the output of the script
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println("Error:", err)
+		return "", err
 	}
 
 	// Convert the output byte slice to a string
 	outputString := string(output)
 
-	return outputString, 0
+	return outputString, nil
 }
 
-func workAndNotify(seconds int, id string) {
+func WorkAndNotify(id string) (string, error) {
 	//workMutex.Lock()
-	Working = true
-	messageID = id
+	//isWorking = true
+	//messageID = id
 	//workMutex.Unlock()
 
 	// Simulate work with an unknown duration
-	workDuration := getRandomDuration()
+	workDuration := GetRandomDuration()
 	fmt.Printf("Working for %s (ID: %s)\n", workDuration.String(), id)
 	time.Sleep(workDuration)
 
 	//workMutex.Lock()
-	Working = false
-	messageID = ""
+	//isWorking = false
+	//messageID = ""
 	//workMutex.Unlock()
+	str := "Working for " + workDuration.String() + " (ID: " + id + ")"
+	return str, nil
 }
 
-func getRandomDuration() time.Duration {
+func GetRandomDuration() time.Duration {
 	return time.Duration(rand.Intn(10)+1) * time.Second
+}
+
+func StringList(list []string) string {
+	stringList := ""
+	for _, item := range list {
+		stringList += item + "\n"
+	}
+	return stringList
 }

@@ -9,7 +9,7 @@ type Task struct {
 	Args       []string `json:"args"`
 	Created_at string   `json:"created_at"`
 	Updated_at string   `json:"updated_at"`
-	Status     string   `json:"status"` //pending, running, done, failed
+	Status     string   `json:"status"` //pending, running, done, failed, deleted
 	WorkerName string   `json:"workerName"`
 	Output     string   `json:"output"`
 	Priority   bool     `json:"priority"`

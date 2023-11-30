@@ -7,22 +7,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
 	globalStructs "github.com/r4ulcl/NetTask/globalStructs"
 	"github.com/r4ulcl/NetTask/worker/API"
 	"github.com/r4ulcl/NetTask/worker/utils"
-)
-
-var (
-	taskList   = make(map[string]*globalStructs.Task)
-	taskListMu sync.Mutex
-	workMutex  sync.Mutex
-	//maxConcurrentTasks = 1
-	Working   = false
-	messageID = ""
 )
 
 func loadWorkerConfig(filename string) (*utils.WorkerConfig, error) {
@@ -86,7 +76,7 @@ func StartWorker() {
 		API.HandleTaskPost(w, r, status, workerConfig)
 	}).Methods("POST") //Add task
 
-	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
 		API.HandleTaskDelete(w, r, status, workerConfig)
 	}).Methods("DELETE") //delete task
 

@@ -150,7 +150,41 @@ func SendAddTask(db *sql.DB, OauthTokenWorkers string, worker *globalStructs.Wor
 }
 
 //SendDeleteTask send request to a worker to stop and delete a task
-func SendDeleteTask(db *sql.DB, OauthTokenWorkers string, worker *globalStructs.Worker, task globalStructs.Task) error {
+func SendDeleteTask(db *sql.DB, worker *globalStructs.Worker, task *globalStructs.Task) error {
+	workerURL := "http://" + worker.IP + ":" + worker.Port + "/task/" + task.ID
+
+	// Create a new DELETE request
+	req, err := http.NewRequest("DELETE", workerURL, nil)
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return err
+	}
+
+	// Add Authorization header
+	req.Header.Set("Authorization", worker.OauthToken)
+
+	// Specify the content type as JSON
+	req.Header.Set("Content-Type", "application/json")
+
+	// Send the request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error sending request:", err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Check the response status
+	if resp.StatusCode == http.StatusOK {
+		fmt.Println("POST request was successful")
+		//set worker and task working
+		database.SetTaskStatus(db, task.ID, "deleted")
+		database.SetWorkerworkingTo(false, db, worker)
+	} else {
+		fmt.Println("POST request failed with status:", resp.Status)
+	}
+
 	return nil
 }
 

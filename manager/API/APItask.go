@@ -124,7 +124,25 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	vars := mux.Vars(r)
 	id := vars["ID"]
 
-	err := database.RmTask(db, id)
+	task, err := database.GetTask(db, id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	worker, err := database.GetWorker(db, task.WorkerName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = utils.SendDeleteTask(db, &worker, &task)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = database.RmTask(db, id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
