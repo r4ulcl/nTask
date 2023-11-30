@@ -1,12 +1,15 @@
 package API
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	globalStructs "github.com/r4ulcl/NetTask/globalStructs"
 	"github.com/r4ulcl/NetTask/manager/database"
 	"github.com/r4ulcl/NetTask/manager/utils"
 )
@@ -19,9 +22,9 @@ import (
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Success 200 {array} utils.Task
+// @Success 200 {array} globalStructs.Task
 // @Router /task [get]
-func HandleTaskGet(w http.ResponseWriter, r *http.Request, config utils.ManagerConfig, db *sql.DB) {
+func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -54,26 +57,36 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config utils.ManagerC
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Success 200 {array} utils.Task
+// @Success 200 {array} globalStructs.Task
 // @Router /task [post]
-// @Param task body utils.Task true "Task object to create"
-func HandleTaskPost(w http.ResponseWriter, r *http.Request, config utils.ManagerConfig, db *sql.DB) {
+// @Param task body globalStructs.Task true "Task object to create"
+func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	var request utils.Task
+	var request globalStructs.Task
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		http.Error(w, "Invalid callback body", http.StatusBadRequest)
 		return
 	}
 
+	//Set Random ID
+	request.ID, err = generateRandomID(30)
+	if err != nil {
+		http.Error(w, "Invalid ID generated", http.StatusBadRequest)
+		return
+	}
+
+	//set status
+	request.Status = "pending"
+
 	err = database.AddTask(db, request)
 	if err != nil {
-		message := "Invalid worker info: " + err.Error()
+		message := "Invalid task info: " + err.Error()
 		http.Error(w, message, http.StatusBadRequest)
 		return
 	}
@@ -92,7 +105,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config utils.Manager
 // @Success 200 {array} string
 // @Router /task/{ID} [delete]
 // @Param ID path string false "task ID"
-func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config utils.ManagerConfig, db *sql.DB) {
+func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -118,10 +131,10 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config utils.Manag
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Success 200 {array} utils.Task
+// @Success 200 {array} globalStructs.Task
 // @Router /task/{ID} [get]
 // @Param ID path string false "task ID"
-func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config utils.ManagerConfig, db *sql.DB) {
+func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -131,15 +144,15 @@ func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config utils.Manag
 	vars := mux.Vars(r)
 	id := vars["ID"]
 
-	fmt.Println("ID " + id)
-
-	worker, err := database.GetTask(db, id)
+	//Access worker to update info if status running
+	// get task from ID
+	task, err := database.GetTask(db, id)
 	if err != nil {
 		http.Error(w, "Invalid callback body"+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	jsonData, err := json.Marshal(worker)
+	jsonData, err := json.Marshal(task)
 	if err != nil {
 		http.Error(w, "Invalid callback body"+err.Error(), http.StatusBadRequest)
 		return
@@ -150,4 +163,22 @@ func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config utils.Manag
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))
+}
+
+// generateRandomID generates a random ID of the specified length
+func generateRandomID(length int) (string, error) {
+	// Calculate the number of bytes needed to achieve the desired length
+	numBytes := length / 2 // Since 1 byte = 2 hex characters
+
+	// Generate random bytes
+	randomBytes := make([]byte, numBytes)
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		return "", err
+	}
+
+	// Convert random bytes to hex string
+	randomID := hex.EncodeToString(randomBytes)
+
+	return randomID, nil
 }

@@ -17,131 +17,74 @@ import (
 	"github.com/r4ulcl/NetTask/manager/utils"
 )
 
-func loadManagerConfig(filename string) (utils.ManagerConfig, error) {
+func loadManagerConfig(filename string) (*utils.ManagerConfig, error) {
 	var config utils.ManagerConfig
 
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
 		fmt.Printf("Error reading manager config file: %s\n", err)
-		return config, err
+		return &config, err
 	}
 
 	err = json.Unmarshal(content, &config)
 	if err != nil {
 		fmt.Printf("Error unmarshalling manager config: %s\n", err)
-		return config, err
+		return &config, err
 	}
 
-	return config, nil
+	return &config, nil
 }
 
-//verifyWorkersLoop check and set if the workers are UP infinite
-func verifyWorkersLoop(OauthTokenWorkers string, db *sql.DB) {
+func manageTasks(config *utils.ManagerConfig, db *sql.DB) {
+	//infinite loop eecuted with go routine
 	for {
-		go verifyWorkers(OauthTokenWorkers, db)
-		time.Sleep(5 * time.Second)
-	}
-}
 
-//verifyWorkers check and set if the workers are UP
-func verifyWorkers(OauthTokenWorkers string, db *sql.DB) {
-
-	workers, err := database.GetWorkers(db)
-	if err != nil {
-		fmt.Println(err)
-	}
-	for _, worker := range workers {
-		verifyWorker(db, OauthTokenWorkers, worker)
-	}
-
-}
-
-//verifyWorker check and set if the workers are UP
-func verifyWorker(db *sql.DB, OauthTokenWorkers string, worker utils.Worker) error {
-	workerURL := "http://" + worker.IP + ":" + worker.Port
-
-	// Create an HTTP client and send a GET request
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", workerURL+"/status", nil)
-	if err != nil {
-		fmt.Printf("Failed to create request to %s: %v\nDelete worker: %s", workerURL, err, worker.Name)
-		//Incorrect DATA, delete worker
-		database.RmWorkerName(db, worker.Name)
-		return err
-	}
-
-	req.Header.Set("Authorization", OauthTokenWorkers)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		//fmt.Println("Error making request:", err)
-		//if error making request is offline!
-		database.SetWorkerUPto(false, db, worker)
-		return err
-	}
-	defer resp.Body.Close()
-
-	//if no error making request is online!
-	database.SetWorkerUPto(true, db, worker)
-
-	// Read the response body into a byte slice
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Error reading response body:", err)
-		return err
-	}
-
-	// Unmarshal the JSON into a TaskResponse struct
-	var status utils.WorkerStatusResponse
-	err = json.Unmarshal(body, &status)
-	if err != nil {
-		fmt.Println("Error unmarshalling JSON:", err)
-		return err
-	}
-
-	// If worker status is not the same as storage in DB update
-	if status.Working != worker.Working {
-		database.SetWorkerworkingTo(status.Working, db, worker)
-	}
-
-	return nil
-
-}
-
-/*func sendToSlave(slaveURL string, message Message) (string, error) {
-	// Include the callback URL in the message
-	message.CallbackURL = callbackURL + message.ID
-
-	payload, _ := json.Marshal(message)
-
-	req, err := http.NewRequest("POST", slaveURL+"/task", bytes.NewBuffer(payload))
-	if err != nil {
-		fmt.Printf("Failed to create request to %s: %v\n", slaveURL, err)
-		return "", err
-	}
-
-	req.Header.Set("Authorization", oauthToken)
-
-	bodyString := ""
-
-	client := &http.Client{}
-	response, err := client.Do(req)
-	if err != nil {
-		fmt.Printf("Failed to send message to %s: %v\n", slaveURL, err)
-	} else {
-		defer response.Body.Close()
-
-		bodyBytes, err := ioutil.ReadAll(response.Body)
+		fmt.Println("manageTasks")
+		// Get all tasks in order and if priority
+		tasks, err := database.GetTasksPending(db)
 		if err != nil {
-			fmt.Printf("Failed to read response body: %v\n", err)
-		} else {
-			bodyString = string(bodyBytes)
-			fmt.Printf("Response Body: %s\n", bodyString)
+			fmt.Println(err.Error())
 		}
-	}
 
-	return bodyString, nil
-}*/
+		// Get iddle workers
+		workers, err := database.GetWorkerIddle(db)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+
+		fmt.Println(len(tasks))
+		fmt.Println(len(workers))
+
+		//if there are tasks
+		if len(tasks) > 0 && len(workers) > 0 {
+			// Send first to worker idle worker
+			worker := workers[0]
+			task := tasks[0]
+			err = utils.SendAddTask(db, config.OauthTokenWorkers, &worker, &task)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+		}
+		time.Sleep(time.Second * 5)
+	}
+	/*
+		//Send the task to the worker
+		workers, err := database.GetWorkers(db)
+		if err != nil {
+			message := "Invalid worker info: " + err.Error()
+			http.Error(w, message, http.StatusBadRequest)
+			return
+		}
+
+		worker := workers[0]
+		err = utils.SendAddTask(db, config.OauthTokenWorkers, worker, request)
+		if err != nil {
+			message := "Invalid SendAddTask info: " + err.Error()
+			http.Error(w, message, http.StatusBadRequest)
+			return
+		}
+	*/
+}
 
 /*
 // @Summary Send a message
@@ -214,7 +157,10 @@ func StartManager() {
 	}
 
 	//verify status workers infinite
-	go verifyWorkersLoop(config.OauthTokenWorkers, db)
+	go utils.VerifyWorkersLoop(db)
+
+	//manage task, routine to send task to iddle workers
+	go manageTasks(config, db)
 
 	r := mux.NewRouter()
 
@@ -232,7 +178,9 @@ func StartManager() {
 	//r.HandleFunc("/send/{recipient}", handleSendMessage).Methods("POST")
 
 	// CallBack
-	//r.HandleFunc("/callback/{id}", handleCallback).Methods("POST") // Callback endpoint
+	r.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+		API.HandleCallback(w, r, config, db)
+	}).Methods("POST") //get callback info from task
 
 	// worker
 	r.HandleFunc("/worker", func(w http.ResponseWriter, r *http.Request) {

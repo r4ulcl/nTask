@@ -7,12 +7,13 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
+	globalStructs "github.com/r4ulcl/NetTask/globalStructs"
 	"github.com/r4ulcl/NetTask/manager/database"
 	"github.com/r4ulcl/NetTask/manager/utils"
 )
 
-/*
 // @Summary Handle callback from slave
 // @Description Handle callback from slave
 // @Tags callback
@@ -23,27 +24,33 @@ import (
 // @Failure 400 {string} string "Invalid callback body"
 // @Failure 401 {string} string "Unauthorized"
 // @Router /callback [post]
-func HandleCallback(w http.ResponseWriter, r *http.Request, config utils.ManagerConfig, db *sql.DB) {
+func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
-	if !incorrectOauthWorker(oauthKey, config.OauthTokenWorkers) {
+	if incorrectOauth(oauthKey, config.OAuthToken) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-
-	var result Message
+	var result globalStructs.Task
 	err := json.NewDecoder(r.Body).Decode(&result)
 	if err != nil {
 		http.Error(w, "Invalid callback body", http.StatusBadRequest)
 		return
 	}
 
-	fmt.Printf("Received result (ID: %s) from slave:\n%s\n", result.ID, result.Module)
+	fmt.Println(result)
+
+	fmt.Printf("Received result (ID: %s) from :\n %s with output: %s\n", result.ID, result.WorkerName, result.Output)
+
+	// Update task with the worker one
+	database.UpdateTask(db, result)
+
+	// Set worker to iddle now
+	database.SetWorkerworkingToString(false, db, result.WorkerName)
 
 	// Handle the result as needed
 
 	w.WriteHeader(http.StatusOK)
 }
-*/
 
 // @Summary Get workers
 // @Description Handle worker request
@@ -53,7 +60,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config utils.Manager
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @Success 200 {string} string "OK"
 // @Router /worker [get]
-func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config utils.ManagerConfig, db *sql.DB) {
+func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -91,15 +98,15 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config utils.Manage
 // @In header
 // @Name Authorization
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Param worker body utils.Worker true "Worker object to create"
-func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config utils.ManagerConfig, db *sql.DB) {
+// @Param worker body globalStructs.Worker true "Worker object to create"
+func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	var request utils.Worker
+	var request globalStructs.Worker
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		http.Error(w, "Invalid callback body", http.StatusBadRequest)
@@ -110,11 +117,20 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config utils.Manag
 
 	fmt.Println(request.Name, request.IP, request.Name)
 
-	err = database.AddWorker(db, request)
+	err = database.AddWorker(db, &request)
 	if err != nil {
-		message := "Invalid worker info: " + err.Error()
-		http.Error(w, message, http.StatusBadRequest)
-		return
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
+			if mysqlErr.Number == 1062 { // MySQL error number for duplicate entry
+				database.SetWorkerUPto(true, db, &request)
+				database.SetWorkerCount(0, db, &request)
+				return
+			} else {
+				message := "Invalid worker info: " + err.Error()
+				http.Error(w, message, http.StatusBadRequest)
+				return
+			}
+		}
+
 	}
 
 	// Handle the result as needed
@@ -131,7 +147,7 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config utils.Manag
 // @Success 200 {array} string
 // @Router /worker/{NAME} [delete]
 // @Param NAME path string false "Worker NAME"
-func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config utils.ManagerConfig, db *sql.DB) {
+func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -157,10 +173,10 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config utils
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Success 200 {array} utils.Worker
+// @Success 200 {array} globalStructs.Worker
 // @Router /worker/{NAME} [get]
 // @Param NAME path string false "Worker NAME"
-func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config utils.ManagerConfig, db *sql.DB) {
+func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
