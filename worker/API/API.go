@@ -98,10 +98,6 @@ func processTask(status *globalStructs.WorkerStatus, config *utils.WorkerConfig,
 		task.Status = "done"
 	}
 	task.Output = output
-	fmt.Println(task)
-
-	//Set status
-	task.Status = "done"
 
 	utils.CallbackTaskMessage(config, task)
 
@@ -130,7 +126,7 @@ func processModule(task *globalStructs.Task) (string, error) {
 		}
 		return "", nil
 	default:
-		return "Unknown task", nil
+		return "Unknown task", fmt.Errorf("unknown task")
 	}
 }
 
