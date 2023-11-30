@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 
 	globalStructs "github.com/r4ulcl/NetTask/globalStructs"
@@ -52,7 +53,54 @@ func RmTask(db *sql.DB, ID string) error {
 	return nil
 }
 
-func GetTasks(db *sql.DB) ([]globalStructs.Task, error) {
+func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB) ([]globalStructs.Task, error) {
+	queryParams := r.URL.Query()
+
+	sql := "SELECT ID, module, args, created_at, updated_at, status, workerName, output, priority FROM task WHERE 1=1 "
+
+	// Add filters for each parameter if provided
+	if ID := queryParams.Get("ID"); ID != "" {
+		sql += fmt.Sprintf(" AND ID = '%s'", ID)
+	}
+
+	if module := queryParams.Get("module"); module != "" {
+		sql += fmt.Sprintf(" AND module = '%s'", module)
+	}
+
+	if args := queryParams.Get("args"); args != "" {
+		sql += fmt.Sprintf(" AND args = '%s'", args)
+	}
+
+	if created_at := queryParams.Get("created_at"); created_at != "" {
+		sql += fmt.Sprintf(" AND created_at = '%s'", created_at)
+	}
+
+	if updated_at := queryParams.Get("updated_at"); updated_at != "" {
+		sql += fmt.Sprintf(" AND updated_at = '%s'", updated_at)
+	}
+
+	if status := queryParams.Get("status"); status != "" {
+		sql += fmt.Sprintf(" AND status = '%s'", status)
+	}
+
+	if workerName := queryParams.Get("workerName"); workerName != "" {
+		sql += fmt.Sprintf(" AND workerName = '%s'", workerName)
+	}
+
+	if output := queryParams.Get("output"); output != "" {
+		sql += fmt.Sprintf(" AND output = '%s'", output)
+	}
+
+	if priority := queryParams.Get("priority"); priority != "" {
+		sql += fmt.Sprintf(" AND priority = '%s'", priority)
+	}
+	sql += " ORDER BY priority DESC, created_at ASC;"
+
+	fmt.Println(sql)
+	return GetTasksSQL(sql, db)
+}
+
+func GetTasks2(db *sql.DB) ([]globalStructs.Task, error) {
 	sql := "SELECT ID, module, args, created_at, updated_at, status, WorkerName, output, priority FROM task ORDER BY priority DESC, created_at ASC"
 	return GetTasksSQL(sql, db)
 }

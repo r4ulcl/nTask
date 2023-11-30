@@ -39,7 +39,6 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB) {
 	//infinite loop eecuted with go routine
 	for {
 
-		fmt.Println("manageTasks")
 		// Get all tasks in order and if priority
 		tasks, err := database.GetTasksPending(db)
 		if err != nil {
@@ -52,8 +51,8 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB) {
 			fmt.Println(err.Error())
 		}
 
-		fmt.Println(len(tasks))
-		fmt.Println(len(workers))
+		//fmt.Println(len(tasks))
+		//fmt.Println(len(workers))
 
 		//if there are tasks
 		if len(tasks) > 0 && len(workers) > 0 {

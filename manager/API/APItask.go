@@ -24,6 +24,15 @@ import (
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @Success 200 {array} globalStructs.Task
 // @Router /task [get]
+// @Param ID query string false "Task ID"
+// @Param module query string false "Task module"
+// @Param args query string false "Task args"
+// @Param created_at query string false "Task created_at"
+// @Param updated_at query string false "Task updated_at"
+// @Param status query string false "Task status" Enum(pending, running, done, failed) Example(pending)
+// @Param workerName query string false "Task workerName"
+// @Param output query string false "Task output"
+// @Param priority query bool false "Task priority"
 func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) {
@@ -32,7 +41,7 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 	}
 
 	//get tasks
-	tasks, err := database.GetTasks(db)
+	tasks, err := database.GetTasks(w, r, db)
 	if err != nil {
 		http.Error(w, "Invalid callback body", http.StatusBadRequest)
 		return
