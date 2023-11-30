@@ -23,7 +23,6 @@ func AddWorker(config *WorkerConfig) error {
 
 	req, err := http.NewRequest("POST", "http://"+config.ManagerIP+":"+config.ManagerPort+"/worker", bytes.NewBuffer(payload))
 	if err != nil {
-		fmt.Println("Error creating request:", err)
 		return err
 	}
 
@@ -35,7 +34,6 @@ func AddWorker(config *WorkerConfig) error {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error making request:", err)
 		return err
 	}
 	defer resp.Body.Close()

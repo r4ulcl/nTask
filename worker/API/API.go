@@ -90,9 +90,18 @@ func processTask(status *globalStructs.WorkerStatus, config *utils.WorkerConfig,
 
 	fmt.Println("Start processing task", task.ID)
 
-	output := workAndNotify(task.ID)
+	output, err := processModule(task)
+	if err != nil {
+		fmt.Println("Error:", err)
+		task.Status = "failed"
+	} else {
+		task.Status = "done"
+	}
 	task.Output = output
 	fmt.Println(task)
+
+	//Set status
+	task.Status = "done"
 
 	utils.CallbackTaskMessage(config, task)
 
@@ -100,7 +109,10 @@ func processTask(status *globalStructs.WorkerStatus, config *utils.WorkerConfig,
 	status.WorkingID = ""
 }
 
-func processModule(messageID, module string, arguments []string) (string, int) {
+func processModule(task *globalStructs.Task) (string, error) {
+	messageID := task.ID
+	module := task.Module
+	arguments := task.Args
 	switch module {
 	case "work1":
 		workAndNotify(messageID)
@@ -114,17 +126,17 @@ func processModule(messageID, module string, arguments []string) (string, int) {
 			// Simulate work with an unknown duration
 			workDuration := getRandomDuration()
 			time.Sleep(workDuration)
-			return stringList(arguments), 0
+			return stringList(arguments), nil
 		}
-		return "", 1
+		return "", nil
 	default:
-		return "Unknown task", 0
+		return "Unknown task", nil
 	}
 }
 
 ///////////////////////////////
 
-func workAndNotify(id string) string {
+func workAndNotify(id string) (string, error) {
 	//workMutex.Lock()
 	//isWorking = true
 	//messageID = id
@@ -140,7 +152,7 @@ func workAndNotify(id string) string {
 	//messageID = ""
 	//workMutex.Unlock()
 	str := "Working for " + workDuration.String() + " (ID: " + id + ")"
-	return str
+	return str, nil
 }
 
 func getRandomDuration() time.Duration {
@@ -155,7 +167,7 @@ func stringList(list []string) string {
 	return stringList
 }
 
-func module1(arguments []string) (string, int) {
+func module1(arguments []string) (string, error) {
 	// Command to run the Python script
 	scriptPath := "./worker/modules/module1.py"
 	cmd := exec.Command("python3", append([]string{scriptPath}, arguments...)...)
@@ -163,16 +175,16 @@ func module1(arguments []string) (string, int) {
 	// Capture the output of the script
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println("Error:", err)
+		return "", err
 	}
 
 	// Convert the output byte slice to a string
 	outputString := string(output)
 
-	return outputString, 0
+	return outputString, nil
 }
 
-func module2(arguments []string) (string, int) {
+func module2(arguments []string) (string, error) {
 	// Command to run the Bash script
 	scriptPath := "./worker/modules/module2.sh"
 	cmd := exec.Command("bash", append([]string{scriptPath}, arguments...)...)
@@ -180,11 +192,11 @@ func module2(arguments []string) (string, int) {
 	// Capture the output of the script
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println("Error:", err)
+		return "", err
 	}
 
 	// Convert the output byte slice to a string
 	outputString := string(output)
 
-	return outputString, 0
+	return outputString, nil
 }

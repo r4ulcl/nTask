@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/gorilla/mux"
 	globalStructs "github.com/r4ulcl/NetTask/globalStructs"
@@ -63,9 +64,15 @@ func StartWorker() {
 		Working: false,
 	}
 
-	err = utils.AddWorker(workerConfig)
-	if err != nil {
-		fmt.Println(err)
+	// Loop until connects
+	for {
+		err = utils.AddWorker(workerConfig)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			break
+		}
+		time.Sleep(time.Second * 5)
 	}
 
 	r := mux.NewRouter()
