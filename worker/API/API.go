@@ -116,7 +116,7 @@ func processModule(task *globalStructs.Task) (string, error) {
 	switch module {
 	case "work1":
 		workAndNotify(messageID)
-		return "Task scheduled for work with an unknown duration", 0
+		return "Task scheduled for work with an unknown duration", nil
 	case "module1":
 		return module1(arguments)
 	case "module2":
