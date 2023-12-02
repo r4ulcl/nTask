@@ -1,11 +1,9 @@
 package main
 
 import (
-	//	"os"
+	// 	"os"
 	"flag"
-	"fmt"
-
-	//	"fmt"
+	"log"
 
 	"github.com/r4ulcl/NetTask/manager"
 	"github.com/r4ulcl/NetTask/worker"
@@ -23,26 +21,25 @@ import (
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host 10.10.20.10:8180
 // @BasePath /
 // @Security OAuth2.0
 // @SecurityDefinitions OAuth2.0
 
 func main() {
-
 	var isManager bool
 	var isWorker bool
 	flag.BoolVar(&isManager, "manager", false, "Run as manager (default is worker)")
-	flag.BoolVar(&isWorker, "worker", false, "Run as worker (default is API client)")
+	flag.BoolVar(&isWorker, "worker", false, "Run as worker (default is api client)")
 
 	flag.Parse()
 
 	// Check the argument and call the appropriate function
-	if isManager {
+	switch {
+	case isManager:
 		manager.StartManager()
-	} else if isWorker {
+	case isWorker:
 		worker.StartWorker()
-	} else {
-		fmt.Println("TODO, use API from cmd")
+	default:
+		log.Println("TODO, use api from cmd")
 	}
 }

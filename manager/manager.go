@@ -63,8 +63,11 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB) {
 			if err != nil {
 				log.Println(err.Error())
 			}
+		} else {
+			//only wait if not tasks or no workers
+			time.Sleep(time.Second * 1)
 		}
-		time.Sleep(time.Second * 5)
+
 	}
 }
 
