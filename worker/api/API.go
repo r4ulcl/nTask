@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
 	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
@@ -102,7 +101,7 @@ func processTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig,
 
 	log.Println("Start processing task", task.ID)
 
-	output, err := processModule(task)
+	output, err := modules.ProcessModule(task, config)
 	if err != nil {
 		log.Println("Error:", err)
 		task.Status = "failed"
@@ -115,28 +114,4 @@ func processTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig,
 
 	status.Working = false
 	status.WorkingID = ""
-}
-
-func processModule(task *globalstructs.Task) (string, error) {
-	messageID := task.ID
-	module := task.Module
-	arguments := task.Args
-	switch module {
-	case "work1":
-		return modules.WorkAndNotify(messageID)
-	case "module1":
-		return modules.Module1(arguments)
-	case "module2":
-		return modules.Module2(arguments)
-	case "workList":
-		if len(arguments) > 0 {
-			// Simulate work with an unknown duration
-			workDuration := modules.GetRandomDuration()
-			time.Sleep(workDuration)
-			return modules.StringList(arguments), nil
-		}
-		return "", nil
-	default:
-		return "Unknown task", fmt.Errorf("unknown task")
-	}
 }

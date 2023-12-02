@@ -1,16 +1,17 @@
 package modules
 
 import (
-	"log"
+	"fmt"
 	"math/rand"
 	"os/exec"
-	"time"
+
+	"github.com/r4ulcl/NetTask/globalstructs"
+	"github.com/r4ulcl/NetTask/worker/utils"
 )
 
-func Module1(arguments []string) (string, error) {
+func runModule(command string, arguments []string) (string, error) {
 	// Command to run the Python script
-	scriptPath := "./worker/modules/module1.py"
-	cmd := exec.Command("python3", append([]string{scriptPath}, arguments...)...)
+	cmd := exec.Command(command, arguments...)
 
 	// Capture the output of the script
 	output, err := cmd.CombinedOutput()
@@ -24,44 +25,20 @@ func Module1(arguments []string) (string, error) {
 	return outputString, nil
 }
 
-func Module2(arguments []string) (string, error) {
-	// Command to run the Bash script
-	scriptPath := "./worker/modules/module2.sh"
-	cmd := exec.Command("bash", append([]string{scriptPath}, arguments...)...)
+func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig) (string, error) {
+	module := task.Module
+	arguments := task.Args
 
-	// Capture the output of the script
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", err
+	command, found := config.Modules[module]
+	if !found {
+		return "Unknown task", fmt.Errorf("unknown command")
 	}
 
-	// Convert the output byte slice to a string
-	outputString := string(output)
-
-	return outputString, nil
+	return runModule(command, arguments)
 }
 
-func WorkAndNotify(id string) (string, error) {
-	// workMutex.Lock()
-	// isWorking = true
-	// messageID = id
-	// workMutex.Unlock()
-
-	// Simulate work with an unknown duration
-	workDuration := GetRandomDuration()
-	log.Println("Working for ", workDuration.String(), " ID: ", id)
-	time.Sleep(workDuration)
-
-	// workMutex.Lock()
-	// isWorking = false
-	// messageID = ""
-	// workMutex.Unlock()
-	str := "Working for " + workDuration.String() + " (ID: " + id + ")"
-	return str, nil
-}
-
-func GetRandomDuration() time.Duration {
-	return time.Duration(rand.Intn(10)+1) * time.Second
+func GetRandomDuration(base, random int) int {
+	return rand.Intn(random) + base
 }
 
 func StringList(list []string) string {

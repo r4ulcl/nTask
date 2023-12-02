@@ -39,6 +39,13 @@ func loadWorkerConfig(filename string) (*utils.WorkerConfig, error) {
 		config.Name = hostname
 	}
 
+	// Print the values from the struct
+	log.Println("Name:", config.Name)
+	log.Println("Tasks:")
+	for module, exec := range config.Modules {
+		log.Printf("  Module: %s, Exec: %s\n", module, exec)
+	}
+
 	return &config, nil
 }
 
