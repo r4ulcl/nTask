@@ -1,4 +1,4 @@
-package globalStructs
+package globalstructs
 
 // package for structs used in manager and workers
 // in case I want to separate the project one day
@@ -7,8 +7,8 @@ type Task struct {
 	ID         string   `json:"id"`
 	Module     string   `json:"module"`
 	Args       []string `json:"args"`
-	Created_at string   `json:"created_at"`
-	Updated_at string   `json:"updated_at"`
+	CreatedAt  string   `json:"createdAt"`
+	UpdatedAt  string   `json:"updatedAt"`
 	Status     string   `json:"status"` // pending, running, done, failed, deleted
 	WorkerName string   `json:"workerName"`
 	Output     string   `json:"output"`

@@ -7,29 +7,29 @@ import (
 	"net/http"
 	"strings"
 
-	globalStructs "github.com/r4ulcl/NetTask/globalStructs"
+	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
 )
 
-func AddTask(db *sql.DB, task globalStructs.Task) error {
+func AddTask(db *sql.DB, task globalstructs.Task) error {
 	// Insert the JSON data into the MySQL table
 	argsString := strings.Join(task.Args, ",")
 	_, err := db.Exec("INSERT INTO task (ID, module, args, status, WorkerName, output) VALUES (?, ?, ?, ?, ?, ?)",
 		task.ID, task.Module, argsString, task.Status, task.WorkerName, task.Output)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return err
 	}
 	return nil
 }
 
 // UpdateTask updates all fields of a task in the database.
-func UpdateTask(db *sql.DB, task globalStructs.Task) error {
+func UpdateTask(db *sql.DB, task globalstructs.Task) error {
 	// Update all fields in the MySQL table
 	argsString := strings.Join(task.Args, ",")
 	_, err := db.Exec("UPDATE task SET module=?, args=?, status=?, WorkerName=?, output=? WHERE ID=?",
 		task.Module, argsString, task.Status, task.WorkerName, task.Output, task.ID)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return err
 	}
 	return nil
@@ -38,7 +38,7 @@ func UpdateTask(db *sql.DB, task globalStructs.Task) error {
 func RmTask(db *sql.DB, id string) error {
 	// Worker exists, proceed with deletion
 	sqlStatement := "DELETE FROM task WHERE ID = ?"
-	fmt.Println("ID: ", id)
+	log.Println("ID: ", id)
 	result, err := db.Exec(sqlStatement, id)
 	if err != nil {
 		return err
@@ -53,10 +53,10 @@ func RmTask(db *sql.DB, id string) error {
 	return nil
 }
 
-func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB) ([]globalStructs.Task, error) {
+func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB) ([]globalstructs.Task, error) {
 	queryParams := r.URL.Query()
 
-	sql := "SELECT ID, module, args, created_at, updated_at, status, workerName, output, priority FROM task WHERE 1=1 "
+	sql := "SELECT ID, module, args, createdAt, updatedAt, status, workerName, output, priority FROM task WHERE 1=1 "
 
 	// Add filters for each parameter if provided
 	if ID := queryParams.Get("ID"); ID != "" {
@@ -71,12 +71,12 @@ func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB) ([]globalStruc
 		sql += fmt.Sprintf(" AND args = '%s'", args)
 	}
 
-	if created_at := queryParams.Get("created_at"); created_at != "" {
-		sql += fmt.Sprintf(" AND created_at = '%s'", created_at)
+	if createdAt := queryParams.Get("createdAt"); createdAt != "" {
+		sql += fmt.Sprintf(" AND createdAt = '%s'", createdAt)
 	}
 
-	if updated_at := queryParams.Get("updated_at"); updated_at != "" {
-		sql += fmt.Sprintf(" AND updated_at = '%s'", updated_at)
+	if updatedAt := queryParams.Get("updatedAt"); updatedAt != "" {
+		sql += fmt.Sprintf(" AND updatedAt = '%s'", updatedAt)
 	}
 
 	if status := queryParams.Get("status"); status != "" {
@@ -94,29 +94,29 @@ func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB) ([]globalStruc
 	if priority := queryParams.Get("priority"); priority != "" {
 		sql += fmt.Sprintf(" AND priority = '%s'", priority)
 	}
-	sql += " ORDER BY priority DESC, created_at ASC;"
+	sql += " ORDER BY priority DESC, createdAt ASC;"
 
-	// fmt.Println(sql)
+	// log.Println(sql)
 	return GetTasksSQL(sql, db)
 }
 
-func GetTasks2(db *sql.DB) ([]globalStructs.Task, error) {
-	sql := "SELECT ID, module, args, created_at, updated_at, status, WorkerName, output, priority FROM task ORDER BY priority DESC, created_at ASC"
+func GetTasks2(db *sql.DB) ([]globalstructs.Task, error) {
+	sql := "SELECT ID, module, args, createdAt, updatedAt, status, WorkerName, output, priority FROM task ORDER BY priority DESC, createdAt ASC"
 	return GetTasksSQL(sql, db)
 }
 
-func GetTasksPending(db *sql.DB) ([]globalStructs.Task, error) {
-	sql := "SELECT ID, module, args, created_at, updated_at, status, WorkerName, output, priority FROM task WHERE status = 'pending' ORDER BY priority DESC, created_at ASC"
+func GetTasksPending(db *sql.DB) ([]globalstructs.Task, error) {
+	sql := "SELECT ID, module, args, createdAt, updatedAt, status, WorkerName, output, priority FROM task WHERE status = 'pending' ORDER BY priority DESC, createdAt ASC"
 	return GetTasksSQL(sql, db)
 }
 
-func GetTasksSQL(sql string, db *sql.DB) ([]globalStructs.Task, error) {
-	var tasks []globalStructs.Task
+func GetTasksSQL(sql string, db *sql.DB) ([]globalstructs.Task, error) {
+	var tasks []globalstructs.Task
 
 	// Query all tasks from the task table
 	rows, err := db.Query(sql)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return tasks, err
 	}
 	defer rows.Close()
@@ -127,27 +127,27 @@ func GetTasksSQL(sql string, db *sql.DB) ([]globalStructs.Task, error) {
 		var ID string
 		var module string
 		var args string
-		var created_at string
-		var updated_at string
+		var createdAt string
+		var updatedAt string
 		var status string
 		var WorkerName string
 		var output string
 		var priority bool
 
 		// Scan the values from the row into variables
-		err := rows.Scan(&ID, &module, &args, &created_at, &updated_at, &status, &WorkerName, &output, &priority)
+		err := rows.Scan(&ID, &module, &args, &createdAt, &updatedAt, &status, &WorkerName, &output, &priority)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return tasks, err
 		}
 
 		// Data into a Person struct
-		var task globalStructs.Task
+		var task globalstructs.Task
 		task.ID = ID
 		task.Module = module
 		task.Args = strings.Split(args, ",")
-		task.Created_at = created_at
-		task.Updated_at = updated_at
+		task.CreatedAt = createdAt
+		task.UpdatedAt = updatedAt
 		task.Status = status
 		task.WorkerName = WorkerName
 		task.Output = output
@@ -159,25 +159,25 @@ func GetTasksSQL(sql string, db *sql.DB) ([]globalStructs.Task, error) {
 
 	// Check for errors from iterating over rows
 	if err := rows.Err(); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return tasks, err
 	}
 
 	return tasks, nil
 }
 
-func GetTask(db *sql.DB, id string) (globalStructs.Task, error) {
-	var task globalStructs.Task
+func GetTask(db *sql.DB, id string) (globalstructs.Task, error) {
+	var task globalstructs.Task
 	// Retrieve the JSON data from the MySQL table
 	var module string
 	var args string
-	var created_at string
-	var updated_at string
+	var createdAt string
+	var updatedAt string
 	var status string
 	var WorkerName string
 	var output string
-	err := db.QueryRow("SELECT ID, created_at, updated_at, module, args, status, WorkerName, output FROM task WHERE ID = ?",
-		id).Scan(&id, &created_at, &updated_at, &module, &args, &status, &WorkerName, &output)
+	err := db.QueryRow("SELECT ID, createdAt, updatedAt, module, args, status, WorkerName, output FROM task WHERE ID = ?",
+		id).Scan(&id, &createdAt, &updatedAt, &module, &args, &status, &WorkerName, &output)
 	if err != nil {
 		log.Println(err)
 		return task, err
@@ -187,8 +187,8 @@ func GetTask(db *sql.DB, id string) (globalStructs.Task, error) {
 	task.ID = id
 	task.Module = module
 	task.Args = strings.Split(args, ",")
-	task.Created_at = created_at
-	task.Updated_at = updated_at
+	task.CreatedAt = createdAt
+	task.UpdatedAt = updatedAt
 	task.Status = status
 	task.WorkerName = WorkerName
 	task.Output = output
@@ -214,7 +214,7 @@ func SetTaskOutput(db *sql.DB, id, output string) error {
 	_, err := db.Exec("UPDATE task SET output = ? WHERE ID = ?",
 		output, id)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return err
 	}
 	return nil
@@ -225,7 +225,7 @@ func SetTaskWorkerName(db *sql.DB, id, workerName string) error {
 	_, err := db.Exec("UPDATE task SET workerName = ? WHERE ID = ?",
 		workerName, id)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return err
 	}
 	return nil
@@ -236,7 +236,7 @@ func SetTaskStatus(db *sql.DB, id, status string) error {
 	_, err := db.Exec("UPDATE task SET status = ? WHERE ID = ?",
 		status, id)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return err
 	}
 	return nil

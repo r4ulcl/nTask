@@ -1,15 +1,16 @@
-package API
+package api
 
 import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
-	globalStructs "github.com/r4ulcl/NetTask/globalStructs"
+	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
 	"github.com/r4ulcl/NetTask/manager/database"
 	"github.com/r4ulcl/NetTask/manager/utils"
 )
@@ -30,16 +31,16 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-	var result globalStructs.Task
+	var result globalstructs.Task
 	err := json.NewDecoder(r.Body).Decode(&result)
 	if err != nil {
 		http.Error(w, "Invalid callback body", http.StatusBadRequest)
 		return
 	}
 
-	fmt.Println(result)
+	log.Println(result)
 
-	fmt.Printf("Received result (ID: %s) from :\n %s with output: %s\n", result.ID, result.WorkerName, result.Output)
+	log.Println("Received result (ID: ", result.ID, " from : ", result.WorkerName, " with output: ", result.Output)
 
 	// Update task with the worker one
 	err = database.UpdateTask(db, result)
@@ -89,7 +90,7 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 	}
 
 	// Print the JSON data
-	// fmt.Println(string(jsonData))
+	// log.Println(string(jsonData))
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))
@@ -106,7 +107,7 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 // @In header
 // @Name Authorization
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Param worker body globalStructs.Worker true "Worker object to create"
+// @Param worker body globalstructs.Worker true "Worker object to create"
 func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers) {
@@ -114,7 +115,7 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 		return
 	}
 
-	var request globalStructs.Worker
+	var request globalstructs.Worker
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		http.Error(w, "Invalid callback body", http.StatusBadRequest)
@@ -123,7 +124,7 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 
 	request.IP = ReadUserIP(r)
 
-	fmt.Println(request.Name, request.IP, request.Name)
+	log.Println(request.Name, request.IP, request.Name)
 
 	err = database.AddWorker(db, &request)
 	if err != nil {
@@ -190,7 +191,7 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Success 200 {array} globalStructs.Worker
+// @Success 200 {array} globalstructs.Worker
 // @Router /worker/{NAME} [get]
 // @Param NAME path string false "Worker NAME"
 func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
@@ -203,7 +204,7 @@ func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.Ma
 	vars := mux.Vars(r)
 	name := vars["NAME"]
 
-	fmt.Println("NAME " + name)
+	log.Println("NAME " + name)
 
 	worker, err := database.GetWorker(db, name)
 	if err != nil {
@@ -218,7 +219,7 @@ func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.Ma
 	}
 
 	// Print the JSON data
-	// fmt.Println(string(jsonData))
+	// log.Println(string(jsonData))
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))

@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
-	globalStructs "github.com/r4ulcl/NetTask/globalStructs"
+	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
 )
 
 func AddWorker(config *WorkerConfig) error {
-	worker := globalStructs.Worker{
+	worker := globalstructs.Worker{
 		Name:       config.Name,
 		Port:       config.Port,
 		OauthToken: config.OAuthToken,
@@ -21,7 +22,7 @@ func AddWorker(config *WorkerConfig) error {
 
 	payload, _ := json.Marshal(worker)
 
-	req, err := http.NewRequest("POST", "http:// "+config.ManagerIP+":"+config.ManagerPort+"/worker", bytes.NewBuffer(payload))
+	req, err := http.NewRequest("POST", "http://"+config.ManagerIP+":"+config.ManagerPort+"/worker", bytes.NewBuffer(payload))
 	if err != nil {
 		return err
 	}
@@ -51,15 +52,15 @@ func AddWorker(config *WorkerConfig) error {
 	return nil
 }
 
-func CallbackTaskMessage(config *WorkerConfig, task *globalStructs.Task) {
-	url := "http:// " + config.ManagerIP + ":" + config.ManagerPort + "/callback"
+func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task) {
+	url := "http://" + config.ManagerIP + ":" + config.ManagerPort + "/callback"
 
 	payload, _ := json.Marshal(task)
 
 	// Create a new request with the POST method and the payload
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
-		fmt.Println("Error creating request:", err)
+		log.Println("Error creating request:", err)
 		return
 	}
 
@@ -71,12 +72,12 @@ func CallbackTaskMessage(config *WorkerConfig, task *globalStructs.Task) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error making request:", err)
+		log.Println("Error making request:", err)
 		return
 	}
 	defer resp.Body.Close()
 
-	fmt.Println("Status Code:", resp.Status)
+	log.Println("Status Code:", resp.Status)
 	// Handle the response body as needed
 
 }

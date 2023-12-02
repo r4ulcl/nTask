@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
 
 	"log"
 
-	globalStructs "github.com/r4ulcl/NetTask/globalStructs"
+	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
 	"github.com/r4ulcl/NetTask/manager/database"
 )
 
@@ -40,14 +39,15 @@ func verifyWorkers(db *sql.DB) {
 }
 
 // VerifyWorker check and set if the workers are UP
-func verifyWorker(db *sql.DB, worker *globalStructs.Worker) error {
-	workerURL := "http:// " + worker.IP + ":" + worker.Port
+func verifyWorker(db *sql.DB, worker *globalstructs.Worker) error {
+	workerURL := "http://" + worker.IP + ":" + worker.Port
 
 	// Create an HTTP client and send a GET request
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", workerURL+"/status", nil)
 	if err != nil {
-		fmt.Printf("Failed to create request to %s: %v\nDelete worker: %s", workerURL, err, worker.Name)
+		log.Println("Failed to create request to: ", workerURL, " error:", err)
+		log.Println("Delete worker: ", worker.Name)
 		// Incorrect DATA, delete worker
 		err := database.RmWorkerName(db, worker.Name)
 		if err != nil {
@@ -60,7 +60,7 @@ func verifyWorker(db *sql.DB, worker *globalStructs.Worker) error {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error making request:", err)
+		log.Println("Error making request:", err)
 		// if error making request is offline!
 		count, err := database.GetWorkerCount(db, worker)
 		if err != nil {
@@ -94,15 +94,15 @@ func verifyWorker(db *sql.DB, worker *globalStructs.Worker) error {
 	// Read the response body into a byte slice
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error reading response body:", err)
+		log.Println("Error reading response body:", err)
 		return err
 	}
 
 	// Unmarshal the JSON into a TaskResponse struct
-	var status globalStructs.WorkerStatus
+	var status globalstructs.WorkerStatus
 	err = json.Unmarshal(body, &status)
 	if err != nil {
-		fmt.Println("Error unmarshalling JSON:", err)
+		log.Println("Error unmarshalling JSON:", err, body)
 		return err
 	}
 
@@ -119,19 +119,19 @@ func verifyWorker(db *sql.DB, worker *globalStructs.Worker) error {
 }
 
 // SendAddTask send to a worker a request to add a task
-func SendAddTask(db *sql.DB, worker *globalStructs.Worker, task *globalStructs.Task) error {
-	workerURL := "http:// " + worker.IP + ":" + worker.Port
+func SendAddTask(db *sql.DB, worker *globalstructs.Worker, task *globalstructs.Task) error {
+	workerURL := "http://" + worker.IP + ":" + worker.Port
 
 	// Set workerName in DB and in object
 	task.WorkerName = worker.Name
 	err := database.SetTaskWorkerName(db, task.ID, worker.Name)
 	if err != nil {
-		fmt.Println("Error SetWorkerNameTask in request:", err)
+		log.Println("Error SetWorkerNameTask in request:", err)
 		return err
 	}
 
 	// Convert struct to JSON
-	fmt.Println(task.ID)
+	log.Println(task.ID)
 	jsonData, err := json.Marshal(task)
 	if err != nil {
 		return err
@@ -140,7 +140,7 @@ func SendAddTask(db *sql.DB, worker *globalStructs.Worker, task *globalStructs.T
 	// Create a new POST request with JSON payload
 	req, err := http.NewRequest("POST", workerURL+"/task", bytes.NewBuffer(jsonData))
 	if err != nil {
-		fmt.Println("Error creating request:", err)
+		log.Println("Error creating request:", err)
 		return err
 	}
 
@@ -154,14 +154,14 @@ func SendAddTask(db *sql.DB, worker *globalStructs.Worker, task *globalStructs.T
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error sending request:", err)
+		log.Println("Error sending request:", err)
 		return err
 	}
 	defer resp.Body.Close()
 
 	// Check the response status
 	if resp.StatusCode == http.StatusOK {
-		fmt.Println("POST request was successful")
+		log.Println("POST request was successful")
 		// set worker and task working
 		err := database.SetTaskStatus(db, task.ID, "running")
 		if err != nil {
@@ -172,20 +172,20 @@ func SendAddTask(db *sql.DB, worker *globalStructs.Worker, task *globalStructs.T
 			return err
 		}
 	} else {
-		fmt.Println("POST request failed with status:", resp.Status)
+		log.Println("POST request failed with status:", resp.Status)
 	}
 
 	return nil
 }
 
 // SendDeleteTask send request to a worker to stop and delete a task
-func SendDeleteTask(db *sql.DB, worker *globalStructs.Worker, task *globalStructs.Task) error {
-	workerURL := "http:// " + worker.IP + ":" + worker.Port + "/task/" + task.ID
+func SendDeleteTask(db *sql.DB, worker *globalstructs.Worker, task *globalstructs.Task) error {
+	workerURL := "http://" + worker.IP + ":" + worker.Port + "/task/" + task.ID
 
 	// Create a new DELETE request
 	req, err := http.NewRequest("DELETE", workerURL, nil)
 	if err != nil {
-		fmt.Println("Error creating request:", err)
+		log.Println("Error creating request:", err)
 		return err
 	}
 
@@ -199,14 +199,14 @@ func SendDeleteTask(db *sql.DB, worker *globalStructs.Worker, task *globalStruct
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error sending request:", err)
+		log.Println("Error sending request:", err)
 		return err
 	}
 	defer resp.Body.Close()
 
 	// Check the response status
 	if resp.StatusCode == http.StatusOK {
-		fmt.Println("POST request was successful")
+		log.Println("POST request was successful")
 		// set worker and task working
 		err := database.SetTaskStatus(db, task.ID, "deleted")
 		if err != nil {
@@ -217,7 +217,7 @@ func SendDeleteTask(db *sql.DB, worker *globalStructs.Worker, task *globalStruct
 			return err
 		}
 	} else {
-		fmt.Println("POST request failed with status:", resp.Status)
+		log.Println("POST request failed with status:", resp.Status)
 	}
 
 	return nil
@@ -225,7 +225,7 @@ func SendDeleteTask(db *sql.DB, worker *globalStructs.Worker, task *globalStruct
 
 /*
 // SendGetTask send request to a worker of a task status
-func SendGetTask(db *sql.DB, OauthTokenWorkers string, worker *globalStructs.Worker, task globalStructs.Task) (globalStructs.Task, error) {
+func SendGetTask(db *sql.DB, OauthTokenWorkers string, worker *globalstructs.Worker, task globalstructs.Task) (globalstructs.Task, error) {
 	return task, nil
 }
 */

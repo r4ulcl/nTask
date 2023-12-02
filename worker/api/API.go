@@ -1,13 +1,14 @@
-package API
+package api
 
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
-	globalStructs "github.com/r4ulcl/NetTask/globalStructs"
+	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
 	"github.com/r4ulcl/NetTask/worker/modules"
 	"github.com/r4ulcl/NetTask/worker/utils"
 )
@@ -16,7 +17,7 @@ import (
 // -------------------------------------- Status --------------------------------------
 // ------------------------------------------------------------------------------------
 
-func HandleGetStatus(w http.ResponseWriter, r *http.Request, status *globalStructs.WorkerStatus, config *utils.WorkerConfig) {
+func HandleGetStatus(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig) {
 	oauthKeyClient := r.Header.Get("Authorization")
 	if oauthKeyClient != config.OAuthToken {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -25,21 +26,24 @@ func HandleGetStatus(w http.ResponseWriter, r *http.Request, status *globalStruc
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-
+	err := json.NewEncoder(w).Encode(status)
+	if err != nil {
+		log.Fatalln("Error encoding status", err)
+	}
 }
 
 // -------------------------------------------------------------------------------------
 // ---------------------------------------- Task ---------------------------------------
 // -------------------------------------------------------------------------------------
 
-func HandleTaskPost(w http.ResponseWriter, r *http.Request, status *globalStructs.WorkerStatus, config *utils.WorkerConfig) {
+func HandleTaskPost(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig) {
 	oauthKeyClient := r.Header.Get("Authorization")
 	if oauthKeyClient != config.OAuthToken {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	var requestTask globalStructs.Task
+	var requestTask globalstructs.Task
 	err := json.NewDecoder(r.Body).Decode(&requestTask)
 	if err != nil {
 		http.Error(w, "Invalid callback body", http.StatusBadRequest)
@@ -62,7 +66,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, status *globalStruct
 	fmt.Fprintln(w, requestTask.ID)
 }
 
-func HandleTaskDelete(w http.ResponseWriter, r *http.Request, status *globalStructs.WorkerStatus, config *utils.WorkerConfig) {
+func HandleTaskDelete(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig) {
 	oauthKeyClient := r.Header.Get("Authorization")
 	if oauthKeyClient != config.OAuthToken {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -72,19 +76,19 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, status *globalStru
 	vars := mux.Vars(r)
 	id := vars["ID"]
 
-	fmt.Println("TODO Stop/delete", id)
+	log.Println("TODO Stop/delete", id)
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, id+" deleted")
 }
 
-func HandleTaskGet(w http.ResponseWriter, r *http.Request, status *globalStructs.WorkerStatus, config *utils.WorkerConfig) {
+func HandleTaskGet(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig) {
 	oauthKeyClient := r.Header.Get("Authorization")
 	if oauthKeyClient != config.OAuthToken {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-	fmt.Println("TODO HandleTaskGet")
+	log.Println("TODO HandleTaskGet")
 	http.Error(w, "Invalid callback body", http.StatusBadRequest)
 }
 
@@ -92,15 +96,15 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, status *globalStructs
 
 // /
 
-func processTask(status *globalStructs.WorkerStatus, config *utils.WorkerConfig, task *globalStructs.Task) {
+func processTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *globalstructs.Task) {
 	status.Working = true
 	status.WorkingID = task.ID
 
-	fmt.Println("Start processing task", task.ID)
+	log.Println("Start processing task", task.ID)
 
 	output, err := processModule(task)
 	if err != nil {
-		fmt.Println("Error:", err)
+		log.Println("Error:", err)
 		task.Status = "failed"
 	} else {
 		task.Status = "done"
@@ -113,7 +117,7 @@ func processTask(status *globalStructs.WorkerStatus, config *utils.WorkerConfig,
 	status.WorkingID = ""
 }
 
-func processModule(task *globalStructs.Task) (string, error) {
+func processModule(task *globalstructs.Task) (string, error) {
 	messageID := task.ID
 	module := task.Module
 	arguments := task.Args

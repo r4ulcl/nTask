@@ -3,15 +3,15 @@ package worker
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/gorilla/mux"
-	globalStructs "github.com/r4ulcl/NetTask/globalStructs"
-	"github.com/r4ulcl/NetTask/worker/API"
+	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
+	"github.com/r4ulcl/NetTask/worker/api"
 	"github.com/r4ulcl/NetTask/worker/utils"
 )
 
@@ -19,13 +19,13 @@ func loadWorkerConfig(filename string) (*utils.WorkerConfig, error) {
 	var config utils.WorkerConfig
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
-		fmt.Printf("Error reading worker config file: %s\n", err)
+		log.Println("Error reading worker config file: ", err)
 		return &config, err
 	}
 
 	err = json.Unmarshal(content, &config)
 	if err != nil {
-		fmt.Printf("Error unmarshalling worker config: %s\n", err)
+		log.Println("Error unmarshalling worker config: ", err)
 		return &config, err
 	}
 
@@ -34,7 +34,7 @@ func loadWorkerConfig(filename string) (*utils.WorkerConfig, error) {
 		hostname := ""
 		hostname, err = os.Hostname()
 		if err != nil {
-			fmt.Println("Error getting hostname:", err)
+			log.Println("Error getting hostname:", err)
 		}
 		config.Name = hostname
 	}
@@ -43,14 +43,14 @@ func loadWorkerConfig(filename string) (*utils.WorkerConfig, error) {
 }
 
 func StartWorker() {
-	fmt.Println("Running as worker...")
+	log.Println("Running as worker...")
 
 	workerConfig, err := loadWorkerConfig("worker.conf")
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
-	status := &globalStructs.WorkerStatus{
+	status := &globalstructs.WorkerStatus{
 		Working: false,
 	}
 
@@ -58,7 +58,7 @@ func StartWorker() {
 	for {
 		err = utils.AddWorker(workerConfig)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		} else {
 			break
 		}
@@ -68,21 +68,21 @@ func StartWorker() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
-		API.HandleGetStatus(w, r, status, workerConfig)
+		api.HandleGetStatus(w, r, status, workerConfig)
 	}).Methods("GET") // check worker status
 
 	// Task
 	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
-		API.HandleTaskPost(w, r, status, workerConfig)
+		api.HandleTaskPost(w, r, status, workerConfig)
 	}).Methods("POST") // Add task
 
 	r.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
-		API.HandleTaskDelete(w, r, status, workerConfig)
+		api.HandleTaskDelete(w, r, status, workerConfig)
 	}).Methods("DELETE") // delete task
 
 	/*
 		r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
-			API.HandleTaskGet(w, r, status, workerConfig)
+			api.HandleTaskGet(w, r, status, workerConfig)
 		}).Methods("GET") // check task status
 
 		r.HandleFunc("/task", handletaskMessage).Methods("POST")
@@ -93,6 +93,6 @@ func StartWorker() {
 	http.Handle("/", r)
 	err = http.ListenAndServe(":"+workerConfig.Port, nil)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 }

@@ -1,7 +1,7 @@
 package modules
 
 import (
-	"fmt"
+	"log"
 	"math/rand"
 	"os/exec"
 	"time"
@@ -49,7 +49,7 @@ func WorkAndNotify(id string) (string, error) {
 
 	// Simulate work with an unknown duration
 	workDuration := GetRandomDuration()
-	fmt.Printf("Working for %s (ID: %s)\n", workDuration.String(), id)
+	log.Println("Working for ", workDuration.String(), " ID: ", id)
 	time.Sleep(workDuration)
 
 	// workMutex.Lock()
@@ -69,5 +69,6 @@ func StringList(list []string) string {
 	for _, item := range list {
 		stringList += item + "\n"
 	}
+
 	return stringList
 }

@@ -6,10 +6,10 @@ import (
 	"log"
 	"strconv"
 
-	globalStructs "github.com/r4ulcl/NetTask/globalStructs"
+	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
 )
 
-func AddWorker(db *sql.DB, worker *globalStructs.Worker) error {
+func AddWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	// Insert the JSON data into the MySQL table
 	_, err := db.Exec("INSERT INTO worker (name, ip, port, oauthToken, working, up, count) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		worker.Name, worker.IP, worker.Port, worker.OauthToken, worker.Working, worker.UP, worker.Count)
@@ -22,7 +22,7 @@ func AddWorker(db *sql.DB, worker *globalStructs.Worker) error {
 func RmWorkerName(db *sql.DB, name string) error {
 	// Worker exists, proceed with deletion
 	sqlStatement := "DELETE FROM worker WHERE name = ?"
-	fmt.Println("Name: ", name)
+	log.Println("Name: ", name)
 	result, err := db.Exec(sqlStatement, name)
 	if err != nil {
 		return err
@@ -54,14 +54,14 @@ func RmWorkerIPPort(db *sql.DB, ip, port string) error {
 	return nil
 }
 
-func GetWorkers(db *sql.DB) ([]globalStructs.Worker, error) {
+func GetWorkers(db *sql.DB) ([]globalstructs.Worker, error) {
 	// Slice to store all workers
-	var workers []globalStructs.Worker
+	var workers []globalstructs.Worker
 
 	// Query all workers from the worker table
 	rows, err := db.Query("SELECT name, ip, port, oauthToken, working, up, count FROM worker")
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return workers, err
 	}
 	defer rows.Close()
@@ -80,12 +80,12 @@ func GetWorkers(db *sql.DB) ([]globalStructs.Worker, error) {
 		// Scan the values from the row into variables
 		err := rows.Scan(&name, &ip, &port, &oauthToken, &working, &up, &count)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return workers, err
 		}
 
 		// Data into a Person struct
-		var worker globalStructs.Worker
+		var worker globalstructs.Worker
 		worker.Name = name
 		worker.IP = ip
 		worker.Port = port
@@ -100,15 +100,15 @@ func GetWorkers(db *sql.DB) ([]globalStructs.Worker, error) {
 
 	// Check for errors from iterating over rows
 	if err := rows.Err(); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return workers, err
 	}
 
 	return workers, nil
 }
 
-func GetWorker(db *sql.DB, name string) (globalStructs.Worker, error) {
-	var worker globalStructs.Worker
+func GetWorker(db *sql.DB, name string) (globalstructs.Worker, error) {
+	var worker globalstructs.Worker
 	// Retrieve the JSON data from the MySQL table
 	var name2 string
 	var ip string
@@ -136,34 +136,34 @@ func GetWorker(db *sql.DB, name string) (globalStructs.Worker, error) {
 	return worker, nil
 }
 
-func UpdateWorker(db *sql.DB, worker *globalStructs.Worker) error {
+func UpdateWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	// Update the JSON data in the MySQL table based on the worker's name
 	_, err := db.Exec("UPDATE worker SET name = ?, ip = ?, port = ?, oauthToken = ?,working = ?, UP = ? WHERE name = ?",
 		worker.IP, worker.Port, worker.OauthToken, worker.Working, worker.UP, worker.Name)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return err
 	}
 	return nil
 }
 
 // SetWorkerDown set worker status to status var, false -> cant connect
-func SetWorkerUPto(up bool, db *sql.DB, worker *globalStructs.Worker) error {
+func SetWorkerUPto(up bool, db *sql.DB, worker *globalstructs.Worker) error {
 	_, err := db.Exec("UPDATE worker SET UP = ? WHERE name = ?",
 		up, worker.Name)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return err
 	}
 
 	return nil
 }
 
-func SetWorkerworkingTo(working bool, db *sql.DB, worker *globalStructs.Worker) error {
+func SetWorkerworkingTo(working bool, db *sql.DB, worker *globalstructs.Worker) error {
 	_, err := db.Exec("UPDATE worker SET working = ? WHERE name = ?",
 		working, worker.Name)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return err
 	}
 
@@ -174,32 +174,32 @@ func SetWorkerworkingToString(working bool, db *sql.DB, worker string) error {
 	_, err := db.Exec("UPDATE worker SET working = ? WHERE name = ?",
 		working, worker)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return err
 	}
 
 	return nil
 }
 
-func GetWorkerIddle(db *sql.DB) ([]globalStructs.Worker, error) {
+func GetWorkerIddle(db *sql.DB) ([]globalstructs.Worker, error) {
 	sql := "SELECT name, ip, port, oauthToken, working, up, count FROM worker WHERE up = true AND working = false;"
 	return GetWorkerSQL(sql, db)
 }
 
-func GetWorkerUP(db *sql.DB) ([]globalStructs.Worker, error) {
+func GetWorkerUP(db *sql.DB) ([]globalstructs.Worker, error) {
 	sql := "SELECT name, ip, port, oauthToken, working, up, count FROM worker WHERE up = true;"
 	return GetWorkerSQL(sql, db)
 }
 
-func GetWorkerSQL(sql string, db *sql.DB) ([]globalStructs.Worker, error) {
+func GetWorkerSQL(sql string, db *sql.DB) ([]globalstructs.Worker, error) {
 
 	// Slice to store all workers
-	var workers []globalStructs.Worker
+	var workers []globalstructs.Worker
 
 	// Query all workers from the worker table
 	rows, err := db.Query(sql)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return workers, err
 	}
 	defer rows.Close()
@@ -218,12 +218,12 @@ func GetWorkerSQL(sql string, db *sql.DB) ([]globalStructs.Worker, error) {
 		// Scan the values from the row into variables
 		err := rows.Scan(&name, &ip, &port, &oauthToken, &working, &up, &count)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return workers, err
 		}
 
 		// Data into a Person struct
-		var worker globalStructs.Worker
+		var worker globalstructs.Worker
 		worker.Name = name
 		worker.IP = ip
 		worker.Port = port
@@ -238,14 +238,14 @@ func GetWorkerSQL(sql string, db *sql.DB) ([]globalStructs.Worker, error) {
 
 	// Check for errors from iterating over rows
 	if err := rows.Err(); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return workers, err
 	}
 
 	return workers, nil
 }
 
-func GetWorkerCount(db *sql.DB, worker *globalStructs.Worker) (int, error) {
+func GetWorkerCount(db *sql.DB, worker *globalstructs.Worker) (int, error) {
 	var countS string
 	err := db.QueryRow("SELECT count FROM worker WHERE name = ?",
 		worker.Name).Scan(&countS)
@@ -258,26 +258,26 @@ func GetWorkerCount(db *sql.DB, worker *globalStructs.Worker) (int, error) {
 		return -1, err
 	}
 
-	fmt.Println("count", count)
+	log.Println("count", count)
 	return count, nil
 }
 
-func SetWorkerCount(count int, db *sql.DB, worker *globalStructs.Worker) error {
+func SetWorkerCount(count int, db *sql.DB, worker *globalstructs.Worker) error {
 	_, err := db.Exec("UPDATE worker SET count = ? WHERE name = ?",
 		count, worker.Name)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return err
 	}
 
 	return nil
 }
 
-func AddWorkerCount(db *sql.DB, worker *globalStructs.Worker) error {
+func AddWorkerCount(db *sql.DB, worker *globalstructs.Worker) error {
 	_, err := db.Exec("UPDATE worker SET count = count + 1 WHERE name = ?",
 		worker.Name)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return err
 	}
 

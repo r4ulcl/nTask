@@ -1,4 +1,4 @@
-package API
+package api
 
 func incorrectOauth(clientOauthKey, oauthToken string) bool {
 	return clientOauthKey != oauthToken

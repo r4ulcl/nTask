@@ -12,7 +12,7 @@ type WorkerConfig struct {
 	ManagerOauthToken  string `json:"managerOauthToken"`
 	OAuthToken         string `json:"oauthToken"`
 	Port               string `json:"port"`
-	// TaskList           map[string]*globalStructs.Task `json:"taskList"`
+	// TaskList           map[string]*globalstructs.Task `json:"taskList"`
 	// TaskListMu         sync.Mutex                     `json:"taskListMu"`
 	// WorkMutex          sync.Mutex                     `json:"workMutex"`
 	// Goroutine          *sync.WaitGroup                `json:"goroutine"`

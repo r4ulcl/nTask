@@ -1,4 +1,4 @@
-package API
+package api
 
 import (
 	"crypto/rand"
@@ -9,7 +9,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	globalStructs "github.com/r4ulcl/NetTask/globalStructs"
+	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
 	"github.com/r4ulcl/NetTask/manager/database"
 	"github.com/r4ulcl/NetTask/manager/utils"
 )
@@ -22,13 +22,13 @@ import (
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Success 200 {array} globalStructs.Task
+// @Success 200 {array} globalstructs.Task
 // @Router /task [get]
 // @Param ID query string false "Task ID"
 // @Param module query string false "Task module"
 // @Param args query string false "Task args"
-// @Param created_at query string false "Task created_at"
-// @Param updated_at query string false "Task updated_at"
+// @Param createdAt query string false "Task createdAt"
+// @Param updatedAt query string false "Task updatedAt"
 // @Param status query string false "Task status" Enum(pending, running, done, failed) Example(pending)
 // @Param workerName query string false "Task workerName"
 // @Param output query string false "Task output"
@@ -54,7 +54,7 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 	}
 
 	// Print the JSON data
-	// fmt.Println(string(jsonData))
+	// log.Println(string(jsonData))
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))
@@ -66,9 +66,9 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Success 200 {array} globalStructs.Task
+// @Success 200 {array} globalstructs.Task
 // @Router /task [post]
-// @Param task body globalStructs.Task true "Task object to create"
+// @Param task body globalstructs.Task true "Task object to create"
 func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers) {
@@ -76,7 +76,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 		return
 	}
 
-	var request globalStructs.Task
+	var request globalstructs.Task
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		http.Error(w, "Invalid callback body", http.StatusBadRequest)
@@ -158,7 +158,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Success 200 {array} globalStructs.Task
+// @Success 200 {array} globalstructs.Task
 // @Router /task/{ID} [get]
 // @Param ID path string false "task ID"
 func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
@@ -175,18 +175,18 @@ func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	// get task from ID
 	task, err := database.GetTask(db, id)
 	if err != nil {
-		http.Error(w, "Invalid callback body"+err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid GetTask body"+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	jsonData, err := json.Marshal(task)
 	if err != nil {
-		http.Error(w, "Invalid callback body"+err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid Marshal body"+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Print the JSON data
-	// fmt.Println(string(jsonData))
+	// log.Println(string(jsonData))
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))

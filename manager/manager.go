@@ -4,15 +4,15 @@ package manager
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"time"
 
 	httpSwagger "github.com/swaggo/http-swagger"
 
 	"github.com/gorilla/mux"
-	"github.com/r4ulcl/NetTask/manager/API"
+	"github.com/r4ulcl/NetTask/manager/api"
 	"github.com/r4ulcl/NetTask/manager/database"
 	"github.com/r4ulcl/NetTask/manager/utils"
 )
@@ -22,13 +22,13 @@ func loadManagerConfig(filename string) (*utils.ManagerConfig, error) {
 
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
-		fmt.Printf("Error reading manager config file: %s\n", err)
+		log.Println("Error reading manager config file: ", err)
 		return &config, err
 	}
 
 	err = json.Unmarshal(content, &config)
 	if err != nil {
-		fmt.Printf("Error unmarshalling manager config: %s\n", err)
+		log.Println("Error unmarshalling manager config: ", err)
 		return &config, err
 	}
 
@@ -42,17 +42,17 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB) {
 		// Get all tasks in order and if priority
 		tasks, err := database.GetTasksPending(db)
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Println(err.Error())
 		}
 
 		// Get iddle workers
 		workers, err := database.GetWorkerIddle(db)
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Println(err.Error())
 		}
 
-		// fmt.Println(len(tasks))
-		// fmt.Println(len(workers))
+		// log.Println(len(tasks))
+		// log.Println(len(workers))
 
 		// if there are tasks
 		if len(tasks) > 0 && len(workers) > 0 {
@@ -61,7 +61,7 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB) {
 			task := tasks[0]
 			err = utils.SendAddTask(db, &worker, &task)
 			if err != nil {
-				fmt.Println(err.Error())
+				log.Println(err.Error())
 			}
 		}
 		time.Sleep(time.Second * 5)
@@ -69,17 +69,17 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB) {
 }
 
 func StartManager() {
-	fmt.Println("Running as manager...")
+	log.Println("Running as manager...")
 
 	config, err := loadManagerConfig("manager.conf")
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 	// Start DB
 	db, err := database.ConnectDB(config.DBUsername, config.DBPassword, config.DBHost, config.DBPort, config.DBDatabase)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 	// verify status workers infinite
@@ -105,43 +105,43 @@ func StartManager() {
 
 	// CallBack
 	r.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
-		API.HandleCallback(w, r, config, db)
+		api.HandleCallback(w, r, config, db)
 	}).Methods("POST") // get callback info from task
 
 	// worker
 	r.HandleFunc("/worker", func(w http.ResponseWriter, r *http.Request) {
-		API.HandleWorkerGet(w, r, config, db)
+		api.HandleWorkerGet(w, r, config, db)
 	}).Methods("GET") // get workers
 
 	r.HandleFunc("/worker", func(w http.ResponseWriter, r *http.Request) {
-		API.HandleWorkerPost(w, r, config, db)
+		api.HandleWorkerPost(w, r, config, db)
 	}).Methods("POST") // add worker
 
 	r.HandleFunc("/worker/{NAME}", func(w http.ResponseWriter, r *http.Request) {
-		API.HandleWorkerDeleteName(w, r, config, db)
+		api.HandleWorkerDeleteName(w, r, config, db)
 	}).Methods("DELETE") // delete worker
 
 	r.HandleFunc("/worker/{NAME}", func(w http.ResponseWriter, r *http.Request) {
-		API.HandleWorkerStatus(w, r, config, db)
+		api.HandleWorkerStatus(w, r, config, db)
 	}).Methods("GET") // check status 1 worker
 
 	// -------------------------------------------------------------------
 
 	// task
 	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
-		API.HandleTaskGet(w, r, config, db)
+		api.HandleTaskGet(w, r, config, db)
 	}).Methods("GET") // check tasks
 
 	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
-		API.HandleTaskPost(w, r, config, db)
+		api.HandleTaskPost(w, r, config, db)
 	}).Methods("POST") // Add task
 
 	r.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
-		API.HandleTaskDelete(w, r, config, db)
+		api.HandleTaskDelete(w, r, config, db)
 	}).Methods("DELETE") // Delete task
 
 	r.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
-		API.HandleTaskStatus(w, r, config, db)
+		api.HandleTaskStatus(w, r, config, db)
 	}).Methods("GET") // get status task
 
 	// r.HandleFunc("/task/{ID}", handletasktop).Methods("PATCH")
@@ -167,12 +167,12 @@ func StartManager() {
 	http.Handle("/", r)
 	err = http.ListenAndServe(":"+config.Port, nil)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 	/*
 		err = http.ListenAndServe(":"+config.Port, allowCORS(http.DefaultServeMux))
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 	*/
 
