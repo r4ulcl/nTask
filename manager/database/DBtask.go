@@ -35,11 +35,11 @@ func UpdateTask(db *sql.DB, task globalStructs.Task) error {
 	return nil
 }
 
-func RmTask(db *sql.DB, ID string) error {
+func RmTask(db *sql.DB, id string) error {
 	// Worker exists, proceed with deletion
 	sqlStatement := "DELETE FROM task WHERE ID = ?"
-	fmt.Println("ID: ", ID)
-	result, err := db.Exec(sqlStatement, ID)
+	fmt.Println("ID: ", id)
+	result, err := db.Exec(sqlStatement, id)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB) ([]globalStruc
 	}
 	sql += " ORDER BY priority DESC, created_at ASC;"
 
-	//fmt.Println(sql)
+	// fmt.Println(sql)
 	return GetTasksSQL(sql, db)
 }
 
@@ -166,7 +166,7 @@ func GetTasksSQL(sql string, db *sql.DB) ([]globalStructs.Task, error) {
 	return tasks, nil
 }
 
-func GetTask(db *sql.DB, ID string) (globalStructs.Task, error) {
+func GetTask(db *sql.DB, id string) (globalStructs.Task, error) {
 	var task globalStructs.Task
 	// Retrieve the JSON data from the MySQL table
 	var module string
@@ -177,14 +177,14 @@ func GetTask(db *sql.DB, ID string) (globalStructs.Task, error) {
 	var WorkerName string
 	var output string
 	err := db.QueryRow("SELECT ID, created_at, updated_at, module, args, status, WorkerName, output FROM task WHERE ID = ?",
-		ID).Scan(&ID, &created_at, &updated_at, &module, &args, &status, &WorkerName, &output)
+		id).Scan(&id, &created_at, &updated_at, &module, &args, &status, &WorkerName, &output)
 	if err != nil {
 		log.Println(err)
 		return task, err
 	}
 
 	// Data back to a struct
-	task.ID = ID
+	task.ID = id
 	task.Module = module
 	task.Args = strings.Split(args, ",")
 	task.Created_at = created_at
@@ -196,11 +196,11 @@ func GetTask(db *sql.DB, ID string) (globalStructs.Task, error) {
 	return task, nil
 }
 
-func GetTaskWorker(db *sql.DB, ID string) (string, error) {
+func GetTaskWorker(db *sql.DB, id string) (string, error) {
 	// Retrieve the JSON data from the MySQL table
 	var workerName string
 	err := db.QueryRow("SELECT WorkerName FROM task WHERE ID = ?",
-		ID).Scan(&workerName)
+		id).Scan(&workerName)
 	if err != nil {
 		log.Println(err)
 		return workerName, err
@@ -210,9 +210,9 @@ func GetTaskWorker(db *sql.DB, ID string) (string, error) {
 }
 
 // SetTaskOutput save the output of the task in the DB
-func SetTaskOutput(db *sql.DB, ID, output string) error {
+func SetTaskOutput(db *sql.DB, id, output string) error {
 	_, err := db.Exec("UPDATE task SET output = ? WHERE ID = ?",
-		output, ID)
+		output, id)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -221,9 +221,9 @@ func SetTaskOutput(db *sql.DB, ID, output string) error {
 }
 
 // SetTaskWorkerName save the output of the task in the DB
-func SetTaskWorkerName(db *sql.DB, ID, workerName string) error {
+func SetTaskWorkerName(db *sql.DB, id, workerName string) error {
 	_, err := db.Exec("UPDATE task SET workerName = ? WHERE ID = ?",
-		workerName, ID)
+		workerName, id)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -232,9 +232,9 @@ func SetTaskWorkerName(db *sql.DB, ID, workerName string) error {
 }
 
 // SetTaskStatus save the output of the task in the DB
-func SetTaskStatus(db *sql.DB, ID, status string) error {
+func SetTaskStatus(db *sql.DB, id, status string) error {
 	_, err := db.Exec("UPDATE task SET status = ? WHERE ID = ?",
-		status, ID)
+		status, id)
 	if err != nil {
 		fmt.Println(err)
 		return err

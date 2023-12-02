@@ -42,10 +42,18 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	fmt.Printf("Received result (ID: %s) from :\n %s with output: %s\n", result.ID, result.WorkerName, result.Output)
 
 	// Update task with the worker one
-	database.UpdateTask(db, result)
+	err = database.UpdateTask(db, result)
+	if err != nil {
+		http.Error(w, "Error UpdateTask ", http.StatusBadRequest)
+		return
+	}
 
 	// Set worker to iddle now
-	database.SetWorkerworkingToString(false, db, result.WorkerName)
+	err = database.SetWorkerworkingToString(false, db, result.WorkerName)
+	if err != nil {
+		http.Error(w, "Error SetWorkerworkingToString ", http.StatusBadRequest)
+		return
+	}
 
 	// Handle the result as needed
 
@@ -67,7 +75,7 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 		return
 	}
 
-	//get workers
+	// get workers
 	workers, err := database.GetWorkers(db)
 	if err != nil {
 		http.Error(w, "Invalid callback body", http.StatusBadRequest)
@@ -81,7 +89,7 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 	}
 
 	// Print the JSON data
-	//fmt.Println(string(jsonData))
+	// fmt.Println(string(jsonData))
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))
@@ -121,8 +129,17 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	if err != nil {
 		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
 			if mysqlErr.Number == 1062 { // MySQL error number for duplicate entry
-				database.SetWorkerUPto(true, db, &request)
-				database.SetWorkerCount(0, db, &request)
+				err := database.SetWorkerUPto(true, db, &request)
+				if err != nil {
+					http.Error(w, "Error setWorkerUp ", http.StatusBadRequest)
+					return
+				}
+
+				err = database.SetWorkerCount(0, db, &request)
+				if err != nil {
+					http.Error(w, "Error SetWorkerCount ", http.StatusBadRequest)
+					return
+				}
 				return
 			} else {
 				message := "Invalid worker info: " + err.Error()
@@ -201,14 +218,14 @@ func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.Ma
 	}
 
 	// Print the JSON data
-	//fmt.Println(string(jsonData))
+	// fmt.Println(string(jsonData))
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))
 }
 
 // Other functions
-//ReadUserIP read user IP from request
+// ReadUserIP read user IP from request
 func ReadUserIP(r *http.Request) string {
 	IPAddress := r.Header.Get("X-Real-Ip")
 	if IPAddress == "" {

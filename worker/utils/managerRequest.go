@@ -21,7 +21,7 @@ func AddWorker(config *WorkerConfig) error {
 
 	payload, _ := json.Marshal(worker)
 
-	req, err := http.NewRequest("POST", "http://"+config.ManagerIP+":"+config.ManagerPort+"/worker", bytes.NewBuffer(payload))
+	req, err := http.NewRequest("POST", "http:// "+config.ManagerIP+":"+config.ManagerPort+"/worker", bytes.NewBuffer(payload))
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func AddWorker(config *WorkerConfig) error {
 	}
 	defer resp.Body.Close()
 
-	//IF response is not 200 error!!
+	// IF response is not 200 error!!
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
@@ -52,7 +52,7 @@ func AddWorker(config *WorkerConfig) error {
 }
 
 func CallbackTaskMessage(config *WorkerConfig, task *globalStructs.Task) {
-	url := "http://" + config.ManagerIP + ":" + config.ManagerPort + "/callback"
+	url := "http:// " + config.ManagerIP + ":" + config.ManagerPort + "/callback"
 
 	payload, _ := json.Marshal(task)
 

@@ -69,21 +69,21 @@ func StartWorker() {
 
 	r.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		API.HandleGetStatus(w, r, status, workerConfig)
-	}).Methods("GET") //check worker status
+	}).Methods("GET") // check worker status
 
-	//Task
+	// Task
 	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
 		API.HandleTaskPost(w, r, status, workerConfig)
-	}).Methods("POST") //Add task
+	}).Methods("POST") // Add task
 
 	r.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
 		API.HandleTaskDelete(w, r, status, workerConfig)
-	}).Methods("DELETE") //delete task
+	}).Methods("DELETE") // delete task
 
 	/*
 		r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
 			API.HandleTaskGet(w, r, status, workerConfig)
-		}).Methods("GET") //check task status
+		}).Methods("GET") // check task status
 
 		r.HandleFunc("/task", handletaskMessage).Methods("POST")
 		r.HandleFunc("/status", handleGetStatus).Methods("GET")

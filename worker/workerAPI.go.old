@@ -61,7 +61,7 @@ func processTask(message Message, task *Task) {
 	// Acquire a slot from the semaphore
 	semaphoreCh <- struct{}{}
 
-	//Set task status
+	// Set task status
 	task.Status = "Working"
 
 	workMutex.Lock()
@@ -78,13 +78,13 @@ func processTask(message Message, task *Task) {
 	isWorking = false
 	workMutex.Unlock()
 
-	//Set task status
+	// Set task status
 	task.Status = "Done"
 
 	// Remove the task from the list
-	//taskListMu.Lock()
-	//delete(taskList, task.ID)
-	//taskListMu.Unlock()
+	// taskListMu.Lock()
+	// delete(taskList, task.ID)
+	// taskListMu.Unlock()
 
 	// Save the output in the task
 	task.Result = m
@@ -219,4 +219,4 @@ func processModule(module string, arguments []string) (string, int) {
 	}
 }
 
-//*/
+// */

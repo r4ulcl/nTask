@@ -25,7 +25,7 @@ func HandleGetStatus(w http.ResponseWriter, r *http.Request, status *globalStruc
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(status)
+
 }
 
 // -------------------------------------------------------------------------------------
@@ -88,9 +88,9 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, status *globalStructs
 	http.Error(w, "Invalid callback body", http.StatusBadRequest)
 }
 
-///
+// /
 
-///
+// /
 
 func processTask(status *globalStructs.WorkerStatus, config *utils.WorkerConfig, task *globalStructs.Task) {
 	status.Working = true

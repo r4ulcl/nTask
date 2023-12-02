@@ -147,7 +147,7 @@ func UpdateWorker(db *sql.DB, worker *globalStructs.Worker) error {
 	return nil
 }
 
-//SetWorkerDown set worker status to status var, false -> cant connect
+// SetWorkerDown set worker status to status var, false -> cant connect
 func SetWorkerUPto(up bool, db *sql.DB, worker *globalStructs.Worker) error {
 	_, err := db.Exec("UPDATE worker SET UP = ? WHERE name = ?",
 		up, worker.Name)

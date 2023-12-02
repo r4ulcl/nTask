@@ -42,20 +42,20 @@ func Module2(arguments []string) (string, error) {
 }
 
 func WorkAndNotify(id string) (string, error) {
-	//workMutex.Lock()
-	//isWorking = true
-	//messageID = id
-	//workMutex.Unlock()
+	// workMutex.Lock()
+	// isWorking = true
+	// messageID = id
+	// workMutex.Unlock()
 
 	// Simulate work with an unknown duration
 	workDuration := GetRandomDuration()
 	fmt.Printf("Working for %s (ID: %s)\n", workDuration.String(), id)
 	time.Sleep(workDuration)
 
-	//workMutex.Lock()
-	//isWorking = false
-	//messageID = ""
-	//workMutex.Unlock()
+	// workMutex.Lock()
+	// isWorking = false
+	// messageID = ""
+	// workMutex.Unlock()
 	str := "Working for " + workDuration.String() + " (ID: " + id + ")"
 	return str, nil
 }

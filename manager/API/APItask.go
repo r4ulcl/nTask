@@ -40,7 +40,7 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 		return
 	}
 
-	//get tasks
+	// get tasks
 	tasks, err := database.GetTasks(w, r, db)
 	if err != nil {
 		http.Error(w, "Invalid callback body", http.StatusBadRequest)
@@ -54,7 +54,7 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 	}
 
 	// Print the JSON data
-	//fmt.Println(string(jsonData))
+	// fmt.Println(string(jsonData))
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))
@@ -83,14 +83,14 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 		return
 	}
 
-	//Set Random ID
+	// Set Random ID
 	request.ID, err = generateRandomID(30)
 	if err != nil {
 		http.Error(w, "Invalid ID generated", http.StatusBadRequest)
 		return
 	}
 
-	//set status
+	// set status
 	request.Status = "pending"
 
 	err = database.AddTask(db, request)
@@ -171,7 +171,7 @@ func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	vars := mux.Vars(r)
 	id := vars["ID"]
 
-	//Access worker to update info if status running
+	// Access worker to update info if status running
 	// get task from ID
 	task, err := database.GetTask(db, id)
 	if err != nil {
@@ -186,7 +186,7 @@ func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	}
 
 	// Print the JSON data
-	//fmt.Println(string(jsonData))
+	// fmt.Println(string(jsonData))
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))

@@ -36,7 +36,7 @@ func loadManagerConfig(filename string) (*utils.ManagerConfig, error) {
 }
 
 func manageTasks(config *utils.ManagerConfig, db *sql.DB) {
-	//infinite loop eecuted with go routine
+	// infinite loop eecuted with go routine
 	for {
 
 		// Get all tasks in order and if priority
@@ -51,15 +51,15 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB) {
 			fmt.Println(err.Error())
 		}
 
-		//fmt.Println(len(tasks))
-		//fmt.Println(len(workers))
+		// fmt.Println(len(tasks))
+		// fmt.Println(len(workers))
 
-		//if there are tasks
+		// if there are tasks
 		if len(tasks) > 0 && len(workers) > 0 {
 			// Send first to worker idle worker
 			worker := workers[0]
 			task := tasks[0]
-			err = utils.SendAddTask(db, config.OauthTokenWorkers, &worker, &task)
+			err = utils.SendAddTask(db, &worker, &task)
 			if err != nil {
 				fmt.Println(err.Error())
 			}
@@ -82,10 +82,10 @@ func StartManager() {
 		fmt.Println(err)
 	}
 
-	//verify status workers infinite
+	// verify status workers infinite
 	go utils.VerifyWorkersLoop(db)
 
-	//manage task, routine to send task to iddle workers
+	// manage task, routine to send task to iddle workers
 	go manageTasks(config, db)
 
 	r := mux.NewRouter()
@@ -101,50 +101,50 @@ func StartManager() {
 		http.ServeFile(w, r, "docs/swagger.json")
 	}).Methods("GET")
 
-	//r.HandleFunc("/send/{recipient}", handleSendMessage).Methods("POST")
+	// r.HandleFunc("/send/{recipient}", handleSendMessage).Methods("POST")
 
 	// CallBack
 	r.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		API.HandleCallback(w, r, config, db)
-	}).Methods("POST") //get callback info from task
+	}).Methods("POST") // get callback info from task
 
 	// worker
 	r.HandleFunc("/worker", func(w http.ResponseWriter, r *http.Request) {
 		API.HandleWorkerGet(w, r, config, db)
-	}).Methods("GET") //get workers
+	}).Methods("GET") // get workers
 
 	r.HandleFunc("/worker", func(w http.ResponseWriter, r *http.Request) {
 		API.HandleWorkerPost(w, r, config, db)
-	}).Methods("POST") //add worker
+	}).Methods("POST") // add worker
 
 	r.HandleFunc("/worker/{NAME}", func(w http.ResponseWriter, r *http.Request) {
 		API.HandleWorkerDeleteName(w, r, config, db)
-	}).Methods("DELETE") //delete worker
+	}).Methods("DELETE") // delete worker
 
 	r.HandleFunc("/worker/{NAME}", func(w http.ResponseWriter, r *http.Request) {
 		API.HandleWorkerStatus(w, r, config, db)
-	}).Methods("GET") //check status 1 worker
+	}).Methods("GET") // check status 1 worker
 
 	// -------------------------------------------------------------------
 
 	// task
 	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
 		API.HandleTaskGet(w, r, config, db)
-	}).Methods("GET") //check tasks
+	}).Methods("GET") // check tasks
 
 	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
 		API.HandleTaskPost(w, r, config, db)
-	}).Methods("POST") //Add task
+	}).Methods("POST") // Add task
 
 	r.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
 		API.HandleTaskDelete(w, r, config, db)
-	}).Methods("DELETE") //Delete task
+	}).Methods("DELETE") // Delete task
 
 	r.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
 		API.HandleTaskStatus(w, r, config, db)
 	}).Methods("GET") // get status task
 
-	//r.HandleFunc("/task/{ID}", handletasktop).Methods("PATCH")
+	// r.HandleFunc("/task/{ID}", handletasktop).Methods("PATCH")
 
 	// -------------------------------------------------------------------
 
@@ -178,11 +178,12 @@ func StartManager() {
 
 }
 
+/*
 // allowCORS is a middleware function that adds CORS headers to the response.
 func allowCORS(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Set CORS headers
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8000")
+		w.Header().Set("Access-Control-Allow-Origin", "http:// localhost:8000")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization") // Add Authorization header
 
@@ -196,3 +197,4 @@ func allowCORS(handler http.Handler) http.Handler {
 		handler.ServeHTTP(w, r)
 	})
 }
+*/
