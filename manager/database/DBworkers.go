@@ -9,6 +9,7 @@ import (
 	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
 )
 
+// AddWorker add worker to DB
 func AddWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	// Insert the JSON data into the MySQL table
 	_, err := db.Exec("INSERT INTO worker (name, ip, port, oauthToken, working, up, count) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -19,6 +20,7 @@ func AddWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	return nil
 }
 
+// RmWorkerName delete worker by name
 func RmWorkerName(db *sql.DB, name string) error {
 	// Worker exists, proceed with deletion
 	sqlStatement := "DELETE FROM worker WHERE name = ?"
@@ -37,6 +39,7 @@ func RmWorkerName(db *sql.DB, name string) error {
 	return nil
 }
 
+// RmWorkerIPPort delete worker by IP and PORT
 func RmWorkerIPPort(db *sql.DB, ip, port string) error {
 	// Worker exists, proceed with deletion
 	sqlStatement := "DELETE FROM worker WHERE IP = ? AND port = ?"
@@ -54,6 +57,7 @@ func RmWorkerIPPort(db *sql.DB, ip, port string) error {
 	return nil
 }
 
+// GetWorkers get all workers
 func GetWorkers(db *sql.DB) ([]globalstructs.Worker, error) {
 	// Slice to store all workers
 	var workers []globalstructs.Worker
@@ -107,6 +111,7 @@ func GetWorkers(db *sql.DB) ([]globalstructs.Worker, error) {
 	return workers, nil
 }
 
+// GetWorker Get worker filter by name
 func GetWorker(db *sql.DB, name string) (globalstructs.Worker, error) {
 	var worker globalstructs.Worker
 	// Retrieve the JSON data from the MySQL table
@@ -136,6 +141,7 @@ func GetWorker(db *sql.DB, name string) (globalstructs.Worker, error) {
 	return worker, nil
 }
 
+// UpdateWorker Update full worker
 func UpdateWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	// Update the JSON data in the MySQL table based on the worker's name
 	_, err := db.Exec("UPDATE worker SET name = ?, ip = ?, port = ?, oauthToken = ?,working = ?, UP = ? WHERE name = ?",
@@ -159,6 +165,7 @@ func SetWorkerUPto(up bool, db *sql.DB, worker *globalstructs.Worker) error {
 	return nil
 }
 
+// SetWorkerworkingTo set worker status to boolean working value
 func SetWorkerworkingTo(working bool, db *sql.DB, worker *globalstructs.Worker) error {
 	_, err := db.Exec("UPDATE worker SET working = ? WHERE name = ?",
 		working, worker.Name)
@@ -170,6 +177,7 @@ func SetWorkerworkingTo(working bool, db *sql.DB, worker *globalstructs.Worker) 
 	return nil
 }
 
+// SetWorkerworkingTo set worker status to boolean working value from worker name
 func SetWorkerworkingToString(working bool, db *sql.DB, worker string) error {
 	_, err := db.Exec("UPDATE worker SET working = ? WHERE name = ?",
 		working, worker)
@@ -181,16 +189,19 @@ func SetWorkerworkingToString(working bool, db *sql.DB, worker string) error {
 	return nil
 }
 
+// GetWorkerIddle Get all workers iddle
 func GetWorkerIddle(db *sql.DB) ([]globalstructs.Worker, error) {
 	sql := "SELECT name, ip, port, oauthToken, working, up, count FROM worker WHERE up = true AND working = false;"
 	return GetWorkerSQL(sql, db)
 }
 
+// GetWorkerUP Get all workers UP
 func GetWorkerUP(db *sql.DB) ([]globalstructs.Worker, error) {
 	sql := "SELECT name, ip, port, oauthToken, working, up, count FROM worker WHERE up = true;"
 	return GetWorkerSQL(sql, db)
 }
 
+// GetWorkerSQL get workers info by SQL
 func GetWorkerSQL(sql string, db *sql.DB) ([]globalstructs.Worker, error) {
 
 	// Slice to store all workers
@@ -245,6 +256,7 @@ func GetWorkerSQL(sql string, db *sql.DB) ([]globalstructs.Worker, error) {
 	return workers, nil
 }
 
+// GetWorkerCount get workers count by name (used to count until 3 to set down)
 func GetWorkerCount(db *sql.DB, worker *globalstructs.Worker) (int, error) {
 	var countS string
 	err := db.QueryRow("SELECT count FROM worker WHERE name = ?",
@@ -262,6 +274,7 @@ func GetWorkerCount(db *sql.DB, worker *globalstructs.Worker) (int, error) {
 	return count, nil
 }
 
+// SetWorkerCount set worker count to count int
 func SetWorkerCount(count int, db *sql.DB, worker *globalstructs.Worker) error {
 	_, err := db.Exec("UPDATE worker SET count = ? WHERE name = ?",
 		count, worker.Name)
@@ -273,6 +286,7 @@ func SetWorkerCount(count int, db *sql.DB, worker *globalstructs.Worker) error {
 	return nil
 }
 
+// AddWorkerCount add 1 to worker count
 func AddWorkerCount(db *sql.DB, worker *globalstructs.Worker) error {
 	_, err := db.Exec("UPDATE worker SET count = count + 1 WHERE name = ?",
 		worker.Name)

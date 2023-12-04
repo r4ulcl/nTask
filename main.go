@@ -9,17 +9,15 @@ import (
 	"github.com/r4ulcl/NetTask/worker"
 )
 
-// @titleNetTask API
+// @title NetTask API
 // @version 1.0
-// @description This is a sample server Petstore server.
-// @termsOfService http://swagger.io/terms/
+// @description NetTask API documentation
+// @contact.name r4ulcl
+// @contact.url https://r4ulcl.com/contact/
+// @contact.email me@r4ulcl.com
 
-// @contact.name API Support
-// @contact.url http://www.swagger.io/support
-// @contact.email support@swagger.io
-
-// @license.name Apache 2.0
-// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+// @license.name  GPL-3.0
+// @license.url https://github.com/r4ulcl/NetTask/blob/main/LICENSE
 
 // @BasePath /
 // @Security OAuth2.0

@@ -16,11 +16,11 @@ import (
 
 // TASK
 
-// @Summary Get status of tasks
+// @Summary Get all tasks
 // @Description Get status of tasks
 // @Tags task
 // @Accept json
-// @Produce json
+// @Produce []json
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @Success 200 {array} globalstructs.Task
 // @Router /task [get]
@@ -60,8 +60,8 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 	fmt.Fprintln(w, string(jsonData))
 }
 
-// @Summary Add a tasks
-// @Description Add a tasks
+// @Summary Add a new tasks
+// @Description Add a new tasks
 // @Tags task
 // @Accept json
 // @Produce json

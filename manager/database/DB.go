@@ -37,6 +37,7 @@ func ConnectDB(username, password, host, port, database string) (*sql.DB, error)
 	return db, nil
 }
 
+// init database from file filePath
 func initFromFile(db *sql.DB, filePath string) error {
 	// Read the SQL file
 	sqlFile, err := ioutil.ReadFile(filePath)

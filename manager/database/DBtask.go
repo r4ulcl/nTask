@@ -10,6 +10,7 @@ import (
 	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
 )
 
+// AddTask add task to DB
 func AddTask(db *sql.DB, task globalstructs.Task) error {
 	// Insert the JSON data into the MySQL table
 	argsString := strings.Join(task.Args, ",")
@@ -35,6 +36,7 @@ func UpdateTask(db *sql.DB, task globalstructs.Task) error {
 	return nil
 }
 
+// RmTask delete task from database
 func RmTask(db *sql.DB, id string) error {
 	// Worker exists, proceed with deletion
 	sqlStatement := "DELETE FROM task WHERE ID = ?"
@@ -53,6 +55,7 @@ func RmTask(db *sql.DB, id string) error {
 	return nil
 }
 
+// GetTasks get tasks with URL params as filter
 func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB) ([]globalstructs.Task, error) {
 	queryParams := r.URL.Query()
 
@@ -100,16 +103,13 @@ func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB) ([]globalstruc
 	return GetTasksSQL(sql, db)
 }
 
-func GetTasks2(db *sql.DB) ([]globalstructs.Task, error) {
-	sql := "SELECT ID, module, args, createdAt, updatedAt, status, WorkerName, output, priority FROM task ORDER BY priority DESC, createdAt ASC"
-	return GetTasksSQL(sql, db)
-}
-
+// GetTasksPending Get only task status pending
 func GetTasksPending(db *sql.DB) ([]globalstructs.Task, error) {
 	sql := "SELECT ID, module, args, createdAt, updatedAt, status, WorkerName, output, priority FROM task WHERE status = 'pending' ORDER BY priority DESC, createdAt ASC"
 	return GetTasksSQL(sql, db)
 }
 
+// GetTasksSQL get task passing the SQL query in sql param
 func GetTasksSQL(sql string, db *sql.DB) ([]globalstructs.Task, error) {
 	var tasks []globalstructs.Task
 
@@ -166,6 +166,7 @@ func GetTasksSQL(sql string, db *sql.DB) ([]globalstructs.Task, error) {
 	return tasks, nil
 }
 
+// GetTask Get task filter by id
 func GetTask(db *sql.DB, id string) (globalstructs.Task, error) {
 	var task globalstructs.Task
 	// Retrieve the JSON data from the MySQL table
@@ -196,6 +197,8 @@ func GetTask(db *sql.DB, id string) (globalstructs.Task, error) {
 	return task, nil
 }
 
+// GetTaskWorker get task workerName from and ID
+// This is the worker executing the task
 func GetTaskWorker(db *sql.DB, id string) (string, error) {
 	// Retrieve the JSON data from the MySQL table
 	var workerName string
