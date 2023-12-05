@@ -15,6 +15,7 @@ import (
 	"github.com/r4ulcl/NetTask/manager/utils"
 )
 
+// HandleCallback handles the callback from a slave
 // @Summary Handle callback from slave
 // @Description Handle callback from slave
 // @Tags callback
@@ -66,6 +67,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	w.WriteHeader(http.StatusOK)
 }
 
+// HandleWorkerGet handles the request to get workers
 // @Summary Get workers
 // @Description Handle worker request
 // @Tags worker
@@ -101,6 +103,7 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 	fmt.Fprintln(w, string(jsonData))
 }
 
+// HandleWorkerPost handles the request to add a worker
 // @Summary Add a worker
 // @Description Add a worker, normally done by the worker
 // @Tags worker
@@ -161,6 +164,7 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	fmt.Fprintf(w, "Worker with Name %s added", request.Name)
 }
 
+// HandleWorkerDeleteName handles the request to remove a worker
 // @Summary Remove a worker
 // @Description Remove a worker from the system
 // @Tags worker
@@ -190,6 +194,7 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 	fmt.Fprintln(w, "")
 }
 
+// HandleWorkerStatus returns the status of a worker
 // @Summary Get status of worker
 // @Description Get status of worker
 // @Tags worker
@@ -231,7 +236,8 @@ func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.Ma
 }
 
 // Other functions
-// ReadUserIP read user IP from request
+
+// ReadUserIP reads the user's IP address from the request
 func ReadUserIP(r *http.Request) string {
 	IPAddress := r.Header.Get("X-Real-Ip")
 	if IPAddress == "" {

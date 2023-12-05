@@ -9,7 +9,7 @@ import (
 	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
 )
 
-// AddWorker add worker to DB
+// AddWorker adds a worker to the database.
 func AddWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	// Insert the JSON data into the MySQL table
 	_, err := db.Exec("INSERT INTO worker (name, ip, port, oauthToken, working, up, count) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -20,7 +20,7 @@ func AddWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	return nil
 }
 
-// RmWorkerName delete worker by name
+// RmWorkerName deletes a worker by its name.
 func RmWorkerName(db *sql.DB, name string) error {
 	// Worker exists, proceed with deletion
 	sqlStatement := "DELETE FROM worker WHERE name = ?"
@@ -39,7 +39,7 @@ func RmWorkerName(db *sql.DB, name string) error {
 	return nil
 }
 
-// RmWorkerIPPort delete worker by IP and PORT
+// RmWorkerIPPort deletes a worker by its IP and Port.
 func RmWorkerIPPort(db *sql.DB, ip, port string) error {
 	// Worker exists, proceed with deletion
 	sqlStatement := "DELETE FROM worker WHERE IP = ? AND port = ?"
@@ -57,7 +57,7 @@ func RmWorkerIPPort(db *sql.DB, ip, port string) error {
 	return nil
 }
 
-// GetWorkers get all workers
+// GetWorkers retrieves all workers from the database.
 func GetWorkers(db *sql.DB) ([]globalstructs.Worker, error) {
 	// Slice to store all workers
 	var workers []globalstructs.Worker
@@ -88,7 +88,7 @@ func GetWorkers(db *sql.DB) ([]globalstructs.Worker, error) {
 			return workers, err
 		}
 
-		// Data into a Person struct
+		// Data into a Worker struct
 		var worker globalstructs.Worker
 		worker.Name = name
 		worker.IP = ip
@@ -98,7 +98,7 @@ func GetWorkers(db *sql.DB) ([]globalstructs.Worker, error) {
 		worker.UP = up
 		worker.Count = count
 
-		// Append the person to the slice
+		// Append the worker to the slice
 		workers = append(workers, worker)
 	}
 
@@ -111,7 +111,7 @@ func GetWorkers(db *sql.DB) ([]globalstructs.Worker, error) {
 	return workers, nil
 }
 
-// GetWorker Get worker filter by name
+// GetWorker retrieves a worker from the database by its name.
 func GetWorker(db *sql.DB, name string) (globalstructs.Worker, error) {
 	var worker globalstructs.Worker
 	// Retrieve the JSON data from the MySQL table
@@ -129,7 +129,7 @@ func GetWorker(db *sql.DB, name string) (globalstructs.Worker, error) {
 		return worker, err
 	}
 
-	// Data back to a struct
+	// Data into the struct
 	worker.Name = name
 	worker.IP = ip
 	worker.Port = port
@@ -141,7 +141,7 @@ func GetWorker(db *sql.DB, name string) (globalstructs.Worker, error) {
 	return worker, nil
 }
 
-// UpdateWorker Update full worker
+// UpdateWorker updates the information of a worker in the database.
 func UpdateWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	// Update the JSON data in the MySQL table based on the worker's name
 	_, err := db.Exec("UPDATE worker SET name = ?, ip = ?, port = ?, oauthToken = ?,working = ?, UP = ? WHERE name = ?",
@@ -153,7 +153,7 @@ func UpdateWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	return nil
 }
 
-// SetWorkerDown set worker status to status var, false -> cant connect
+// SetWorkerUPto sets the status of a worker to the specified value.
 func SetWorkerUPto(up bool, db *sql.DB, worker *globalstructs.Worker) error {
 	_, err := db.Exec("UPDATE worker SET UP = ? WHERE name = ?",
 		up, worker.Name)
@@ -165,7 +165,7 @@ func SetWorkerUPto(up bool, db *sql.DB, worker *globalstructs.Worker) error {
 	return nil
 }
 
-// SetWorkerworkingTo set worker status to boolean working value
+// SetWorkerworkingTo sets the status of a worker to the specified working value.
 func SetWorkerworkingTo(working bool, db *sql.DB, worker *globalstructs.Worker) error {
 	_, err := db.Exec("UPDATE worker SET working = ? WHERE name = ?",
 		working, worker.Name)
@@ -177,7 +177,7 @@ func SetWorkerworkingTo(working bool, db *sql.DB, worker *globalstructs.Worker) 
 	return nil
 }
 
-// SetWorkerworkingTo set worker status to boolean working value from worker name
+// SetWorkerworkingToString sets the status of a worker to the specified working value using the worker's name.
 func SetWorkerworkingToString(working bool, db *sql.DB, worker string) error {
 	_, err := db.Exec("UPDATE worker SET working = ? WHERE name = ?",
 		working, worker)
@@ -189,19 +189,19 @@ func SetWorkerworkingToString(working bool, db *sql.DB, worker string) error {
 	return nil
 }
 
-// GetWorkerIddle Get all workers iddle
+// GetWorkerIddle retrieves all workers that are iddle.
 func GetWorkerIddle(db *sql.DB) ([]globalstructs.Worker, error) {
 	sql := "SELECT name, ip, port, oauthToken, working, up, count FROM worker WHERE up = true AND working = false;"
 	return GetWorkerSQL(sql, db)
 }
 
-// GetWorkerUP Get all workers UP
+// GetWorkerUP retrieves all workers that are up.
 func GetWorkerUP(db *sql.DB) ([]globalstructs.Worker, error) {
 	sql := "SELECT name, ip, port, oauthToken, working, up, count FROM worker WHERE up = true;"
 	return GetWorkerSQL(sql, db)
 }
 
-// GetWorkerSQL get workers info by SQL
+// GetWorkerSQL retrieves workers information based on a SQL statement.
 func GetWorkerSQL(sql string, db *sql.DB) ([]globalstructs.Worker, error) {
 
 	// Slice to store all workers
@@ -233,7 +233,7 @@ func GetWorkerSQL(sql string, db *sql.DB) ([]globalstructs.Worker, error) {
 			return workers, err
 		}
 
-		// Data into a Person struct
+		// Data into a Worker struct
 		var worker globalstructs.Worker
 		worker.Name = name
 		worker.IP = ip
@@ -243,7 +243,7 @@ func GetWorkerSQL(sql string, db *sql.DB) ([]globalstructs.Worker, error) {
 		worker.UP = up
 		worker.Count = count
 
-		// Append the person to the slice
+		// Append the worker to the slice
 		workers = append(workers, worker)
 	}
 

@@ -14,8 +14,7 @@ import (
 	"github.com/r4ulcl/NetTask/manager/utils"
 )
 
-// TASK
-
+// HandleTaskGet - Get all tasks
 // @Summary Get all tasks
 // @Description Get status of tasks
 // @Tags task
@@ -60,6 +59,7 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 	fmt.Fprintln(w, string(jsonData))
 }
 
+// HandleTaskPost - Add a new tasks
 // @Summary Add a new tasks
 // @Description Add a new tasks
 // @Tags task
@@ -105,6 +105,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	fmt.Fprintf(w, "Task with ID %s added", request.ID)
 }
 
+// HandleTaskDelete - Delete a tasks
 // @Summary Delete a tasks
 // @Description Delete a tasks
 // @Tags task
@@ -152,6 +153,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	fmt.Fprintln(w, "")
 }
 
+// HandleTaskStatus - Get status of a task
 // @Summary Get status of a task
 // @Description Get status of a task
 // @Tags task

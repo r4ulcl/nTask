@@ -1,4 +1,6 @@
 // manager.go
+// Package database provides functions for managing database connections and executing SQL statements.
+
 package database
 
 import (
@@ -12,6 +14,8 @@ import (
 )
 
 // ConnectDB creates a new Manager instance and initializes the database connection.
+// It takes the username, password, host, port, and database name as input.
+// It returns a pointer to the sql.DB object and an error if the connection fails.
 func ConnectDB(username, password, host, port, database string) (*sql.DB, error) {
 	// Create a connection string.
 	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", username, password, host, port, database)
@@ -28,6 +32,7 @@ func ConnectDB(username, password, host, port, database string) (*sql.DB, error)
 		return nil, err
 	}
 
+	// Initialize the database structure from SQL file.
 	sqlFile := "manager/database/sql.sql"
 	err = initFromFile(db, sqlFile)
 	if err != nil {
@@ -37,7 +42,9 @@ func ConnectDB(username, password, host, port, database string) (*sql.DB, error)
 	return db, nil
 }
 
-// init database from file filePath
+// initFromFile initializes the database structure by executing SQL statements from a file.
+// It takes a pointer to the sql.DB object and the file path as input.
+// It returns an error if the initialization fails.
 func initFromFile(db *sql.DB, filePath string) error {
 	// Read the SQL file
 	sqlFile, err := ioutil.ReadFile(filePath)

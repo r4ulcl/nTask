@@ -14,7 +14,7 @@ import (
 	"github.com/r4ulcl/NetTask/manager/database"
 )
 
-// verifyWorkersLoop check and set if the workers are UP infinite
+// VerifyWorkersLoop checks and sets if the workers are UP infinitely.
 func VerifyWorkersLoop(db *sql.DB) {
 	for {
 		go verifyWorkers(db)
@@ -22,14 +22,15 @@ func VerifyWorkersLoop(db *sql.DB) {
 	}
 }
 
-// verifyWorkers check and set if the workers are UP
+// verifyWorkers checks and sets if the workers are UP.
 func verifyWorkers(db *sql.DB) {
-
+	// Get all UP workers from the database
 	workers, err := database.GetWorkerUP(db)
 	if err != nil {
 		log.Print(err)
 	}
 
+	// Verify each worker
 	for _, worker := range workers {
 		err := verifyWorker(db, &worker)
 		if err != nil {
@@ -38,17 +39,18 @@ func verifyWorkers(db *sql.DB) {
 	}
 }
 
-// VerifyWorker check and set if the workers are UP
+// verifyWorker checks and sets if the worker is UP.
 func verifyWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	workerURL := "http://" + worker.IP + ":" + worker.Port
 
-	// Create an HTTP client and send a GET request
+	// Create an HTTP client and send a GET request to workerURL/status
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", workerURL+"/status", nil)
 	if err != nil {
-		log.Println("Failed to create request to: ", workerURL, " error:", err)
-		log.Println("Delete worker: ", worker.Name)
-		// Incorrect DATA, delete worker
+		log.Println("Failed to create request to:", workerURL, " error:", err)
+		log.Println("Delete worker:", worker.Name)
+
+		// If there is an error in creating the request, delete the worker from the database
 		err := database.RmWorkerName(db, worker.Name)
 		if err != nil {
 			return err
@@ -61,21 +63,24 @@ func verifyWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println("Error making request:", err)
-		// if error making request is offline!
+		// If there is an error in making the request, assume worker is offline
 		count, err := database.GetWorkerCount(db, worker)
 		if err != nil {
 			return err
 		}
 		if count >= 3 {
+			// If worker has been offline for 3 or more cycles, set it as offline in database
 			err = database.SetWorkerUPto(false, db, worker)
 			if err != nil {
 				return err
 			}
+			// Reset the count to 0
 			err = database.SetWorkerCount(0, db, worker)
 			if err != nil {
 				return err
 			}
 		} else {
+			// If worker has been offline for less than 3 cycles, increment the count
 			err = database.AddWorkerCount(db, worker)
 			if err != nil {
 				return err
@@ -85,7 +90,7 @@ func verifyWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	}
 	defer resp.Body.Close()
 
-	// if no error making request is online!
+	// If there is no error in making the request, assume worker is online
 	err = database.SetWorkerUPto(true, db, worker)
 	if err != nil {
 		return err
@@ -106,7 +111,7 @@ func verifyWorker(db *sql.DB, worker *globalstructs.Worker) error {
 		return err
 	}
 
-	// If worker status is not the same as storage in DB update
+	// If worker status is not the same as stored in the DB, update the DB
 	if status.Working != worker.Working {
 		err := database.SetWorkerworkingTo(status.Working, db, worker)
 		if err != nil {
@@ -118,7 +123,7 @@ func verifyWorker(db *sql.DB, worker *globalstructs.Worker) error {
 
 }
 
-// SendAddTask send to a worker a request to add a task
+// SendAddTask sends a request to a worker to add a task.
 func SendAddTask(db *sql.DB, worker *globalstructs.Worker, task *globalstructs.Task) error {
 	workerURL := "http://" + worker.IP + ":" + worker.Port
 
@@ -130,8 +135,7 @@ func SendAddTask(db *sql.DB, worker *globalstructs.Worker, task *globalstructs.T
 		return err
 	}
 
-	// Convert struct to JSON
-	log.Println(task.ID)
+	// Convert the struct to JSON
 	jsonData, err := json.Marshal(task)
 	if err != nil {
 		return err
@@ -162,7 +166,7 @@ func SendAddTask(db *sql.DB, worker *globalstructs.Worker, task *globalstructs.T
 	// Check the response status
 	if resp.StatusCode == http.StatusOK {
 		log.Println("POST request was successful")
-		// set worker and task working
+		// Set the task and worker as working
 		err := database.SetTaskStatus(db, task.ID, "running")
 		if err != nil {
 			return err
@@ -178,7 +182,7 @@ func SendAddTask(db *sql.DB, worker *globalstructs.Worker, task *globalstructs.T
 	return nil
 }
 
-// SendDeleteTask send request to a worker to stop and delete a task
+// SendDeleteTask sends a request to a worker to stop and delete a task.
 func SendDeleteTask(db *sql.DB, worker *globalstructs.Worker, task *globalstructs.Task) error {
 	workerURL := "http://" + worker.IP + ":" + worker.Port + "/task/" + task.ID
 
@@ -207,7 +211,7 @@ func SendDeleteTask(db *sql.DB, worker *globalstructs.Worker, task *globalstruct
 	// Check the response status
 	if resp.StatusCode == http.StatusOK {
 		log.Println("POST request was successful")
-		// set worker and task working
+		// Set the task and worker as not working
 		err := database.SetTaskStatus(db, task.ID, "deleted")
 		if err != nil {
 			return err
@@ -224,7 +228,7 @@ func SendDeleteTask(db *sql.DB, worker *globalstructs.Worker, task *globalstruct
 }
 
 /*
-// SendGetTask send request to a worker of a task status
+// SendGetTask sends a request to a worker to get the status of a task.
 func SendGetTask(db *sql.DB, OauthTokenWorkers string, worker *globalstructs.Worker, task globalstructs.Task) (globalstructs.Task, error) {
 	return task, nil
 }
