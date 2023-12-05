@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS worker (
+    name VARCHAR(255) PRIMARY KEY,
+    ip VARCHAR(255) NOT NULL,
+    port VARCHAR(255) NOT NULL,
+    oauthToken VARCHAR(255) NOT NULL,
+    IddleThreads INT,
+    up BOOLEAN,
+    downCount INT,
+    UNIQUE (ip, port)
+);
+
+CREATE TABLE IF NOT EXISTS task (
+    ID VARCHAR(255) PRIMARY KEY,
+    module  VARCHAR(255),
+    args TEXT,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    status VARCHAR(255), 
+    workerName VARCHAR(255),
+    output TEXT,
+    priority BOOLEAN DEFAULT false
+);

@@ -64,6 +64,7 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB) {
 			err = utils.SendAddTask(db, &worker, &task)
 			if err != nil {
 				log.Println(err.Error())
+				time.Sleep(time.Second * 1)
 			}
 		} else {
 			// only wait if not tasks or no workers
@@ -134,7 +135,7 @@ func StartManager(swagger bool, configFile string) {
 
 	config, err := loadManagerConfig(configFile)
 	if err != nil {
-		log.Println(err)
+		log.Fatal("Error loading config file: ", err)
 	}
 
 	// Start DB
