@@ -13,12 +13,6 @@ type WorkerConfig struct {
 	OAuthToken         string            `json:"oauthToken"`
 	Port               string            `json:"port"`
 	Modules            map[string]string `json:"modules"`
-
-	// TaskList           map[string]*globalstructs.Task `json:"taskList"`
-	// TaskListMu         sync.Mutex                     `json:"taskListMu"`
-	// WorkMutex          sync.Mutex                     `json:"workMutex"`
-	// Goroutine          *sync.WaitGroup                `json:"goroutine"`
-	// SemaphoreCh        chan struct{}                  `json:"semaphoreCh"`
 }
 
 type Task struct {
@@ -30,12 +24,3 @@ type Task struct {
 	Result      string
 	Goroutine   *sync.WaitGroup
 }
-
-/*
-type MessageO struct {
-	ID          string   `json:"id"`
-	Module      string   `json:"module"`
-	Arguments   []string `json:"arguments"`
-	CallbackURL string   `json:"callbackURL"`
-}
-*/

@@ -11,7 +11,9 @@ import (
 	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
 )
 
+// AddWorker sends a POST request to add a worker to the manager
 func AddWorker(config *WorkerConfig) error {
+	// Create a Worker object with the provided configuration
 	worker := globalstructs.Worker{
 		Name:       config.Name,
 		Port:       config.Port,
@@ -20,8 +22,10 @@ func AddWorker(config *WorkerConfig) error {
 		UP:         true,
 	}
 
+	// Marshal the worker object into JSON
 	payload, _ := json.Marshal(worker)
 
+	// Create a new POST request to add the worker
 	req, err := http.NewRequest("POST", "http://"+config.ManagerIP+":"+config.ManagerPort+"/worker", bytes.NewBuffer(payload))
 	if err != nil {
 		return err
@@ -39,12 +43,13 @@ func AddWorker(config *WorkerConfig) error {
 	}
 	defer resp.Body.Close()
 
-	// IF response is not 200 error!!
+	// Read the response body
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
 
+	// Check if the response status code is not 200
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("error adding the worker %s", body)
 	}
@@ -52,12 +57,15 @@ func AddWorker(config *WorkerConfig) error {
 	return nil
 }
 
+// CallbackTaskMessage sends a POST request to the manager to callback with a task message
 func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task) {
+	// Create the callback URL using the manager IP and port
 	url := "http://" + config.ManagerIP + ":" + config.ManagerPort + "/callback"
 
+	// Marshal the task object into JSON
 	payload, _ := json.Marshal(task)
 
-	// Create a new request with the POST method and the payload
+	// Create a new POST request to send the task message
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
 		log.Println("Error creating request:", err)
@@ -79,5 +87,4 @@ func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task) {
 
 	log.Println("Status Code:", resp.Status)
 	// Handle the response body as needed
-
 }
