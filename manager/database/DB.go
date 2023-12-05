@@ -33,7 +33,7 @@ func ConnectDB(username, password, host, port, database string) (*sql.DB, error)
 	}
 
 	// Initialize the database structure from SQL file.
-	sqlFile := "manager/database/sql.sql"
+	sqlFile := "sql.sql"
 	err = initFromFile(db, sqlFile)
 	if err != nil {
 		log.Fatal(err)

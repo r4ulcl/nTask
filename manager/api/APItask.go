@@ -19,7 +19,7 @@ import (
 // @Description Get status of tasks
 // @Tags task
 // @Accept json
-// @Produce []json
+// @Produce json
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @Success 200 {array} globalstructs.Task
 // @Router /task [get]
