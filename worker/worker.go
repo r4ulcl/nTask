@@ -3,6 +3,7 @@ package worker
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -40,6 +41,15 @@ func loadWorkerConfig(filename string) (*utils.WorkerConfig, error) {
 		config.Name = hostname
 	}
 
+	// if OauthToken is empty create a new token
+	if config.OAuthToken == "" {
+		config.OAuthToken, err = utils.GenerateToken(32)
+		if err != nil {
+			log.Println("Error generating OAuthToken:", err)
+		}
+		fmt.Println(config.OAuthToken)
+	}
+
 	// Print the values from the struct
 	log.Println("Name:", config.Name)
 	log.Println("Tasks:")
@@ -72,7 +82,7 @@ func StartWorker(swagger bool, configFile string) {
 
 	workerConfig, err := loadWorkerConfig(configFile)
 	if err != nil {
-		log.Println(err)
+		log.Fatal("Error loading config file: ", err)
 	}
 
 	status := &globalstructs.WorkerStatus{
