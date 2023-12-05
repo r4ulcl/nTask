@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -95,6 +96,11 @@ func verifyWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	}
 	defer resp.Body.Close()
 
+	// if response is not 200 error
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Error: Unexpected status code %d\n", resp.StatusCode)
+		return fmt.Errorf("error:", resp.Status)
+	}
 	// If there is no error in making the request, assume worker is online
 	err = database.SetWorkerUPto(true, db, worker)
 	if err != nil {

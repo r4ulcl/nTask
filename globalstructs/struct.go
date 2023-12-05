@@ -30,6 +30,6 @@ type Worker struct {
 
 // WorkerStatus struct to process the worker status response.
 type WorkerStatus struct {
-	IddleThreads int      `json:"IddleThreads"`
-	WorkingIDs   []string `json:"workingIds"`
+	IddleThreads int            `json:"IddleThreads"`
+	WorkingIDs   map[string]int `json:"workingIds"`
 }

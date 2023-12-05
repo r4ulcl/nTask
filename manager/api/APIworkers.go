@@ -138,12 +138,27 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	if err != nil {
 		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
 			if mysqlErr.Number == 1062 { // MySQL error number for duplicate entry
-				err := database.SetWorkerUPto(true, db, &request)
+				// Set as 'failed' all workers tasks
+				err = database.SetTasksWorkerFailed(db, request.Name)
+				if err != nil {
+					return
+				}
+
+				//Update oauth key
+				err := database.SetWorkerOauthToken(request.OauthToken, db, &request)
 				if err != nil {
 					http.Error(w, "Error setWorkerUp ", http.StatusBadRequest)
 					return
 				}
 
+				// set worker up
+				err = database.SetWorkerUPto(true, db, &request)
+				if err != nil {
+					http.Error(w, "Error setWorkerUp ", http.StatusBadRequest)
+					return
+				}
+
+				// reset down count
 				err = database.SetWorkerDownCount(0, db, &request)
 				if err != nil {
 					http.Error(w, "Error SetWorkerCount ", http.StatusBadRequest)

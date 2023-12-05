@@ -11,7 +11,7 @@ import (
 	"github.com/r4ulcl/NetTask/worker/utils"
 )
 
-func runModule(command string, arguments []string) (string, error) {
+func runModule(command string, arguments []string, status *globalstructs.WorkerStatus, id string) (string, error) {
 	// if command is empty, like in the example "exec" to exec any binary
 	// the first argument is the command
 	if command == "" && len(arguments) > 0 {
@@ -34,6 +34,21 @@ func runModule(command string, arguments []string) (string, error) {
 	// Command to run the module
 	cmd := exec.Command(command, arguments...)
 
+	// Start the command
+	err := cmd.Start()
+	if err != nil {
+		fmt.Println("Error starting command:", err)
+		return "", err
+	}
+
+	status.WorkingIDs[id] = cmd.Process.Pid
+
+	// Wait for the command to finish
+	err = cmd.Wait()
+	if err != nil {
+		fmt.Println("Error waiting for command:", err)
+	}
+
 	// Capture the output of the script
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -43,10 +58,13 @@ func runModule(command string, arguments []string) (string, error) {
 	// Convert the output byte slice to a string
 	outputString := string(output)
 
+	//Remove the ID from the status
+	delete(status.WorkingIDs, id)
+
 	return outputString, nil
 }
 
-func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig) (string, error) {
+func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status *globalstructs.WorkerStatus, id string) (string, error) {
 	module := task.Module
 	arguments := task.Args
 
@@ -55,7 +73,7 @@ func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig) (string
 		return "Unknown task", fmt.Errorf("unknown command")
 	}
 
-	return runModule(command, arguments)
+	return runModule(command, arguments, status, id)
 }
 
 func GetRandomDuration(base, random int) int {

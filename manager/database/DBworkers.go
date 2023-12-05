@@ -154,6 +154,18 @@ func UpdateWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	return nil
 }
 
+// SetWorkerOauthToken sets oauth token to new value.
+func SetWorkerOauthToken(oauthToken string, db *sql.DB, worker *globalstructs.Worker) error {
+	_, err := db.Exec("UPDATE worker SET oauthToken = ? WHERE name = ?",
+		oauthToken, worker.Name)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
 // SetWorkerUPto sets the status of a worker to the specified value.
 func SetWorkerUPto(up bool, db *sql.DB, worker *globalstructs.Worker) error {
 	_, err := db.Exec("UPDATE worker SET UP = ? WHERE name = ?",

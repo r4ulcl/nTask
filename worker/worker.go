@@ -85,8 +85,9 @@ func StartWorker(swagger bool, configFile string) {
 		log.Fatal("Error loading config file: ", err)
 	}
 
-	status := &globalstructs.WorkerStatus{
+	status := globalstructs.WorkerStatus{
 		IddleThreads: workerConfig.IddleThreads,
+		WorkingIDs:   make(map[string]int),
 	}
 
 	// Loop until connects
@@ -108,16 +109,16 @@ func StartWorker(swagger bool, configFile string) {
 	}
 
 	router.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleGetStatus(w, r, status, workerConfig)
+		api.HandleGetStatus(w, r, &status, workerConfig)
 	}).Methods("GET") // check worker status
 
 	// Task
 	router.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskPost(w, r, status, workerConfig)
+		api.HandleTaskPost(w, r, &status, workerConfig)
 	}).Methods("POST") // Add task
 
 	router.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskDelete(w, r, status, workerConfig)
+		api.HandleTaskDelete(w, r, &status, workerConfig)
 	}).Methods("DELETE") // delete task
 
 	/*

@@ -1,10 +1,12 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os/exec"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -23,16 +25,23 @@ import (
 func HandleGetStatus(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig) {
 	oauthKeyClient := r.Header.Get("Authorization")
 	if oauthKeyClient != config.OAuthToken {
+		log.Println("oauthKeyClient", oauthKeyClient)
+		log.Println("config.OAuthToken", config.OAuthToken)
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	err := json.NewEncoder(w).Encode(status)
+	jsonData, err := json.Marshal(status)
 	if err != nil {
-		log.Fatalln("Error encoding status", err)
+		http.Error(w, "Invalid callback body"+err.Error(), http.StatusBadRequest)
+		return
 	}
+
+	// Print the JSON data
+	//log.Println(string(jsonData))
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, string(jsonData))
 }
 
 // -------------------------------------------------------------------------------------
@@ -84,10 +93,25 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, status *globalstru
 	vars := mux.Vars(r)
 	id := vars["ID"]
 
-	log.Println("TODO Stop/delete", id)
+	cmdID := status.WorkingIDs[id]
 
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, id+" deleted")
+	// Kill the process using cmdID
+	cmd := exec.Command("kill", "-9", fmt.Sprint(cmdID))
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+
+	if err != nil {
+		fmt.Println("Error killing process:", err)
+		fmt.Println("Error details:", stderr.String())
+		http.Error(w, "{\"error\": \"Error killing process: "+id+"\"}", http.StatusServiceUnavailable)
+	} else {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, "{\"id\": "+id+", \"status\": \"deleted\"}")
+	}
+
 }
 
 // HandleTaskGet handles the GET request to /task/{ID} endpoint.
@@ -99,8 +123,17 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, status *globalstructs
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
-	log.Println("TODO HandleTaskGet")
-	http.Error(w, "Invalid callback body", http.StatusBadRequest)
+
+	vars := mux.Vars(r)
+	id := vars["ID"]
+
+	if _, exists := status.WorkingIDs[id]; exists {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, "{ \"id\": \""+id+"\" \n \"status\": \"running\"}")
+	} else {
+		http.Error(w, "{\"error\" : \"ID not found\"}", http.StatusBadRequest)
+
+	}
 }
 
 // processTask is a helper function that processes the given task in the background.
@@ -113,11 +146,10 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, status *globalstructs
 func processTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *globalstructs.Task) {
 	//Remove one from working threads
 	status.IddleThreads -= 1
-	status.WorkingIDs = append(status.WorkingIDs, task.ID)
 
 	log.Println("Start processing task", task.ID, " workCount: ", status.IddleThreads)
 
-	output, err := modules.ProcessModule(task, config)
+	output, err := modules.ProcessModule(task, config, status, task.ID)
 	if err != nil {
 		log.Println("Error:", err)
 		task.Status = "failed"
@@ -138,17 +170,4 @@ func processTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig,
 
 	//Add one from working threads
 	status.IddleThreads += 1
-	status.WorkingIDs = removeValueFromWorkingIDs(status.WorkingIDs, task.ID)
-}
-
-func removeValueFromWorkingIDs(arr []string, valueToRemove string) []string {
-	var result []string
-
-	for _, v := range arr {
-		if v != valueToRemove {
-			result = append(result, v)
-		}
-	}
-
-	return result
 }
