@@ -40,5 +40,4 @@ func CallbackUserTaskMessage(config *ManagerConfig, task *globalstructs.Task) {
 
 	log.Println("Status Code:", resp.Status)
 	// Handle the response body as needed
-
 }

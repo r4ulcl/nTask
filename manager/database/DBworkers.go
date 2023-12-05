@@ -203,7 +203,6 @@ func GetWorkerUP(db *sql.DB) ([]globalstructs.Worker, error) {
 
 // GetWorkerSQL retrieves workers information based on a SQL statement.
 func GetWorkerSQL(sql string, db *sql.DB) ([]globalstructs.Worker, error) {
-
 	// Slice to store all workers
 	var workers []globalstructs.Worker
 

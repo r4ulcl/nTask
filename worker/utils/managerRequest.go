@@ -26,7 +26,8 @@ func AddWorker(config *WorkerConfig) error {
 	payload, _ := json.Marshal(worker)
 
 	// Create a new POST request to add the worker
-	req, err := http.NewRequest("POST", "http://"+config.ManagerIP+":"+config.ManagerPort+"/worker", bytes.NewBuffer(payload))
+	url := "http://" + config.ManagerIP + ":" + config.ManagerPort + "/worker"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
 		return err
 	}

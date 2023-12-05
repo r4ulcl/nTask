@@ -9,12 +9,11 @@ import (
 	"net/http"
 	"time"
 
-	httpSwagger "github.com/swaggo/http-swagger"
-
 	"github.com/gorilla/mux"
 	"github.com/r4ulcl/NetTask/manager/api"
 	"github.com/r4ulcl/NetTask/manager/database"
 	"github.com/r4ulcl/NetTask/manager/utils"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func loadManagerConfig(filename string) (*utils.ManagerConfig, error) {
@@ -64,11 +63,50 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB) {
 				log.Println(err.Error())
 			}
 		} else {
-			//only wait if not tasks or no workers
+			// only wait if not tasks or no workers
 			time.Sleep(time.Second * 1)
 		}
 
 	}
+}
+
+func addHandleWorker(r *mux.Router, config *utils.ManagerConfig, db *sql.DB) {
+	// worker
+	r.HandleFunc("/worker", func(w http.ResponseWriter, r *http.Request) {
+		api.HandleWorkerGet(w, r, config, db)
+	}).Methods("GET") // get workers
+
+	r.HandleFunc("/worker", func(w http.ResponseWriter, r *http.Request) {
+		api.HandleWorkerPost(w, r, config, db)
+	}).Methods("POST") // add worker
+
+	r.HandleFunc("/worker/{NAME}", func(w http.ResponseWriter, r *http.Request) {
+		api.HandleWorkerDeleteName(w, r, config, db)
+	}).Methods("DELETE") // delete worker
+
+	r.HandleFunc("/worker/{NAME}", func(w http.ResponseWriter, r *http.Request) {
+		api.HandleWorkerStatus(w, r, config, db)
+	}).Methods("GET") // check status 1 worker
+}
+
+func addHandleTask(r *mux.Router, config *utils.ManagerConfig, db *sql.DB) {
+	// task
+	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+		api.HandleTaskGet(w, r, config, db)
+	}).Methods("GET") // check tasks
+
+	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+		api.HandleTaskPost(w, r, config, db)
+	}).Methods("POST") // Add task
+
+	r.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
+		api.HandleTaskDelete(w, r, config, db)
+	}).Methods("DELETE") // Delete task
+
+	r.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
+		api.HandleTaskStatus(w, r, config, db)
+	}).Methods("GET") // get status task
+
 }
 
 func StartManager() {
@@ -111,67 +149,18 @@ func StartManager() {
 		api.HandleCallback(w, r, config, db)
 	}).Methods("POST") // get callback info from task
 
-	// worker
-	r.HandleFunc("/worker", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerGet(w, r, config, db)
-	}).Methods("GET") // get workers
+	// Worker
+	addHandleWorker(r, config, db)
 
-	r.HandleFunc("/worker", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerPost(w, r, config, db)
-	}).Methods("POST") // add worker
-
-	r.HandleFunc("/worker/{NAME}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerDeleteName(w, r, config, db)
-	}).Methods("DELETE") // delete worker
-
-	r.HandleFunc("/worker/{NAME}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerStatus(w, r, config, db)
-	}).Methods("GET") // check status 1 worker
-
-	// -------------------------------------------------------------------
-
-	// task
-	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskGet(w, r, config, db)
-	}).Methods("GET") // check tasks
-
-	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskPost(w, r, config, db)
-	}).Methods("POST") // Add task
-
-	r.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskDelete(w, r, config, db)
-	}).Methods("DELETE") // Delete task
-
-	r.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskStatus(w, r, config, db)
-	}).Methods("GET") // get status task
-
-	// r.HandleFunc("/task/{ID}", handletasktop).Methods("PATCH")
-
-	// -------------------------------------------------------------------
-
-	/*
-		// vuln
-		r.HandleFunc("/vuln/", handleDummy).Methods("GET")
-		r.HandleFunc("/vuln/add", handleDummy).Methods("POST")
-		r.HandleFunc("/vuln/rm", handleDummy).Methods("POST")
-		r.HandleFunc("/vuln/info/{id}", handleDummy).Methods("GET")
-
-		// -------------------------------------------------------------------
-
-		// Scope
-
-		// -------------------------------------------------------------------
-
-		// Asset
-	*/
+	// Task
+	addHandleTask(r, config, db)
 
 	http.Handle("/", r)
 	err = http.ListenAndServe(":"+config.Port, nil)
 	if err != nil {
 		log.Println(err)
 	}
+
 	/*
 		err = http.ListenAndServe(":"+config.Port, allowCORS(http.DefaultServeMux))
 		if err != nil {

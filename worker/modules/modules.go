@@ -2,11 +2,10 @@ package modules
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"os/exec"
 	"strings"
-
-	"log"
 
 	"github.com/r4ulcl/NetTask/globalstructs"
 	"github.com/r4ulcl/NetTask/worker/utils"

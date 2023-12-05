@@ -5,10 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"time"
-
-	"log"
 
 	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
 	"github.com/r4ulcl/NetTask/manager/database"

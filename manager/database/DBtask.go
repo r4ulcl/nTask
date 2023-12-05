@@ -36,7 +36,7 @@ func UpdateTask(db *sql.DB, task globalstructs.Task) error {
 	return nil
 }
 
-// RmTask deletes a task from the database
+// RmTask deletes a task from the database.
 func RmTask(db *sql.DB, id string) error {
 	// Worker exists, proceed with deletion
 	sqlStatement := "DELETE FROM task WHERE ID = ?"
@@ -55,7 +55,7 @@ func RmTask(db *sql.DB, id string) error {
 	return nil
 }
 
-// GetTasks gets tasks with URL params as filter
+// GetTasks gets tasks with URL params as filter.
 func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB) ([]globalstructs.Task, error) {
 	queryParams := r.URL.Query()
 

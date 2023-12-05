@@ -1,4 +1,4 @@
-// worker.go
+// workerouter.go
 package worker
 
 import (
@@ -50,9 +50,9 @@ func loadWorkerConfig(filename string) (*utils.WorkerConfig, error) {
 }
 
 func StartWorker() {
-	log.Println("Running as worker...")
+	log.Println("Running as workerouter...")
 
-	workerConfig, err := loadWorkerConfig("worker.conf")
+	workerConfig, err := loadWorkerConfig("workerouter.conf")
 	if err != nil {
 		log.Println(err)
 	}
@@ -72,32 +72,32 @@ func StartWorker() {
 		time.Sleep(time.Second * 5)
 	}
 
-	r := mux.NewRouter()
+	router := mux.NewRouter()
 
-	r.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleGetStatus(w, r, status, workerConfig)
 	}).Methods("GET") // check worker status
 
 	// Task
-	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleTaskPost(w, r, status, workerConfig)
 	}).Methods("POST") // Add task
 
-	r.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleTaskDelete(w, r, status, workerConfig)
 	}).Methods("DELETE") // delete task
 
 	/*
-		r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+		router.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
 			api.HandleTaskGet(w, r, status, workerConfig)
 		}).Methods("GET") // check task status
 
-		r.HandleFunc("/task", handletaskMessage).Methods("POST")
-		r.HandleFunc("/status", handleGetStatus).Methods("GET")
-		r.HandleFunc("/tasks", handleGetTasks).Methods("GET")
-		r.HandleFunc("/task/{id}", handleGetTask).Methods("GET")
+		router.HandleFunc("/task", handletaskMessage).Methods("POST")
+		router.HandleFunc("/status", handleGetStatus).Methods("GET")
+		router.HandleFunc("/tasks", handleGetTasks).Methods("GET")
+		router.HandleFunc("/task/{id}", handleGetTask).Methods("GET")
 	*/
-	http.Handle("/", r)
+	http.Handle("/", router)
 	err = http.ListenAndServe(":"+workerConfig.Port, nil)
 	if err != nil {
 		log.Println(err)
