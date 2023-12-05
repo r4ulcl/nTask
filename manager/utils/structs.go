@@ -9,6 +9,8 @@ type ManagerConfig struct {
 	DBHost            string `json:"dbHost"`
 	DBPort            string `json:"dbPort"`
 	DBDatabase        string `json:"dbDatabase"`
+	CallbackURL       string `json:"callbackURL"`
+	CallbackToken     string `json:"callbackToken"`
 }
 
 /*
