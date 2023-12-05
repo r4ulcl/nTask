@@ -29,7 +29,7 @@ import (
 func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 	var result globalstructs.Task
@@ -79,7 +79,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 
@@ -119,7 +119,7 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 
@@ -177,7 +177,7 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 
@@ -207,7 +207,7 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 

@@ -23,7 +23,7 @@ import (
 func HandleGetStatus(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig) {
 	oauthKeyClient := r.Header.Get("Authorization")
 	if oauthKeyClient != config.OAuthToken {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 
@@ -46,20 +46,20 @@ func HandleGetStatus(w http.ResponseWriter, r *http.Request, status *globalstruc
 func HandleTaskPost(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig) {
 	oauthKeyClient := r.Header.Get("Authorization")
 	if oauthKeyClient != config.OAuthToken {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 
 	var requestTask globalstructs.Task
 	err := json.NewDecoder(r.Body).Decode(&requestTask)
 	if err != nil {
-		http.Error(w, "Invalid callback body", http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid callback body\" }", http.StatusBadRequest)
 		return
 	}
 	// Process TASK
 	// if executing task skip and return error
 	if status.IddleThreads <= 0 {
-		http.Error(w, "The worker is working", http.StatusServiceUnavailable)
+		http.Error(w, "{ \"error\" : \"The worker is working\" }", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -77,7 +77,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, status *globalstruct
 func HandleTaskDelete(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig) {
 	oauthKeyClient := r.Header.Get("Authorization")
 	if oauthKeyClient != config.OAuthToken {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 
@@ -96,7 +96,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, status *globalstru
 func HandleTaskGet(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig) {
 	oauthKeyClient := r.Header.Get("Authorization")
 	if oauthKeyClient != config.OAuthToken {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 	log.Println("TODO HandleTaskGet")

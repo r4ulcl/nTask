@@ -35,20 +35,20 @@ import (
 func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 
 	// get tasks
 	tasks, err := database.GetTasks(w, r, db)
 	if err != nil {
-		http.Error(w, "Invalid callback body", http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid callback body\"}", http.StatusBadRequest)
 		return
 	}
 
 	jsonData, err := json.Marshal(tasks)
 	if err != nil {
-		http.Error(w, "Invalid callback body", http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid callback body\"}", http.StatusBadRequest)
 		return
 	}
 
@@ -72,14 +72,14 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 
 	var request globalstructs.Task
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		http.Error(w, "Invalid callback body", http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid callback body\"}", http.StatusBadRequest)
 		return
 	}
 
@@ -95,14 +95,20 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 
 	err = database.AddTask(db, request)
 	if err != nil {
-		message := "Invalid task info: " + err.Error()
+		message := "{ \"error\" : \"Invalid task info: " + err.Error() + "\" }"
 		http.Error(w, message, http.StatusBadRequest)
+		return
+	}
+
+	jsonData, err := json.Marshal(request)
+	if err != nil {
+		http.Error(w, "{ \"error\" : \"Invalid callback body\"}", http.StatusBadRequest)
 		return
 	}
 
 	// Handle the result as needed
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Task with ID %s added", request.ID)
+	fmt.Fprintln(w, string(jsonData))
 }
 
 // HandleTaskDelete - Delete a tasks
@@ -114,11 +120,11 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @Success 200 {array} string
 // @Router /task/{ID} [delete]
-// @Param ID path string false "task ID"
+// @Param ID path string false "task ID"http.Error(w, "{ \"error\" : \"Invalid callback body\"}", http.StatusBadRequest)
 func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 
@@ -127,25 +133,25 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 
 	task, err := database.GetTask(db, id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
 		return
 	}
 
 	worker, err := database.GetWorker(db, task.WorkerName)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
 		return
 	}
 
 	err = utils.SendDeleteTask(db, &worker, &task)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
 		return
 	}
 
 	err = database.RmTask(db, id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
 		return
 	}
 
@@ -166,7 +172,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 
