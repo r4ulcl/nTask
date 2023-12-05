@@ -63,7 +63,7 @@ func verifyWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	if err != nil {
 		log.Println("Error making request:", err)
 		// If there is an error in making the request, assume worker is offline
-		count, err := database.GetWorkerCount(db, worker)
+		count, err := database.GetWorkerDownCount(db, worker)
 		if err != nil {
 			return err
 		}
@@ -74,13 +74,19 @@ func verifyWorker(db *sql.DB, worker *globalstructs.Worker) error {
 				return err
 			}
 			// Reset the count to 0
-			err = database.SetWorkerCount(0, db, worker)
+			err = database.SetWorkerDownCount(0, db, worker)
+			if err != nil {
+				return err
+			}
+
+			// Set as 'failed' all workers tasks
+			err = database.SetTasksWorkerFailed(db, worker.Name)
 			if err != nil {
 				return err
 			}
 		} else {
 			// If worker has been offline for less than 3 cycles, increment the count
-			err = database.AddWorkerCount(db, worker)
+			err = database.AddWorkerDownCount(db, worker)
 			if err != nil {
 				return err
 			}
@@ -111,8 +117,8 @@ func verifyWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	}
 
 	// If worker status is not the same as stored in the DB, update the DB
-	if status.Working != worker.Working {
-		err := database.SetWorkerworkingTo(status.Working, db, worker)
+	if status.IddleThreads != worker.IddleThreads {
+		err := database.SetWorkerworkingTo(status.IddleThreads, db, worker.Name)
 		if err != nil {
 			return err
 		}
@@ -170,7 +176,9 @@ func SendAddTask(db *sql.DB, worker *globalstructs.Worker, task *globalstructs.T
 		if err != nil {
 			return err
 		}
-		err = database.SetWorkerworkingTo(true, db, worker)
+
+		//Add 1 to working worker
+		err = database.SubtractWorkerIddleThreads1(db, worker.Name)
 		if err != nil {
 			return err
 		}
@@ -215,7 +223,7 @@ func SendDeleteTask(db *sql.DB, worker *globalstructs.Worker, task *globalstruct
 		if err != nil {
 			return err
 		}
-		err = database.SetWorkerworkingTo(false, db, worker)
+		err = database.SubtractWorkerIddleThreads1(db, worker.Name)
 		if err != nil {
 			return err
 		}

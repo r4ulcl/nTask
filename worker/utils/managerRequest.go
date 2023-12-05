@@ -15,11 +15,11 @@ import (
 func AddWorker(config *WorkerConfig) error {
 	// Create a Worker object with the provided configuration
 	worker := globalstructs.Worker{
-		Name:       config.Name,
-		Port:       config.Port,
-		OauthToken: config.OAuthToken,
-		Working:    false,
-		UP:         true,
+		Name:         config.Name,
+		Port:         config.Port,
+		OauthToken:   config.OAuthToken,
+		IddleThreads: config.IddleThreads,
+		UP:           true,
 	}
 
 	// Marshal the worker object into JSON
@@ -59,7 +59,7 @@ func AddWorker(config *WorkerConfig) error {
 }
 
 // CallbackTaskMessage sends a POST request to the manager to callback with a task message
-func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task) {
+func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task) error {
 	// Create the callback URL using the manager IP and port
 	url := "http://" + config.ManagerIP + ":" + config.ManagerPort + "/callback"
 
@@ -70,7 +70,7 @@ func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task) {
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
 		log.Println("Error creating request:", err)
-		return
+		return err
 	}
 
 	// Add custom headers, including the OAuth header
@@ -82,10 +82,11 @@ func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task) {
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println("Error making request:", err)
-		return
+		return err
 	}
 	defer resp.Body.Close()
 
 	log.Println("Status Code:", resp.Status)
 	// Handle the response body as needed
+	return nil
 }

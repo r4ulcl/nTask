@@ -58,6 +58,9 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB) {
 			// Send first to worker idle worker
 			worker := workers[0]
 			task := tasks[0]
+
+			log.Println("len(tasks)", len(tasks))
+			log.Println("len(workers)", len(workers))
 			err = utils.SendAddTask(db, &worker, &task)
 			if err != nil {
 				log.Println(err.Error())

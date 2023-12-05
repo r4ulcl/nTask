@@ -211,6 +211,16 @@ func GetTaskWorker(db *sql.DB, id string) (string, error) {
 	return workerName, nil
 }
 
+//SetTasksWorkerFailed set to failed all task running worker workerName
+func SetTasksWorkerFailed(db *sql.DB, workerName string) error {
+	_, err := db.Exec("UPDATE task SET status = 'failed' WHERE workerName = ? AND status = 'running' ", workerName)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	return nil
+}
+
 // SetTaskOutput saves the output of the task in the database
 func SetTaskOutput(db *sql.DB, id, output string) error {
 	// Update the output column of the task table for the given ID

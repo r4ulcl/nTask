@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
@@ -57,7 +58,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, status *globalstruct
 	}
 	// Process TASK
 	// if executing task skip and return error
-	if status.Working {
+	if status.IddleThreads <= 0 {
 		http.Error(w, "The worker is working", http.StatusServiceUnavailable)
 		return
 	}
@@ -110,10 +111,11 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, status *globalstructs
 // Finally, it calls the CallbackTaskMessage function to send the task result to the configured callback endpoint.
 // After completing the task, it resets the worker status to indicate that it is no longer working.
 func processTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *globalstructs.Task) {
-	status.Working = true
-	status.WorkingID = task.ID
+	//Remove one from working threads
+	status.IddleThreads -= 1
+	status.WorkingIDs = append(status.WorkingIDs, task.ID)
 
-	log.Println("Start processing task", task.ID)
+	log.Println("Start processing task", task.ID, " workCount: ", status.IddleThreads)
 
 	output, err := modules.ProcessModule(task, config)
 	if err != nil {
@@ -124,8 +126,29 @@ func processTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig,
 	}
 	task.Output = output
 
-	utils.CallbackTaskMessage(config, task)
+	// While manager doesnt responds loop
+	for {
+		err = utils.CallbackTaskMessage(config, task)
+		if err == nil {
+			break
+		} else {
+			time.Sleep(time.Second * 10)
+		}
+	}
 
-	status.Working = false
-	status.WorkingID = ""
+	//Add one from working threads
+	status.IddleThreads += 1
+	status.WorkingIDs = removeValueFromWorkingIDs(status.WorkingIDs, task.ID)
+}
+
+func removeValueFromWorkingIDs(arr []string, valueToRemove string) []string {
+	var result []string
+
+	for _, v := range arr {
+		if v != valueToRemove {
+			result = append(result, v)
+		}
+	}
+
+	return result
 }

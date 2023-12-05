@@ -19,17 +19,17 @@ type Task struct {
 // Worker struct to store all worker information.
 type Worker struct {
 	// Workers name (unique)
-	Name       string `json:"name"`
-	IP         string `json:"ip"`
-	Port       string `json:"port"`
-	OauthToken string `json:"oauthToken"`
-	Working    bool   `json:"working"`
-	UP         bool   `json:"up"`
-	Count      int    `json:"count"`
+	Name         string `json:"name"`
+	IP           string `json:"ip"`
+	Port         string `json:"port"`
+	OauthToken   string `json:"oauthToken"`
+	IddleThreads int    `json:"IddleThreads"`
+	UP           bool   `json:"up"`
+	DownCount    int    `json:"downCount"`
 }
 
 // WorkerStatus struct to process the worker status response.
 type WorkerStatus struct {
-	Working   bool   `json:"working"`
-	WorkingID string `json:"workingId"`
+	IddleThreads int      `json:"IddleThreads"`
+	WorkingIDs   []string `json:"workingIds"`
 }

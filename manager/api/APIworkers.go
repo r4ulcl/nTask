@@ -50,10 +50,10 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 		return
 	}
 
-	// Set worker to iddle now
-	err = database.SetWorkerworkingToString(false, db, result.WorkerName)
+	//Add value to thread working
+	err = database.AddWorkerIddleThreads1(db, result.WorkerName)
 	if err != nil {
-		http.Error(w, "Error SetWorkerworkingToString ", http.StatusBadRequest)
+		http.Error(w, "Error AddWorkerIddleThreads1 ", http.StatusBadRequest)
 		return
 	}
 
@@ -144,7 +144,7 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 					return
 				}
 
-				err = database.SetWorkerCount(0, db, &request)
+				err = database.SetWorkerDownCount(0, db, &request)
 				if err != nil {
 					http.Error(w, "Error SetWorkerCount ", http.StatusBadRequest)
 					return

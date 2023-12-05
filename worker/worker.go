@@ -76,7 +76,7 @@ func StartWorker(swagger bool, configFile string) {
 	}
 
 	status := &globalstructs.WorkerStatus{
-		Working: false,
+		IddleThreads: workerConfig.IddleThreads,
 	}
 
 	// Loop until connects

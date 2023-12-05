@@ -3,9 +3,9 @@ CREATE TABLE IF NOT EXISTS worker (
     ip VARCHAR(255) NOT NULL,
     port VARCHAR(255) NOT NULL,
     oauthToken VARCHAR(255) NOT NULL,
-    working BOOLEAN,
+    IddleThreads INT,
     up BOOLEAN,
-    count INT,
+    downCount INT,
     UNIQUE (ip, port)
 );
 

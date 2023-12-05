@@ -12,8 +12,8 @@ import (
 // AddWorker adds a worker to the database.
 func AddWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	// Insert the JSON data into the MySQL table
-	_, err := db.Exec("INSERT INTO worker (name, ip, port, oauthToken, working, up, count) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		worker.Name, worker.IP, worker.Port, worker.OauthToken, worker.Working, worker.UP, worker.Count)
+	_, err := db.Exec("INSERT INTO worker (name, ip, port, oauthToken, IddleThreads, up, downCount) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		worker.Name, worker.IP, worker.Port, worker.OauthToken, worker.IddleThreads, worker.UP, worker.DownCount)
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func GetWorkers(db *sql.DB) ([]globalstructs.Worker, error) {
 	var workers []globalstructs.Worker
 
 	// Query all workers from the worker table
-	rows, err := db.Query("SELECT name, ip, port, oauthToken, working, up, count FROM worker")
+	rows, err := db.Query("SELECT name, ip, port, oauthToken, IddleThreads,  up, downCount FROM worker")
 	if err != nil {
 		log.Println(err)
 		return workers, err
@@ -77,12 +77,12 @@ func GetWorkers(db *sql.DB) ([]globalstructs.Worker, error) {
 		var ip string
 		var port string
 		var oauthToken string
-		var working bool
+		var IddleThreads int
 		var up bool
-		var count int
+		var downCount int
 
 		// Scan the values from the row into variables
-		err := rows.Scan(&name, &ip, &port, &oauthToken, &working, &up, &count)
+		err := rows.Scan(&name, &ip, &port, &oauthToken, &IddleThreads, &up, &downCount)
 		if err != nil {
 			log.Println(err)
 			return workers, err
@@ -94,9 +94,9 @@ func GetWorkers(db *sql.DB) ([]globalstructs.Worker, error) {
 		worker.IP = ip
 		worker.Port = port
 		worker.OauthToken = oauthToken
-		worker.Working = working
+		worker.IddleThreads = IddleThreads
 		worker.UP = up
-		worker.Count = count
+		worker.DownCount = downCount
 
 		// Append the worker to the slice
 		workers = append(workers, worker)
@@ -119,11 +119,12 @@ func GetWorker(db *sql.DB, name string) (globalstructs.Worker, error) {
 	var ip string
 	var port string
 	var oauthToken string
-	var working bool
+	var IddleThreads int
 	var up bool
-	var count int
+	var downCount int
 
-	err := db.QueryRow("SELECT name, ip, port, oauthToken, working, up, count FROM worker WHERE name = ?", name).Scan(&name2, &ip, &port, &oauthToken, &working, &up, &count)
+	err := db.QueryRow("SELECT name, ip, port, oauthToken, IddleThreads,  up, downCount FROM worker WHERE name = ?", name).Scan(
+		&name2, &ip, &port, &oauthToken, &IddleThreads, &up, &downCount)
 	if err != nil {
 		log.Println(err)
 		return worker, err
@@ -134,9 +135,9 @@ func GetWorker(db *sql.DB, name string) (globalstructs.Worker, error) {
 	worker.IP = ip
 	worker.Port = port
 	worker.OauthToken = oauthToken
-	worker.Working = working
+	worker.IddleThreads = IddleThreads
 	worker.UP = up
-	worker.Count = count
+	worker.DownCount = downCount
 
 	return worker, nil
 }
@@ -144,8 +145,8 @@ func GetWorker(db *sql.DB, name string) (globalstructs.Worker, error) {
 // UpdateWorker updates the information of a worker in the database.
 func UpdateWorker(db *sql.DB, worker *globalstructs.Worker) error {
 	// Update the JSON data in the MySQL table based on the worker's name
-	_, err := db.Exec("UPDATE worker SET name = ?, ip = ?, port = ?, oauthToken = ?,working = ?, UP = ? WHERE name = ?",
-		worker.IP, worker.Port, worker.OauthToken, worker.Working, worker.UP, worker.Name)
+	_, err := db.Exec("UPDATE worker SET name = ?, ip = ?, port = ?, oauthToken = ?,IddleThreads = ?, UP = ?, downCount = ? WHERE name = ?",
+		worker.IP, worker.Port, worker.OauthToken, worker.IddleThreads, worker.UP, worker.DownCount, worker.Name)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -165,10 +166,10 @@ func SetWorkerUPto(up bool, db *sql.DB, worker *globalstructs.Worker) error {
 	return nil
 }
 
-// SetWorkerworkingTo sets the status of a worker to the specified working value.
-func SetWorkerworkingTo(working bool, db *sql.DB, worker *globalstructs.Worker) error {
-	_, err := db.Exec("UPDATE worker SET working = ? WHERE name = ?",
-		working, worker.Name)
+// SetWorkerworkingToString sets the status of a worker to the specified working value using the worker's name.
+func SetWorkerworkingTo(IddleThreads int, db *sql.DB, worker string) error {
+	_, err := db.Exec("UPDATE worker SET IddleThreads = ? WHERE name = ?",
+		IddleThreads, worker)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -178,26 +179,35 @@ func SetWorkerworkingTo(working bool, db *sql.DB, worker *globalstructs.Worker) 
 }
 
 // SetWorkerworkingToString sets the status of a worker to the specified working value using the worker's name.
-func SetWorkerworkingToString(working bool, db *sql.DB, worker string) error {
-	_, err := db.Exec("UPDATE worker SET working = ? WHERE name = ?",
-		working, worker)
+func AddWorkerIddleThreads1(db *sql.DB, worker string) error {
+	_, err := db.Exec("UPDATE worker SET IddleThreads = IddleThreads + 1 WHERE name = ?;",
+		worker)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
+	return nil
+}
 
+// SetWorkerworkingToString sets the status of a worker to the specified working value using the worker's name.
+func SubtractWorkerIddleThreads1(db *sql.DB, worker string) error {
+	_, err := db.Exec("UPDATE worker SET IddleThreads = CASE WHEN IddleThreads > 0 THEN IddleThreads - 1 ELSE 0 END WHERE name = ?", worker)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
 	return nil
 }
 
 // GetWorkerIddle retrieves all workers that are iddle.
 func GetWorkerIddle(db *sql.DB) ([]globalstructs.Worker, error) {
-	sql := "SELECT name, ip, port, oauthToken, working, up, count FROM worker WHERE up = true AND working = false;"
+	sql := "SELECT name, ip, port, oauthToken, IddleThreads, up, downCount FROM worker WHERE up = true AND IddleThreads > 0;"
 	return GetWorkerSQL(sql, db)
 }
 
 // GetWorkerUP retrieves all workers that are up.
 func GetWorkerUP(db *sql.DB) ([]globalstructs.Worker, error) {
-	sql := "SELECT name, ip, port, oauthToken, working, up, count FROM worker WHERE up = true;"
+	sql := "SELECT name, ip, port, oauthToken, IddleThreads, up, downCount FROM worker WHERE up = true;"
 	return GetWorkerSQL(sql, db)
 }
 
@@ -221,12 +231,12 @@ func GetWorkerSQL(sql string, db *sql.DB) ([]globalstructs.Worker, error) {
 		var ip string
 		var port string
 		var oauthToken string
-		var working bool
+		var IddleThreads int
 		var up bool
-		var count int
+		var downCount int
 
 		// Scan the values from the row into variables
-		err := rows.Scan(&name, &ip, &port, &oauthToken, &working, &up, &count)
+		err := rows.Scan(&name, &ip, &port, &oauthToken, &IddleThreads, &up, &downCount)
 		if err != nil {
 			log.Println(err)
 			return workers, err
@@ -238,9 +248,9 @@ func GetWorkerSQL(sql string, db *sql.DB) ([]globalstructs.Worker, error) {
 		worker.IP = ip
 		worker.Port = port
 		worker.OauthToken = oauthToken
-		worker.Working = working
+		worker.IddleThreads = IddleThreads
 		worker.UP = up
-		worker.Count = count
+		worker.DownCount = downCount
 
 		// Append the worker to the slice
 		workers = append(workers, worker)
@@ -255,27 +265,27 @@ func GetWorkerSQL(sql string, db *sql.DB) ([]globalstructs.Worker, error) {
 	return workers, nil
 }
 
-// GetWorkerCount get workers count by name (used to count until 3 to set down)
-func GetWorkerCount(db *sql.DB, worker *globalstructs.Worker) (int, error) {
+// GetWorkerCount get workers downCount by name (used to downCount until 3 to set down)
+func GetWorkerDownCount(db *sql.DB, worker *globalstructs.Worker) (int, error) {
 	var countS string
-	err := db.QueryRow("SELECT count FROM worker WHERE name = ?",
+	err := db.QueryRow("SELECT downCount FROM worker WHERE name = ?",
 		worker.Name).Scan(&countS)
 	if err != nil {
 		log.Println(err)
 		return -1, err
 	}
-	count, err := strconv.Atoi(countS)
+	downCount, err := strconv.Atoi(countS)
 	if err != nil {
 		return -1, err
 	}
 
-	log.Println("count", count)
-	return count, nil
+	log.Println("count", downCount)
+	return downCount, nil
 }
 
-// SetWorkerCount set worker count to count int
-func SetWorkerCount(count int, db *sql.DB, worker *globalstructs.Worker) error {
-	_, err := db.Exec("UPDATE worker SET count = ? WHERE name = ?",
+// SetWorkerCount set worker downCount to downCount int
+func SetWorkerDownCount(count int, db *sql.DB, worker *globalstructs.Worker) error {
+	_, err := db.Exec("UPDATE worker SET downCount = ? WHERE name = ?",
 		count, worker.Name)
 	if err != nil {
 		log.Println(err)
@@ -285,9 +295,9 @@ func SetWorkerCount(count int, db *sql.DB, worker *globalstructs.Worker) error {
 	return nil
 }
 
-// AddWorkerCount add 1 to worker count
-func AddWorkerCount(db *sql.DB, worker *globalstructs.Worker) error {
-	_, err := db.Exec("UPDATE worker SET count = count + 1 WHERE name = ?",
+// AddWorkerCount add 1 to worker downCount
+func AddWorkerDownCount(db *sql.DB, worker *globalstructs.Worker) error {
+	_, err := db.Exec("UPDATE worker SET downCount = downCount + 1 WHERE name = ?",
 		worker.Name)
 	if err != nil {
 		log.Println(err)
