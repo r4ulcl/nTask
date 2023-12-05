@@ -13,6 +13,7 @@ import (
 	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
 	"github.com/r4ulcl/NetTask/worker/api"
 	"github.com/r4ulcl/NetTask/worker/utils"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func loadWorkerConfig(filename string) (*utils.WorkerConfig, error) {
@@ -49,10 +50,27 @@ func loadWorkerConfig(filename string) (*utils.WorkerConfig, error) {
 	return &config, nil
 }
 
-func StartWorker() {
+func startSwaggerWeb(router *mux.Router) {
+	// Serve Swagger UI at /swagger
+	router.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
+		httpSwagger.URL("/docs/swagger.json"), // URL to the swagger.json file
+	))
+
+	// Serve Swagger JSON at /swagger/doc.json
+	router.HandleFunc("/docs/swagger.json", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "docs/swagger.json")
+	}).Methods("GET")
+}
+
+func StartWorker(swagger bool, configFile string) {
 	log.Println("Running as workerouter...")
 
-	workerConfig, err := loadWorkerConfig("workerouter.conf")
+	// if config file empty set default
+	if configFile == "" {
+		configFile = "worker.conf"
+	}
+
+	workerConfig, err := loadWorkerConfig(configFile)
 	if err != nil {
 		log.Println(err)
 	}
@@ -73,6 +91,11 @@ func StartWorker() {
 	}
 
 	router := mux.NewRouter()
+
+	if swagger {
+		// Start swagger endpoint
+		startSwaggerWeb(router)
+	}
 
 	router.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleGetStatus(w, r, status, workerConfig)

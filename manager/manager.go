@@ -70,49 +70,66 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB) {
 	}
 }
 
-func addHandleWorker(r *mux.Router, config *utils.ManagerConfig, db *sql.DB) {
+func addHandleWorker(router *mux.Router, config *utils.ManagerConfig, db *sql.DB) {
 	// worker
-	r.HandleFunc("/worker", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/worker", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleWorkerGet(w, r, config, db)
 	}).Methods("GET") // get workers
 
-	r.HandleFunc("/worker", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/worker", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleWorkerPost(w, r, config, db)
 	}).Methods("POST") // add worker
 
-	r.HandleFunc("/worker/{NAME}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/worker/{NAME}", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleWorkerDeleteName(w, r, config, db)
 	}).Methods("DELETE") // delete worker
 
-	r.HandleFunc("/worker/{NAME}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/worker/{NAME}", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleWorkerStatus(w, r, config, db)
 	}).Methods("GET") // check status 1 worker
 }
 
-func addHandleTask(r *mux.Router, config *utils.ManagerConfig, db *sql.DB) {
+func addHandleTask(router *mux.Router, config *utils.ManagerConfig, db *sql.DB) {
 	// task
-	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleTaskGet(w, r, config, db)
 	}).Methods("GET") // check tasks
 
-	r.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleTaskPost(w, r, config, db)
 	}).Methods("POST") // Add task
 
-	r.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleTaskDelete(w, r, config, db)
 	}).Methods("DELETE") // Delete task
 
-	r.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleTaskStatus(w, r, config, db)
 	}).Methods("GET") // get status task
 
 }
 
-func StartManager() {
+func startSwaggerWeb(router *mux.Router) {
+	// Serve Swagger UI at /swagger
+	router.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
+		httpSwagger.URL("/docs/swagger.json"), // URL to the swagger.json file
+	))
+
+	// Serve Swagger JSON at /swagger/doc.json
+	router.HandleFunc("/docs/swagger.json", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "docs/swagger.json")
+	}).Methods("GET")
+}
+
+func StartManager(swagger bool, configFile string) {
 	log.Println("Running as manager...")
 
-	config, err := loadManagerConfig("manager.conf")
+	// if config file empty set default
+	if configFile == "" {
+		configFile = "manager.conf"
+	}
+
+	config, err := loadManagerConfig(configFile)
 	if err != nil {
 		log.Println(err)
 	}
@@ -129,33 +146,27 @@ func StartManager() {
 	// manage task, routine to send task to iddle workers
 	go manageTasks(config, db)
 
-	r := mux.NewRouter()
+	router := mux.NewRouter()
 
-	// Serve Swagger UI at /swagger
-	// Serve Swagger UI at /swagger
-	r.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
-		httpSwagger.URL("/docs/swagger.json"), // URL to the swagger.json file
-	))
-
-	// Serve Swagger JSON at /swagger/doc.json
-	r.HandleFunc("/docs/swagger.json", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "docs/swagger.json")
-	}).Methods("GET")
+	if swagger {
+		// Start swagger endpoint
+		startSwaggerWeb(router)
+	}
 
 	// r.HandleFunc("/send/{recipient}", handleSendMessage).Methods("POST")
 
 	// CallBack
-	r.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleCallback(w, r, config, db)
 	}).Methods("POST") // get callback info from task
 
 	// Worker
-	addHandleWorker(r, config, db)
+	addHandleWorker(router, config, db)
 
 	// Task
-	addHandleTask(r, config, db)
+	addHandleTask(router, config, db)
 
-	http.Handle("/", r)
+	http.Handle("/", router)
 	err = http.ListenAndServe(":"+config.Port, nil)
 	if err != nil {
 		log.Println(err)

@@ -26,17 +26,21 @@ import (
 func main() {
 	var isManager bool
 	var isWorker bool
+	var swagger bool
+	var configFile string
 	flag.BoolVar(&isManager, "manager", false, "Run as manager (default is worker)")
 	flag.BoolVar(&isWorker, "worker", false, "Run as worker (default is api client)")
+	flag.BoolVar(&swagger, "swagger", false, "Start the swager endpoint /swagger")
+	flag.StringVar(&configFile, "configFile", "", "Path to the config file")
 
 	flag.Parse()
 
 	// Check the argument and call the appropriate function
 	switch {
 	case isManager:
-		manager.StartManager()
+		manager.StartManager(swagger, configFile)
 	case isWorker:
-		worker.StartWorker()
+		worker.StartWorker(swagger, configFile)
 	default:
 		log.Println("TODO, use api from cmd")
 	}
