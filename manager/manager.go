@@ -139,9 +139,15 @@ func StartManager(swagger bool, configFile string) {
 	}
 
 	// Start DB
-	db, err := database.ConnectDB(config.DBUsername, config.DBPassword, config.DBHost, config.DBPort, config.DBDatabase)
-	if err != nil {
-		log.Println(err)
+	var db *sql.DB
+	for {
+		db, err = database.ConnectDB(config.DBUsername, config.DBPassword, config.DBHost, config.DBPort, config.DBDatabase)
+		if err != nil {
+			log.Println(err)
+			time.Sleep(time.Second * 5)
+		} else {
+			break
+		}
 	}
 
 	// verify status workers infinite
