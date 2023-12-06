@@ -18,5 +18,6 @@ jobs:
 
     - name: Build and Push Docker Image
       run: |
-        docker build -t docker.pkg.github.com/${{ github.repository_owner }}/nettask/nettask:latest .
-        docker push docker.pkg.github.com/${{ github.repository_owner }}/nettask/nettask:latest
+        docker build -t docker.pkg.github.com/${{ github.repository_owner }}/nettask:latest .
+        docker push docker.pkg.github.com/${{ github.repository_owner }}/nettask:latest
+
