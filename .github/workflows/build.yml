@@ -13,14 +13,24 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v2
 
-    - name: Login to GitHub Packages
-      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u ${{ github.actor }} docker.pkg.github.com --password-stdin
-
-    - name: Publish to Registry
-      uses: elgohr/Publish-Docker-Github-Action@v5
+    - name: Extract metadata (tags, labels) for Docker
+      id: meta
+      uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
       with:
-        name: r4ulcl/NetTask
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-        registry: ghcr.io
+        images: ${{ github.actor }}/NetTask
+
+      - name: Login to GitHub Packages
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u ${{ github.actor }} docker.pkg.github.com --password-stdin
+
+      - name: Build and push github
+        id: docker_build_github
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          registry: ghcr.io
+          #tags: ${{ secrets.DOCKERHUB_USERNAME }}/wifi_db:latest,${{ secrets.DOCKERHUB_USERNAME }}/wifi_db:main
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
