@@ -16,8 +16,11 @@ jobs:
     - name: Login to GitHub Packages
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u ${{ github.actor }} docker.pkg.github.com --password-stdin
 
-    - name: Build and Push Docker Image
-      run: |
-        docker build -t docker.pkg.github.com/${{ github.repository_owner }}/nettask:latest .
-        docker push docker.pkg.github.com/${{ github.repository_owner }}/nettask:latest
+    - name: Publish to Registry
+      uses: elgohr/Publish-Docker-Github-Action@v5
+      with:
+        name: r4ulcl/NetTask/NetTask
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        registry: ghcr.io
 
