@@ -21,23 +21,20 @@ func loadManagerConfig(filename string, verbose bool) (*utils.ManagerConfig, err
 
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
-		log.Println("Error reading manager config file: ", err)
 		return &config, err
 	}
 
 	err = json.Unmarshal(content, &config)
 	if err != nil {
-		log.Println("Error unmarshalling manager config: ", err)
 		return &config, err
 	}
 
 	return &config, nil
 }
 
-func manageTasks(config *utils.ManagerConfig, db *sql.DB, verbose bool) {
+func manageTasks(config *utils.ManagerConfig, db *sql.DB, verbose bool) error {
 	// infinite loop eecuted with go routine
 	for {
-
 		// Get all tasks in order and if priority
 		tasks, err := database.GetTasksPending(db, verbose)
 		if err != nil {
@@ -59,8 +56,11 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB, verbose bool) {
 			worker := workers[0]
 			task := tasks[0]
 
-			log.Println("len(tasks)", len(tasks))
-			log.Println("len(workers)", len(workers))
+			if verbose {
+				log.Println("len(tasks)", len(tasks))
+				log.Println("len(workers)", len(workers))
+			}
+
 			err = utils.SendAddTask(db, &worker, &task, verbose)
 			if err != nil {
 				log.Println(err.Error())

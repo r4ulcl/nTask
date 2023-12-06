@@ -17,7 +17,9 @@ func AddTask(db *sql.DB, task globalstructs.Task, verbose bool) error {
 	_, err := db.Exec("INSERT INTO task (ID, module, args, status, WorkerName, output) VALUES (?, ?, ?, ?, ?, ?)",
 		task.ID, task.Module, argsString, task.Status, task.WorkerName, task.Output)
 	if err != nil {
-		log.Println(err)
+		if verbose {
+			log.Println(err)
+		}
 		return err
 	}
 	return nil
@@ -30,7 +32,9 @@ func UpdateTask(db *sql.DB, task globalstructs.Task, verbose bool) error {
 	_, err := db.Exec("UPDATE task SET module=?, args=?, status=?, WorkerName=?, output=? WHERE ID=?",
 		task.Module, argsString, task.Status, task.WorkerName, task.Output, task.ID)
 	if err != nil {
-		log.Println(err)
+		if verbose {
+			log.Println(err)
+		}
 		return err
 	}
 	return nil
@@ -40,7 +44,9 @@ func UpdateTask(db *sql.DB, task globalstructs.Task, verbose bool) error {
 func RmTask(db *sql.DB, id string, verbose bool) error {
 	// Worker exists, proceed with deletion
 	sqlStatement := "DELETE FROM task WHERE ID = ?"
-	log.Println("ID: ", id)
+	if verbose {
+		log.Println("Delete ID: ", id)
+	}
 	result, err := db.Exec(sqlStatement, id)
 	if err != nil {
 		return err
@@ -115,7 +121,9 @@ func GetTasksSQL(sql string, db *sql.DB, verbose bool) ([]globalstructs.Task, er
 	// Query all tasks from the task table
 	rows, err := db.Query(sql)
 	if err != nil {
-		log.Println(err)
+		if verbose {
+			log.Println(err)
+		}
 		return tasks, err
 	}
 	defer rows.Close()
@@ -136,7 +144,9 @@ func GetTasksSQL(sql string, db *sql.DB, verbose bool) ([]globalstructs.Task, er
 		// Scan the values from the row into variables
 		err := rows.Scan(&ID, &module, &args, &createdAt, &updatedAt, &status, &WorkerName, &output, &priority)
 		if err != nil {
-			log.Println(err)
+			if verbose {
+				log.Println(err)
+			}
 			return tasks, err
 		}
 
@@ -158,7 +168,9 @@ func GetTasksSQL(sql string, db *sql.DB, verbose bool) ([]globalstructs.Task, er
 
 	// Check for errors from iterating over rows
 	if err := rows.Err(); err != nil {
-		log.Println(err)
+		if verbose {
+			log.Println(err)
+		}
 		return tasks, err
 	}
 
@@ -179,7 +191,9 @@ func GetTask(db *sql.DB, id string, verbose bool) (globalstructs.Task, error) {
 	err := db.QueryRow("SELECT ID, createdAt, updatedAt, module, args, status, WorkerName, output FROM task WHERE ID = ?",
 		id).Scan(&id, &createdAt, &updatedAt, &module, &args, &status, &WorkerName, &output)
 	if err != nil {
-		log.Println(err)
+		if verbose {
+			log.Println(err)
+		}
 		return task, err
 	}
 
@@ -204,7 +218,9 @@ func GetTaskWorker(db *sql.DB, id string, verbose bool) (string, error) {
 	err := db.QueryRow("SELECT WorkerName FROM task WHERE ID = ?",
 		id).Scan(&workerName)
 	if err != nil {
-		log.Println(err)
+		if verbose {
+			log.Println(err)
+		}
 		return workerName, err
 	}
 
@@ -215,7 +231,9 @@ func GetTaskWorker(db *sql.DB, id string, verbose bool) (string, error) {
 func SetTasksWorkerFailed(db *sql.DB, workerName string, verbose bool) error {
 	_, err := db.Exec("UPDATE task SET status = 'failed' WHERE workerName = ? AND status = 'running' ", workerName)
 	if err != nil {
-		log.Println(err)
+		if verbose {
+			log.Println(err)
+		}
 		return err
 	}
 	return nil
@@ -226,7 +244,9 @@ func SetTaskOutput(db *sql.DB, id, output string, verbose bool) error {
 	// Update the output column of the task table for the given ID
 	_, err := db.Exec("UPDATE task SET output = ? WHERE ID = ?", output, id)
 	if err != nil {
-		log.Println(err)
+		if verbose {
+			log.Println(err)
+		}
 		return err
 	}
 	return nil
@@ -237,7 +257,9 @@ func SetTaskWorkerName(db *sql.DB, id, workerName string, verbose bool) error {
 	// Update the workerName column of the task table for the given ID
 	_, err := db.Exec("UPDATE task SET workerName = ? WHERE ID = ?", workerName, id)
 	if err != nil {
-		log.Println(err)
+		if verbose {
+			log.Println(err)
+		}
 		return err
 	}
 	return nil
@@ -248,7 +270,9 @@ func SetTaskStatus(db *sql.DB, id, status string, verbose bool) error {
 	// Update the status column of the task table for the given ID
 	_, err := db.Exec("UPDATE task SET status = ? WHERE ID = ?", status, id)
 	if err != nil {
-		log.Println(err)
+		if verbose {
+			log.Println(err)
+		}
 		return err
 	}
 	return nil

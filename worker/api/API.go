@@ -25,8 +25,6 @@ import (
 func HandleGetStatus(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig, verbose bool) {
 	oauthKeyClient := r.Header.Get("Authorization")
 	if oauthKeyClient != config.OAuthToken {
-		log.Println("oauthKeyClient", oauthKeyClient)
-		log.Println("config.OAuthToken", config.OAuthToken)
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
@@ -37,8 +35,10 @@ func HandleGetStatus(w http.ResponseWriter, r *http.Request, status *globalstruc
 		return
 	}
 
-	// Print the JSON data
-	//log.Println(string(jsonData))
+	if verbose {
+		// Print the JSON data
+		log.Println(string(jsonData))
+	}
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))
@@ -104,8 +104,10 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, status *globalstru
 	err := cmd.Run()
 
 	if err != nil {
-		fmt.Println("Error killing process:", err)
-		fmt.Println("Error details:", stderr.String())
+		if verbose {
+			fmt.Println("Error killing process:", err)
+			fmt.Println("Error details:", stderr.String())
+		}
 		http.Error(w, "{\"error\": \"Error killing process: "+id+"\"}", http.StatusServiceUnavailable)
 	} else {
 		w.WriteHeader(http.StatusOK)
@@ -147,7 +149,9 @@ func processTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig,
 	//Remove one from working threads
 	status.IddleThreads -= 1
 
-	log.Println("Start processing task", task.ID, " workCount: ", status.IddleThreads)
+	if verbose {
+		log.Println("Start processing task", task.ID, " workCount: ", status.IddleThreads)
+	}
 
 	output, err := modules.ProcessModule(task, config, status, task.ID, verbose)
 	if err != nil {

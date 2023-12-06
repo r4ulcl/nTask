@@ -33,11 +33,12 @@ func CallbackUserTaskMessage(config *ManagerConfig, task *globalstructs.Task, ve
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("Error making request:", err)
 		return
 	}
 	defer resp.Body.Close()
 
-	log.Println("Status Code:", resp.Status)
+	if verbose {
+		log.Println("Status Code:", resp.Status)
+	}
 	// Handle the response body as needed
 }

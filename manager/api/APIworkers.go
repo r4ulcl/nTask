@@ -39,9 +39,10 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 		return
 	}
 
-	log.Println(result)
-
-	log.Println("Received result (ID: ", result.ID, " from : ", result.WorkerName, " with output: ", result.Output)
+	if verbose {
+		log.Println(result)
+		log.Println("Received result (ID: ", result.ID, " from : ", result.WorkerName, " with output: ", result.Output)
+	}
 
 	// Update task with the worker one
 	err = database.UpdateTask(db, result, verbose)
@@ -96,8 +97,10 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 		return
 	}
 
-	// Print the JSON data
-	// log.Println(string(jsonData))
+	if verbose {
+		// Print the JSON data
+		log.Println(string(jsonData))
+	}
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))
@@ -132,7 +135,9 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 
 	request.IP = ReadUserIP(r, verbose)
 
-	log.Println(request.Name, request.IP, request.Name)
+	if verbose {
+		log.Println("request.Name", request.Name, "request.IP", request.IP, "request.Name", request.Name)
+	}
 
 	err = database.AddWorker(db, &request, verbose)
 	if err != nil {
@@ -229,8 +234,6 @@ func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.Ma
 	vars := mux.Vars(r)
 	name := vars["NAME"]
 
-	log.Println("NAME " + name)
-
 	worker, err := database.GetWorker(db, name, verbose)
 	if err != nil {
 		http.Error(w, "Invalid callback body"+err.Error(), http.StatusBadRequest)
@@ -243,8 +246,10 @@ func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.Ma
 		return
 	}
 
-	// Print the JSON data
-	// log.Println(string(jsonData))
+	if verbose {
+		// Print the JSON data
+		log.Println("HandleWorkerStatus", string(jsonData))
+	}
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))

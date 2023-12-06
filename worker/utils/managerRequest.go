@@ -69,7 +69,9 @@ func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task, verbose
 	// Create a new POST request to send the task message
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
-		log.Println("Error creating request:", err)
+		if verbose {
+			log.Println("Error creating request:", err)
+		}
 		return err
 	}
 
@@ -81,12 +83,16 @@ func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task, verbose
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("Error making request:", err)
+		if verbose {
+			log.Println("Error making request:", err)
+		}
 		return err
 	}
 	defer resp.Body.Close()
 
-	log.Println("Status Code:", resp.Status)
+	if verbose {
+		log.Println("Status Code:", resp.Status)
+	}
 	// Handle the response body as needed
 	return nil
 }

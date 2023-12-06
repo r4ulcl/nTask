@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -52,8 +53,10 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 		return
 	}
 
-	// Print the JSON data
-	// log.Println(string(jsonData))
+	if verbose {
+		// Print the JSON data
+		log.Println(string(jsonData))
+	}
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))
@@ -193,8 +196,10 @@ func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.Mana
 		return
 	}
 
-	// Print the JSON data
-	// log.Println(string(jsonData))
+	if verbose {
+		// Print the JSON data
+		log.Println(string(jsonData))
+	}
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))

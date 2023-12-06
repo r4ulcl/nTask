@@ -28,8 +28,10 @@ func runModule(command string, arguments []string, status *globalstructs.WorkerS
 		command = parts[0]
 	}
 
-	log.Println("command: ", command)
-	log.Println("arguments: ", arguments)
+	if verbose {
+		log.Println("command: ", command)
+		log.Println("arguments: ", arguments)
+	}
 
 	// Command to run the module
 	cmd := exec.Command(command, arguments...)
@@ -37,7 +39,9 @@ func runModule(command string, arguments []string, status *globalstructs.WorkerS
 	// Start the command
 	err := cmd.Start()
 	if err != nil {
-		fmt.Println("Error starting command:", err)
+		if verbose {
+			fmt.Println("Error starting command:", err)
+		}
 		return "", err
 	}
 
@@ -46,7 +50,10 @@ func runModule(command string, arguments []string, status *globalstructs.WorkerS
 	// Wait for the command to finish
 	err = cmd.Wait()
 	if err != nil {
-		fmt.Println("Error waiting for command:", err)
+		if verbose {
+			fmt.Println("Error waiting for command:", err)
+		}
+		return "", err
 	}
 
 	// Capture the output of the script

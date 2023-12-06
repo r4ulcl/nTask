@@ -47,8 +47,10 @@ func verifyWorker(db *sql.DB, worker *globalstructs.Worker, verbose bool) error 
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", workerURL+"/status", nil)
 	if err != nil {
-		log.Println("Failed to create request to:", workerURL, " error:", err)
-		log.Println("Delete worker:", worker.Name)
+		if verbose {
+			log.Println("Failed to create request to:", workerURL, " error:", err)
+			log.Println("Delete worker:", worker.Name)
+		}
 
 		// If there is an error in creating the request, delete the worker from the database
 		err := database.RmWorkerName(db, worker.Name, verbose)
@@ -62,7 +64,9 @@ func verifyWorker(db *sql.DB, worker *globalstructs.Worker, verbose bool) error 
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("Error making request:", err)
+		if verbose {
+			log.Println("Error making request:", err)
+		}
 		// If there is an error in making the request, assume worker is offline
 		count, err := database.GetWorkerDownCount(db, worker, verbose)
 		if err != nil {
@@ -189,7 +193,9 @@ func SendAddTask(db *sql.DB, worker *globalstructs.Worker, task *globalstructs.T
 			return err
 		}
 	} else {
-		log.Println("POST request failed with status:", resp.Status)
+		if verbose {
+			log.Println("POST request failed with status:", resp.Status)
+		}
 	}
 
 	return nil
@@ -202,7 +208,6 @@ func SendDeleteTask(db *sql.DB, worker *globalstructs.Worker, task *globalstruct
 	// Create a new DELETE request
 	req, err := http.NewRequest("DELETE", workerURL, nil)
 	if err != nil {
-		log.Println("Error creating request:", err)
 		return err
 	}
 
@@ -216,14 +221,15 @@ func SendDeleteTask(db *sql.DB, worker *globalstructs.Worker, task *globalstruct
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("Error sending request:", err)
 		return err
 	}
 	defer resp.Body.Close()
 
 	// Check the response status
 	if resp.StatusCode == http.StatusOK {
-		log.Println("POST request was successful")
+		if verbose {
+			log.Println("POST request was successful")
+		}
 		// Set the task and worker as not working
 		err := database.SetTaskStatus(db, task.ID, "deleted", verbose)
 		if err != nil {

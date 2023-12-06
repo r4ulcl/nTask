@@ -21,13 +21,17 @@ func loadWorkerConfig(filename string, verbose bool) (*utils.WorkerConfig, error
 	var config utils.WorkerConfig
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
-		log.Println("Error reading worker config file: ", err)
+		if verbose {
+			log.Println("Error reading worker config file: ", err)
+		}
 		return &config, err
 	}
 
 	err = json.Unmarshal(content, &config)
 	if err != nil {
-		log.Println("Error unmarshalling worker config: ", err)
+		if verbose {
+			log.Println("Error unmarshalling worker config: ", err)
+		}
 		return &config, err
 	}
 
@@ -36,7 +40,10 @@ func loadWorkerConfig(filename string, verbose bool) (*utils.WorkerConfig, error
 		hostname := ""
 		hostname, err = os.Hostname()
 		if err != nil {
-			log.Println("Error getting hostname:", err)
+			if verbose {
+				log.Println("Error getting hostname:", err)
+			}
+			return &config, err
 		}
 		config.Name = hostname
 	}
@@ -45,16 +52,22 @@ func loadWorkerConfig(filename string, verbose bool) (*utils.WorkerConfig, error
 	if config.OAuthToken == "" {
 		config.OAuthToken, err = utils.GenerateToken(32, verbose)
 		if err != nil {
-			log.Println("Error generating OAuthToken:", err)
+			if verbose {
+				log.Println("Error generating OAuthToken:", err)
+			}
+			return &config, err
 		}
 		fmt.Println(config.OAuthToken)
 	}
 
 	// Print the values from the struct
-	log.Println("Name:", config.Name)
-	log.Println("Tasks:")
-	for module, exec := range config.Modules {
-		log.Printf("  Module: %s, Exec: %s\n", module, exec)
+	if verbose {
+		log.Println("Name:", config.Name)
+		log.Println("Tasks:")
+
+		for module, exec := range config.Modules {
+			log.Printf("  Module: %s, Exec: %s\n", module, exec)
+		}
 	}
 
 	return &config, nil
@@ -94,7 +107,9 @@ func StartWorker(swagger bool, configFile string, verbose bool) {
 	for {
 		err = utils.AddWorker(workerConfig, verbose)
 		if err != nil {
-			log.Println(err)
+			if verbose {
+				log.Println(err)
+			}
 		} else {
 			break
 		}
@@ -134,6 +149,6 @@ func StartWorker(swagger bool, configFile string, verbose bool) {
 	http.Handle("/", router)
 	err = http.ListenAndServe(":"+workerConfig.Port, nil)
 	if err != nil {
-		log.Println(err)
+		log.Fatal(err)
 	}
 }
