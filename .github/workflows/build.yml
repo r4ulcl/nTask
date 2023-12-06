@@ -20,7 +20,12 @@ jobs:
           images: ${{ github.actor }}/NetTask
 
       - name: Login to GitHub Packages
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u ${{ github.actor }} docker.pkg.github.com --password-stdin
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
 
       - name: Build and push github
         id: docker_build_github
@@ -30,6 +35,7 @@ jobs:
           platforms: linux/amd64
           push: true
           registry: ghcr.io
+          repository:  ${{ github.actor }}/NetTask
           #tags: ${{ secrets.DOCKERHUB_USERNAME }}/wifi_db:latest,${{ secrets.DOCKERHUB_USERNAME }}/wifi_db:main
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
