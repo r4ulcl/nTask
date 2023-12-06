@@ -1,0 +1,336 @@
+basePath: /
+definitions:
+  globalstructs.Task:
+    properties:
+      args:
+        items:
+          type: string
+        type: array
+      createdAt:
+        type: string
+      id:
+        type: string
+      module:
+        type: string
+      output:
+        type: string
+      priority:
+        type: boolean
+      status:
+        description: pending, running, done, failed, deleted
+        type: string
+      updatedAt:
+        type: string
+      workerName:
+        type: string
+    type: object
+  globalstructs.Worker:
+    properties:
+      IddleThreads:
+        type: integer
+      downCount:
+        type: integer
+      ip:
+        type: string
+      name:
+        description: Workers name (unique)
+        type: string
+      oauthToken:
+        type: string
+      port:
+        type: string
+      up:
+        type: boolean
+    type: object
+info:
+  contact:
+    email: me@r4ulcl.com
+    name: r4ulcl
+    url: https://r4ulcl.com/contact/
+  description: NetTask API documentation
+  license:
+    name: GPL-3.0
+    url: https://github.com/r4ulcl/NetTask/blob/main/LICENSE
+  title: NetTask API
+  version: "1.0"
+paths:
+  /callback:
+    post:
+      consumes:
+      - application/json
+      description: Handle callback from slave
+      parameters:
+      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
+        description: OAuth Key
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Invalid callback body
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: Handle callback from slave
+      tags:
+      - callback
+  /task:
+    get:
+      consumes:
+      - application/json
+      description: Get status of tasks
+      parameters:
+      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
+        description: OAuth Key
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Task ID
+        in: query
+        name: ID
+        type: string
+      - description: Task module
+        in: query
+        name: module
+        type: string
+      - description: Task args
+        in: query
+        name: args
+        type: string
+      - description: Task createdAt
+        in: query
+        name: createdAt
+        type: string
+      - description: Task updatedAt
+        in: query
+        name: updatedAt
+        type: string
+      - description: Task status
+        example: pending
+        in: query
+        name: status
+        type: string
+      - description: Task workerName
+        in: query
+        name: workerName
+        type: string
+      - description: Task output
+        in: query
+        name: output
+        type: string
+      - description: Task priority
+        in: query
+        name: priority
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/globalstructs.Task'
+            type: array
+      summary: Get all tasks
+      tags:
+      - task
+    post:
+      consumes:
+      - application/json
+      description: Add a new tasks
+      parameters:
+      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
+        description: OAuth Key
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Task object to create
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/globalstructs.Task'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/globalstructs.Task'
+            type: array
+      summary: Add a new tasks
+      tags:
+      - task
+  /task/{ID}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a tasks
+      parameters:
+      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
+        description: OAuth Key
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: task ID
+        in: path
+        name: ID
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Delete a tasks
+      tags:
+      - task
+    get:
+      consumes:
+      - application/json
+      description: Get status of a task
+      parameters:
+      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
+        description: OAuth Key
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: task ID
+        in: path
+        name: ID
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/globalstructs.Task'
+            type: array
+      summary: Get status of a task
+      tags:
+      - task
+  /worker:
+    get:
+      consumes:
+      - application/json
+      description: Handle worker request
+      parameters:
+      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
+        description: OAuth Key
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Get workers
+      tags:
+      - worker
+    post:
+      consumes:
+      - application/json
+      description: Add a worker, normally done by the worker
+      parameters:
+      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
+        description: OAuth Key
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Worker object to create
+        in: body
+        name: worker
+        required: true
+        schema:
+          $ref: '#/definitions/globalstructs.Worker'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Add a worker
+      tags:
+      - worker
+  /worker/{NAME}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a worker from the system
+      parameters:
+      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
+        description: OAuth Key
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Worker NAME
+        in: path
+        name: NAME
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Remove a worker
+      tags:
+      - worker
+    get:
+      consumes:
+      - application/json
+      description: Get status of worker
+      parameters:
+      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
+        description: OAuth Key
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Worker NAME
+        in: path
+        name: NAME
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/globalstructs.Worker'
+            type: array
+      summary: Get status of worker
+      tags:
+      - worker
+security:
+- OAuth2.0: []
+swagger: "2.0"
