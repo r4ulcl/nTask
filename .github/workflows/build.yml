@@ -25,7 +25,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
+          scopes: 'package:write'  # Add the necessary scope
 
       - name: Build and push github
         id: docker_build_github
@@ -35,8 +35,6 @@ jobs:
           platforms: linux/amd64
           push: true
           registry: ghcr.io
-          repository:  ${{ github.actor }}/NetTask
-          #tags: ${{ secrets.DOCKERHUB_USERNAME }}/wifi_db:latest,${{ secrets.DOCKERHUB_USERNAME }}/wifi_db:main
+          repository: ${{ github.actor }}/NetTask
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-
