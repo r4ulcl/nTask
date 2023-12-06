@@ -16,15 +16,14 @@ jobs:
     - name: Login to GitHub Packages
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u ${{ github.actor }} docker.pkg.github.com --password-stdin
 
-
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v1
       with:
-      registry: ghcr.io
-      username: ${{ github.actor }}
-      password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build the Docker image
-      run: |
-            docker build . --tag ghcr.io/r4ulcl/nettask:latest
-            docker run ghcr.io/r4ulcl/nettask:latest
-            docker push ghcr.io/r4ulcl/nettask:latest
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        - name: Build the Docker image
+        run: |
+              docker build . --tag ghcr.io/r4ulcl/nettask:latest
+              docker run ghcr.io/r4ulcl/nettask:latest
+              docker push ghcr.io/r4ulcl/nettask:latest
