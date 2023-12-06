@@ -11,6 +11,7 @@ type ManagerConfig struct {
 	DBDatabase        string `json:"dbDatabase"`
 	CallbackURL       string `json:"callbackURL"`
 	CallbackToken     string `json:"callbackToken"`
+	DiskPath          string `json:"diskPath"`
 }
 
 /*

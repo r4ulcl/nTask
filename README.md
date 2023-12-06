@@ -41,7 +41,8 @@ The manager requires a configuration file named `manager.conf` to be present in 
       "dbPort" : "3306",
       "dbDatabase" : "manager",
       "callbackURL" : "",
-      "callbackToken" : ""
+      "callbackToken" : "",
+      "diskPath": "./output"
     }
   ```
 
@@ -53,8 +54,9 @@ The manager requires a configuration file named `manager.conf` to be present in 
 - `DBHost`: The hostname of the database server.
 - `DBPort`: The port number of the database server.
 - `DBDatabase`: The name of the database to use.
-- `callbackURL`: CallbackURL to send a POST request with the Task when done.
-- `callbackToken`: CallbackToken for the OauthToken in the Callback request. 
+- `callbackURL`: (optional) CallbackURL to send a POST request with the Task when done.
+- `callbackToken`: (optional) CallbackToken for the OauthToken in the Callback request. 
+- `diskPath`: (optional) Folder to save the tasks output
 
 ### Worker
 

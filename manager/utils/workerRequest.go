@@ -180,7 +180,9 @@ func SendAddTask(db *sql.DB, worker *globalstructs.Worker, task *globalstructs.T
 
 	// Check the response status
 	if resp.StatusCode == http.StatusOK {
-		log.Println("POST request was successful")
+		if verbose {
+			log.Println("POST request was successful")
+		}
 		// Set the task and worker as working
 		err := database.SetTaskStatus(db, task.ID, "running", verbose)
 		if err != nil {

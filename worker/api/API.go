@@ -155,7 +155,7 @@ func processTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig,
 
 	output, err := modules.ProcessModule(task, config, status, task.ID, verbose)
 	if err != nil {
-		log.Println("Error:", err)
+		log.Println("Error ProcessModule:", err)
 		task.Status = "failed"
 	} else {
 		task.Status = "done"

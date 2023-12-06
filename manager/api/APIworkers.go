@@ -63,6 +63,19 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 		utils.CallbackUserTaskMessage(config, &result, verbose)
 	}
 
+	// if path not empty
+	if config.DiskPath != "" {
+		//get the task from DB to get updated
+		task, err := database.GetTask(db, result.ID, verbose)
+		if err != nil {
+			log.Println(err)
+		}
+		err = utils.SaveTaskToDisk(task, config.DiskPath, verbose)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
 	// Handle the result as needed
 
 	w.WriteHeader(http.StatusOK)

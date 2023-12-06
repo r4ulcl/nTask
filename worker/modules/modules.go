@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"math/rand"
@@ -36,6 +37,13 @@ func runModule(command string, arguments []string, status *globalstructs.WorkerS
 	// Command to run the module
 	cmd := exec.Command(command, arguments...)
 
+	// Create a buffer to store the command output
+	var stdout, stderr bytes.Buffer
+
+	// Set the output and error streams to the buffers
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
 	// Start the command
 	err := cmd.Start()
 	if err != nil {
@@ -57,18 +65,14 @@ func runModule(command string, arguments []string, status *globalstructs.WorkerS
 	}
 
 	// Capture the output of the script
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", err
-	}
-
-	// Convert the output byte slice to a string
-	outputString := string(output)
+	// Combine the standard output and standard error into a single string
+	output := stdout.String() + stderr.String()
+	output = strings.TrimRight(output, "\n")
 
 	//Remove the ID from the status
 	delete(status.WorkingIDs, id)
 
-	return outputString, nil
+	return output, nil
 }
 
 func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status *globalstructs.WorkerStatus, id string, verbose bool) (string, error) {

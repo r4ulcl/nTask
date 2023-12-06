@@ -29,9 +29,9 @@ func main() {
 	var swagger bool
 	var verbose bool
 	var configFile string
-	flag.BoolVar(&isManager, "manager", false, "Run as manager (default is worker)")
-	flag.BoolVar(&isWorker, "worker", false, "Run as worker (default is api client)")
-	flag.BoolVar(&swagger, "swagger", false, "Start the swager endpoint /swagger")
+	flag.BoolVar(&isManager, "manager", false, "Run as manager")
+	flag.BoolVar(&isWorker, "worker", false, "Run as worker")
+	flag.BoolVar(&swagger, "swagger", false, "Start the swager endpoint (/swagger)")
 	flag.BoolVar(&verbose, "verbose", false, "Set verbose mode")
 	flag.StringVar(&configFile, "configFile", "", "Path to the config file")
 
@@ -44,6 +44,6 @@ func main() {
 	case isWorker:
 		worker.StartWorker(swagger, configFile, verbose)
 	default:
-		log.Println("TODO, use api from cmd")
+		log.Println("Incorrect opction")
 	}
 }
