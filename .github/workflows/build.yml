@@ -1,0 +1,22 @@
+name: Docker Build and Publish
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Login to GitHub Packages
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u ${{ github.actor }} docker.pkg.github.com --password-stdin
+
+    - name: Build and Push Docker Image
+      run: |
+        docker build -t docker.pkg.github.com/${{ github.repository_owner }}/${{ github.repository_name }}/NetTask:latest .
+        docker push docker.pkg.github.com/${{ github.repository_owner }}/${{ github.repository_name }}/NetTask:latest
