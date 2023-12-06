@@ -32,15 +32,15 @@ import (
 // @Param workerName query string false "Task workerName"
 // @Param output query string false "Task output"
 // @Param priority query bool false "Task priority"
-func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
+func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
 	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken) {
+	if incorrectOauth(oauthKey, config.OAuthToken, verbose) {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 
 	// get tasks
-	tasks, err := database.GetTasks(w, r, db)
+	tasks, err := database.GetTasks(w, r, db, verbose)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \"Invalid callback body\"}", http.StatusBadRequest)
 		return
@@ -69,9 +69,9 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 // @Success 200 {array} globalstructs.Task
 // @Router /task [post]
 // @Param task body globalstructs.Task true "Task object to create"
-func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
+func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
 	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers) {
+	if incorrectOauth(oauthKey, config.OAuthToken, verbose) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers, verbose) {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
@@ -84,7 +84,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	}
 
 	// Set Random ID
-	request.ID, err = generateRandomID(30)
+	request.ID, err = generateRandomID(30, verbose)
 	if err != nil {
 		http.Error(w, "Invalid ID generated", http.StatusBadRequest)
 		return
@@ -93,7 +93,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	// set status
 	request.Status = "pending"
 
-	err = database.AddTask(db, request)
+	err = database.AddTask(db, request, verbose)
 	if err != nil {
 		message := "{ \"error\" : \"Invalid task info: " + err.Error() + "\" }"
 		http.Error(w, message, http.StatusBadRequest)
@@ -121,9 +121,9 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 // @Success 200 {array} string
 // @Router /task/{ID} [delete]
 // @Param ID path string false "task ID"http.Error(w, "{ \"error\" : \"Invalid callback body\"}", http.StatusBadRequest)
-func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
+func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
 	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken) {
+	if incorrectOauth(oauthKey, config.OAuthToken, verbose) {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
@@ -131,25 +131,25 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	vars := mux.Vars(r)
 	id := vars["ID"]
 
-	task, err := database.GetTask(db, id)
+	task, err := database.GetTask(db, id, verbose)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
 		return
 	}
 
-	worker, err := database.GetWorker(db, task.WorkerName)
+	worker, err := database.GetWorker(db, task.WorkerName, verbose)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
 		return
 	}
 
-	err = utils.SendDeleteTask(db, &worker, &task)
+	err = utils.SendDeleteTask(db, &worker, &task, verbose)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
 		return
 	}
 
-	err = database.RmTask(db, id)
+	err = database.RmTask(db, id, verbose)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
 		return
@@ -169,9 +169,9 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 // @Success 200 {array} globalstructs.Task
 // @Router /task/{ID} [get]
 // @Param ID path string false "task ID"
-func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
+func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
 	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken) {
+	if incorrectOauth(oauthKey, config.OAuthToken, verbose) {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
@@ -181,7 +181,7 @@ func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.Mana
 
 	// Access worker to update info if status running
 	// get task from ID
-	task, err := database.GetTask(db, id)
+	task, err := database.GetTask(db, id, verbose)
 	if err != nil {
 		http.Error(w, "Invalid GetTask body"+err.Error(), http.StatusBadRequest)
 		return
@@ -201,7 +201,7 @@ func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.Mana
 }
 
 // generateRandomID generates a random ID of the specified length
-func generateRandomID(length int) (string, error) {
+func generateRandomID(length int, verbose bool) (string, error) {
 	// Calculate the number of bytes needed to achieve the desired length
 	numBytes := length / 2 // Since 1 byte = 2 hex characters
 

@@ -10,7 +10,7 @@ import (
 )
 
 // CallbackUserTaskMessage is a function that sends a task message as a callback to a specified URL
-func CallbackUserTaskMessage(config *ManagerConfig, task *globalstructs.Task) {
+func CallbackUserTaskMessage(config *ManagerConfig, task *globalstructs.Task, verbose bool) {
 	url := config.CallbackURL
 
 	// Convert the task to a JSON payload

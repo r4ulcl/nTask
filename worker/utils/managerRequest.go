@@ -12,7 +12,7 @@ import (
 )
 
 // AddWorker sends a POST request to add a worker to the manager
-func AddWorker(config *WorkerConfig) error {
+func AddWorker(config *WorkerConfig, verbose bool) error {
 	// Create a Worker object with the provided configuration
 	worker := globalstructs.Worker{
 		Name:         config.Name,
@@ -59,7 +59,7 @@ func AddWorker(config *WorkerConfig) error {
 }
 
 // CallbackTaskMessage sends a POST request to the manager to callback with a task message
-func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task) error {
+func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task, verbose bool) error {
 	// Create the callback URL using the manager IP and port
 	url := "http://" + config.ManagerIP + ":" + config.ManagerPort + "/callback"
 

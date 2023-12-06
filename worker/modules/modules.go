@@ -11,7 +11,7 @@ import (
 	"github.com/r4ulcl/NetTask/worker/utils"
 )
 
-func runModule(command string, arguments []string, status *globalstructs.WorkerStatus, id string) (string, error) {
+func runModule(command string, arguments []string, status *globalstructs.WorkerStatus, id string, verbose bool) (string, error) {
 	// if command is empty, like in the example "exec" to exec any binary
 	// the first argument is the command
 	if command == "" && len(arguments) > 0 {
@@ -64,7 +64,7 @@ func runModule(command string, arguments []string, status *globalstructs.WorkerS
 	return outputString, nil
 }
 
-func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status *globalstructs.WorkerStatus, id string) (string, error) {
+func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status *globalstructs.WorkerStatus, id string, verbose bool) (string, error) {
 	module := task.Module
 	arguments := task.Args
 
@@ -73,14 +73,14 @@ func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status 
 		return "Unknown task", fmt.Errorf("unknown command")
 	}
 
-	return runModule(command, arguments, status, id)
+	return runModule(command, arguments, status, id, verbose)
 }
 
-func GetRandomDuration(base, random int) int {
+func GetRandomDuration(base, random int, verbose bool) int {
 	return rand.Intn(random) + base
 }
 
-func StringList(list []string) string {
+func StringList(list []string, verbose bool) string {
 	stringList := ""
 	for _, item := range list {
 		stringList += item + "\n"

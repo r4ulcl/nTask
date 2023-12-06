@@ -17,7 +17,7 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-func loadWorkerConfig(filename string) (*utils.WorkerConfig, error) {
+func loadWorkerConfig(filename string, verbose bool) (*utils.WorkerConfig, error) {
 	var config utils.WorkerConfig
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -43,7 +43,7 @@ func loadWorkerConfig(filename string) (*utils.WorkerConfig, error) {
 
 	// if OauthToken is empty create a new token
 	if config.OAuthToken == "" {
-		config.OAuthToken, err = utils.GenerateToken(32)
+		config.OAuthToken, err = utils.GenerateToken(32, verbose)
 		if err != nil {
 			log.Println("Error generating OAuthToken:", err)
 		}
@@ -60,7 +60,7 @@ func loadWorkerConfig(filename string) (*utils.WorkerConfig, error) {
 	return &config, nil
 }
 
-func startSwaggerWeb(router *mux.Router) {
+func startSwaggerWeb(router *mux.Router, verbose bool) {
 	// Serve Swagger UI at /swagger
 	router.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
 		httpSwagger.URL("/docs/swagger.json"), // URL to the swagger.json file
@@ -72,15 +72,15 @@ func startSwaggerWeb(router *mux.Router) {
 	}).Methods("GET")
 }
 
-func StartWorker(swagger bool, configFile string) {
-	log.Println("Running as workerouter...")
+func StartWorker(swagger bool, configFile string, verbose bool) {
+	log.Println("Running as worker router...")
 
 	// if config file empty set default
 	if configFile == "" {
 		configFile = "worker.conf"
 	}
 
-	workerConfig, err := loadWorkerConfig(configFile)
+	workerConfig, err := loadWorkerConfig(configFile, verbose)
 	if err != nil {
 		log.Fatal("Error loading config file: ", err)
 	}
@@ -92,7 +92,7 @@ func StartWorker(swagger bool, configFile string) {
 
 	// Loop until connects
 	for {
-		err = utils.AddWorker(workerConfig)
+		err = utils.AddWorker(workerConfig, verbose)
 		if err != nil {
 			log.Println(err)
 		} else {
@@ -105,20 +105,20 @@ func StartWorker(swagger bool, configFile string) {
 
 	if swagger {
 		// Start swagger endpoint
-		startSwaggerWeb(router)
+		startSwaggerWeb(router, verbose)
 	}
 
 	router.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleGetStatus(w, r, &status, workerConfig)
+		api.HandleGetStatus(w, r, &status, workerConfig, verbose)
 	}).Methods("GET") // check worker status
 
 	// Task
 	router.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskPost(w, r, &status, workerConfig)
+		api.HandleTaskPost(w, r, &status, workerConfig, verbose)
 	}).Methods("POST") // Add task
 
 	router.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskDelete(w, r, &status, workerConfig)
+		api.HandleTaskDelete(w, r, &status, workerConfig, verbose)
 	}).Methods("DELETE") // delete task
 
 	/*

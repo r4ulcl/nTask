@@ -26,9 +26,9 @@ import (
 // @Failure 400 {string} string "Invalid callback body"
 // @Failure 401 {string} string "Unauthorized"
 // @Router /callback [post]
-func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
+func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
 	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers) {
+	if incorrectOauth(oauthKey, config.OAuthToken, verbose) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers, verbose) {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
@@ -44,14 +44,14 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	log.Println("Received result (ID: ", result.ID, " from : ", result.WorkerName, " with output: ", result.Output)
 
 	// Update task with the worker one
-	err = database.UpdateTask(db, result)
+	err = database.UpdateTask(db, result, verbose)
 	if err != nil {
 		http.Error(w, "Error UpdateTask ", http.StatusBadRequest)
 		return
 	}
 
 	//Add value to thread working
-	err = database.AddWorkerIddleThreads1(db, result.WorkerName)
+	err = database.AddWorkerIddleThreads1(db, result.WorkerName, verbose)
 	if err != nil {
 		http.Error(w, "Error AddWorkerIddleThreads1 ", http.StatusBadRequest)
 		return
@@ -59,7 +59,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 
 	// if callbackURL is not empty send the request to the client
 	if config.CallbackURL != "" {
-		utils.CallbackUserTaskMessage(config, &result)
+		utils.CallbackUserTaskMessage(config, &result, verbose)
 	}
 
 	// Handle the result as needed
@@ -76,15 +76,15 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @Success 200 {string} string "OK"
 // @Router /worker [get]
-func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
+func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
 	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken) {
+	if incorrectOauth(oauthKey, config.OAuthToken, verbose) {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 
 	// get workers
-	workers, err := database.GetWorkers(db)
+	workers, err := database.GetWorkers(db, verbose)
 	if err != nil {
 		http.Error(w, "Invalid callback body", http.StatusBadRequest)
 		return
@@ -116,9 +116,9 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 // @Name Authorization
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @Param worker body globalstructs.Worker true "Worker object to create"
-func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
+func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
 	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers) {
+	if incorrectOauth(oauthKey, config.OAuthToken, verbose) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers, verbose) {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
@@ -130,36 +130,36 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 		return
 	}
 
-	request.IP = ReadUserIP(r)
+	request.IP = ReadUserIP(r, verbose)
 
 	log.Println(request.Name, request.IP, request.Name)
 
-	err = database.AddWorker(db, &request)
+	err = database.AddWorker(db, &request, verbose)
 	if err != nil {
 		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
 			if mysqlErr.Number == 1062 { // MySQL error number for duplicate entry
 				// Set as 'failed' all workers tasks
-				err = database.SetTasksWorkerFailed(db, request.Name)
+				err = database.SetTasksWorkerFailed(db, request.Name, verbose)
 				if err != nil {
 					return
 				}
 
 				//Update oauth key
-				err := database.SetWorkerOauthToken(request.OauthToken, db, &request)
+				err := database.SetWorkerOauthToken(request.OauthToken, db, &request, verbose)
 				if err != nil {
 					http.Error(w, "Error setWorkerUp ", http.StatusBadRequest)
 					return
 				}
 
 				// set worker up
-				err = database.SetWorkerUPto(true, db, &request)
+				err = database.SetWorkerUPto(true, db, &request, verbose)
 				if err != nil {
 					http.Error(w, "Error setWorkerUp ", http.StatusBadRequest)
 					return
 				}
 
 				// reset down count
-				err = database.SetWorkerDownCount(0, db, &request)
+				err = database.SetWorkerDownCount(0, db, &request, verbose)
 				if err != nil {
 					http.Error(w, "Error SetWorkerCount ", http.StatusBadRequest)
 					return
@@ -189,9 +189,9 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 // @Success 200 {array} string
 // @Router /worker/{NAME} [delete]
 // @Param NAME path string false "Worker NAME"
-func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
+func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
 	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken) {
+	if incorrectOauth(oauthKey, config.OAuthToken, verbose) {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
@@ -199,7 +199,7 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 	vars := mux.Vars(r)
 	name := vars["NAME"]
 
-	err := database.RmWorkerName(db, name)
+	err := database.RmWorkerName(db, name, verbose)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -219,9 +219,9 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 // @Success 200 {array} globalstructs.Worker
 // @Router /worker/{NAME} [get]
 // @Param NAME path string false "Worker NAME"
-func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB) {
+func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
 	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken) {
+	if incorrectOauth(oauthKey, config.OAuthToken, verbose) {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
@@ -231,7 +231,7 @@ func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.Ma
 
 	log.Println("NAME " + name)
 
-	worker, err := database.GetWorker(db, name)
+	worker, err := database.GetWorker(db, name, verbose)
 	if err != nil {
 		http.Error(w, "Invalid callback body"+err.Error(), http.StatusBadRequest)
 		return
@@ -253,7 +253,7 @@ func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.Ma
 // Other functions
 
 // ReadUserIP reads the user's IP address from the request
-func ReadUserIP(r *http.Request) string {
+func ReadUserIP(r *http.Request, verbose bool) string {
 	IPAddress := r.Header.Get("X-Real-Ip")
 	if IPAddress == "" {
 		IPAddress = r.Header.Get("X-Forwarded-For")

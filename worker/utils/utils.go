@@ -7,7 +7,7 @@ import (
 )
 
 // GenerateToken Generate oauth
-func GenerateToken(length int) (string, error) {
+func GenerateToken(length int, verbose bool) (string, error) {
 	if length%2 != 0 {
 		return "", fmt.Errorf("token length must be even")
 	}

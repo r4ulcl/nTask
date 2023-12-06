@@ -11,7 +11,7 @@ import (
 )
 
 // AddTask adds a task to the database
-func AddTask(db *sql.DB, task globalstructs.Task) error {
+func AddTask(db *sql.DB, task globalstructs.Task, verbose bool) error {
 	// Insert the JSON data into the MySQL table
 	argsString := strings.Join(task.Args, ",")
 	_, err := db.Exec("INSERT INTO task (ID, module, args, status, WorkerName, output) VALUES (?, ?, ?, ?, ?, ?)",
@@ -24,7 +24,7 @@ func AddTask(db *sql.DB, task globalstructs.Task) error {
 }
 
 // UpdateTask updates all fields of a task in the database.
-func UpdateTask(db *sql.DB, task globalstructs.Task) error {
+func UpdateTask(db *sql.DB, task globalstructs.Task, verbose bool) error {
 	// Update all fields in the MySQL table
 	argsString := strings.Join(task.Args, ",")
 	_, err := db.Exec("UPDATE task SET module=?, args=?, status=?, WorkerName=?, output=? WHERE ID=?",
@@ -37,7 +37,7 @@ func UpdateTask(db *sql.DB, task globalstructs.Task) error {
 }
 
 // RmTask deletes a task from the database.
-func RmTask(db *sql.DB, id string) error {
+func RmTask(db *sql.DB, id string, verbose bool) error {
 	// Worker exists, proceed with deletion
 	sqlStatement := "DELETE FROM task WHERE ID = ?"
 	log.Println("ID: ", id)
@@ -56,7 +56,7 @@ func RmTask(db *sql.DB, id string) error {
 }
 
 // GetTasks gets tasks with URL params as filter.
-func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB) ([]globalstructs.Task, error) {
+func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose bool) ([]globalstructs.Task, error) {
 	queryParams := r.URL.Query()
 
 	sql := "SELECT ID, module, args, createdAt, updatedAt, status, workerName, output, priority FROM task WHERE 1=1 "
@@ -99,17 +99,17 @@ func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB) ([]globalstruc
 	}
 	sql += " ORDER BY priority DESC, createdAt ASC;"
 
-	return GetTasksSQL(sql, db)
+	return GetTasksSQL(sql, db, verbose)
 }
 
 // GetTasksPending gets only tasks with status pending
-func GetTasksPending(db *sql.DB) ([]globalstructs.Task, error) {
+func GetTasksPending(db *sql.DB, verbose bool) ([]globalstructs.Task, error) {
 	sql := "SELECT ID, module, args, createdAt, updatedAt, status, WorkerName, output, priority FROM task WHERE status = 'pending' ORDER BY priority DESC, createdAt ASC"
-	return GetTasksSQL(sql, db)
+	return GetTasksSQL(sql, db, verbose)
 }
 
 // GetTasksSQL gets tasks by passing the SQL query in sql param
-func GetTasksSQL(sql string, db *sql.DB) ([]globalstructs.Task, error) {
+func GetTasksSQL(sql string, db *sql.DB, verbose bool) ([]globalstructs.Task, error) {
 	var tasks []globalstructs.Task
 
 	// Query all tasks from the task table
@@ -166,7 +166,7 @@ func GetTasksSQL(sql string, db *sql.DB) ([]globalstructs.Task, error) {
 }
 
 // GetTask gets task filtered by id
-func GetTask(db *sql.DB, id string) (globalstructs.Task, error) {
+func GetTask(db *sql.DB, id string, verbose bool) (globalstructs.Task, error) {
 	var task globalstructs.Task
 	// Retrieve the JSON data from the MySQL table
 	var module string
@@ -198,7 +198,7 @@ func GetTask(db *sql.DB, id string) (globalstructs.Task, error) {
 
 // GetTaskWorker gets task workerName from an ID
 // This is the worker executing the task
-func GetTaskWorker(db *sql.DB, id string) (string, error) {
+func GetTaskWorker(db *sql.DB, id string, verbose bool) (string, error) {
 	// Retrieve the workerName from the task table
 	var workerName string
 	err := db.QueryRow("SELECT WorkerName FROM task WHERE ID = ?",
@@ -212,7 +212,7 @@ func GetTaskWorker(db *sql.DB, id string) (string, error) {
 }
 
 //SetTasksWorkerFailed set to failed all task running worker workerName
-func SetTasksWorkerFailed(db *sql.DB, workerName string) error {
+func SetTasksWorkerFailed(db *sql.DB, workerName string, verbose bool) error {
 	_, err := db.Exec("UPDATE task SET status = 'failed' WHERE workerName = ? AND status = 'running' ", workerName)
 	if err != nil {
 		log.Println(err)
@@ -222,7 +222,7 @@ func SetTasksWorkerFailed(db *sql.DB, workerName string) error {
 }
 
 // SetTaskOutput saves the output of the task in the database
-func SetTaskOutput(db *sql.DB, id, output string) error {
+func SetTaskOutput(db *sql.DB, id, output string, verbose bool) error {
 	// Update the output column of the task table for the given ID
 	_, err := db.Exec("UPDATE task SET output = ? WHERE ID = ?", output, id)
 	if err != nil {
@@ -233,7 +233,7 @@ func SetTaskOutput(db *sql.DB, id, output string) error {
 }
 
 // SetTaskWorkerName saves the worker name of the task in the database
-func SetTaskWorkerName(db *sql.DB, id, workerName string) error {
+func SetTaskWorkerName(db *sql.DB, id, workerName string, verbose bool) error {
 	// Update the workerName column of the task table for the given ID
 	_, err := db.Exec("UPDATE task SET workerName = ? WHERE ID = ?", workerName, id)
 	if err != nil {
@@ -244,7 +244,7 @@ func SetTaskWorkerName(db *sql.DB, id, workerName string) error {
 }
 
 // SetTaskStatus saves the status of the task in the database
-func SetTaskStatus(db *sql.DB, id, status string) error {
+func SetTaskStatus(db *sql.DB, id, status string, verbose bool) error {
 	// Update the status column of the task table for the given ID
 	_, err := db.Exec("UPDATE task SET status = ? WHERE ID = ?", status, id)
 	if err != nil {

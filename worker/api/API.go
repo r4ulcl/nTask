@@ -22,7 +22,7 @@ import (
 // HandleGetStatus handles the GET request to /status endpoint.
 // It checks if the OAuth token provided by the client matches the configured token.
 // If the token is valid, it returns the worker status as a JSON object.
-func HandleGetStatus(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig) {
+func HandleGetStatus(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig, verbose bool) {
 	oauthKeyClient := r.Header.Get("Authorization")
 	if oauthKeyClient != config.OAuthToken {
 		log.Println("oauthKeyClient", oauthKeyClient)
@@ -52,7 +52,7 @@ func HandleGetStatus(w http.ResponseWriter, r *http.Request, status *globalstruc
 // It checks if the OAuth token provided by the client matches the configured token.
 // If the token is valid, it processes the task in the background by calling the processTask function.
 // It immediately responds with the ID of the task.
-func HandleTaskPost(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig) {
+func HandleTaskPost(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig, verbose bool) {
 	oauthKeyClient := r.Header.Get("Authorization")
 	if oauthKeyClient != config.OAuthToken {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
@@ -73,7 +73,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, status *globalstruct
 	}
 
 	// Process task in background
-	go processTask(status, config, &requestTask)
+	go processTask(status, config, &requestTask, verbose)
 
 	// Respond immediately without waiting for the task to complete
 	w.WriteHeader(http.StatusOK)
@@ -83,7 +83,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, status *globalstruct
 // HandleTaskDelete handles the DELETE request to /task/{ID} endpoint.
 // It checks if the OAuth token provided by the client matches the configured token.
 // If the token is valid, it stops/deletes the task with the given ID.
-func HandleTaskDelete(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig) {
+func HandleTaskDelete(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig, verbose bool) {
 	oauthKeyClient := r.Header.Get("Authorization")
 	if oauthKeyClient != config.OAuthToken {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
@@ -117,7 +117,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, status *globalstru
 // HandleTaskGet handles the GET request to /task/{ID} endpoint.
 // It checks if the OAuth token provided by the client matches the configured token.
 // If the token is valid, it returns the details of the task with the given ID.
-func HandleTaskGet(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig) {
+func HandleTaskGet(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig, verbose bool) {
 	oauthKeyClient := r.Header.Get("Authorization")
 	if oauthKeyClient != config.OAuthToken {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
@@ -143,13 +143,13 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, status *globalstructs
 // Otherwise, it sets the task status to "done" and assigns the output of the module to the task.
 // Finally, it calls the CallbackTaskMessage function to send the task result to the configured callback endpoint.
 // After completing the task, it resets the worker status to indicate that it is no longer working.
-func processTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *globalstructs.Task) {
+func processTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *globalstructs.Task, verbose bool) {
 	//Remove one from working threads
 	status.IddleThreads -= 1
 
 	log.Println("Start processing task", task.ID, " workCount: ", status.IddleThreads)
 
-	output, err := modules.ProcessModule(task, config, status, task.ID)
+	output, err := modules.ProcessModule(task, config, status, task.ID, verbose)
 	if err != nil {
 		log.Println("Error:", err)
 		task.Status = "failed"
@@ -160,7 +160,7 @@ func processTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig,
 
 	// While manager doesnt responds loop
 	for {
-		err = utils.CallbackTaskMessage(config, task)
+		err = utils.CallbackTaskMessage(config, task, verbose)
 		if err == nil {
 			break
 		} else {
