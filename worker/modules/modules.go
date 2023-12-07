@@ -3,6 +3,7 @@ package modules
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"os/exec"
@@ -88,6 +89,19 @@ func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status 
 			return fmt.Errorf("unknown command: %s", module)
 		}
 
+		// If there is a file in the command, save to disk
+		if command.FileContent != "" {
+			if command.RemoteFilePath == "" {
+				return fmt.Errorf("RemoteFilePath empty")
+			}
+
+			err := SaveStringToFile(command.RemoteFilePath, command.FileContent)
+			if err != nil {
+				return err
+			}
+
+		}
+
 		// Execute the module and get the output and any error
 		outputCommand, err := runModule(commandAux, arguments, status, id, verbose)
 		if err != nil {
@@ -114,4 +128,16 @@ func StringList(list []string, verbose bool) string {
 	}
 
 	return stringList
+}
+
+// SaveStringToFile saves a string to a file.
+func SaveStringToFile(filename string, content string) error {
+	// Write the string content to the file
+	err := ioutil.WriteFile(filename, []byte(content), 0644)
+	if err != nil {
+		return fmt.Errorf("error saving string to file: %v", err)
+	}
+
+	fmt.Printf("String saved to file: %s\n", filename)
+	return nil
 }

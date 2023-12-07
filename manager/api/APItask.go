@@ -58,6 +58,7 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 		log.Println(string(jsonData))
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))
 }
@@ -71,7 +72,7 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @Success 200 {array} globalstructs.Task
 // @Router /task [post]
-// @Param task body globalstructs.Task true "Task object to create"
+// @Param task body globalstructs.TaskSwagger true "Task object to create"
 func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken, verbose) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers, verbose) {
@@ -110,6 +111,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	}
 
 	// Handle the result as needed
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))
 }
@@ -158,6 +160,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, "")
 }
@@ -201,6 +204,7 @@ func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.Mana
 		log.Println(string(jsonData))
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))
 }

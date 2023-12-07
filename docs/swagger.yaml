@@ -1,18 +1,42 @@
 basePath: /
 definitions:
-  globalstructs.Task:
+  globalstructs.Command:
     properties:
       args:
         items:
           type: string
         type: array
-      createdAt:
-        type: string
-      id:
+      fileContent:
         type: string
       module:
         type: string
       output:
+        type: string
+      remoteFilePath:
+        type: string
+    type: object
+  globalstructs.CommandSwagger:
+    properties:
+      args:
+        items:
+          type: string
+        type: array
+      fileContent:
+        type: string
+      module:
+        type: string
+      remoteFilePath:
+        type: string
+    type: object
+  globalstructs.Task:
+    properties:
+      command:
+        items:
+          $ref: '#/definitions/globalstructs.Command'
+        type: array
+      createdAt:
+        type: string
+      id:
         type: string
       priority:
         type: boolean
@@ -23,6 +47,15 @@ definitions:
         type: string
       workerName:
         type: string
+    type: object
+  globalstructs.TaskSwagger:
+    properties:
+      command:
+        items:
+          $ref: '#/definitions/globalstructs.CommandSwagger'
+        type: array
+      priority:
+        type: boolean
     type: object
   globalstructs.Worker:
     properties:
@@ -159,7 +192,7 @@ paths:
         name: task
         required: true
         schema:
-          $ref: '#/definitions/globalstructs.Task'
+          $ref: '#/definitions/globalstructs.TaskSwagger'
       produces:
       - application/json
       responses:

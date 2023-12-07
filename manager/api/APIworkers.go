@@ -78,6 +78,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 
 	// Handle the result as needed
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -115,6 +116,7 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 		log.Println(string(jsonData))
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))
 }
@@ -193,6 +195,7 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	}
 
 	// Handle the result as needed
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Worker with Name %s added", request.Name)
 }
@@ -223,6 +226,7 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, "")
 }
@@ -264,6 +268,7 @@ func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.Ma
 		log.Println("HandleWorkerStatus", string(jsonData))
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))
 }

@@ -182,7 +182,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/globalstructs.Task"
+                            "$ref": "#/definitions/globalstructs.TaskSwagger"
                         }
                     }
                 ],
@@ -438,7 +438,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "globalstructs.Task": {
+        "globalstructs.Command": {
             "type": "object",
             "properties": {
                 "args": {
@@ -447,16 +447,53 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "createdAt": {
-                    "type": "string"
-                },
-                "id": {
+                "fileContent": {
                     "type": "string"
                 },
                 "module": {
                     "type": "string"
                 },
                 "output": {
+                    "type": "string"
+                },
+                "remoteFilePath": {
+                    "type": "string"
+                }
+            }
+        },
+        "globalstructs.CommandSwagger": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "fileContent": {
+                    "type": "string"
+                },
+                "module": {
+                    "type": "string"
+                },
+                "remoteFilePath": {
+                    "type": "string"
+                }
+            }
+        },
+        "globalstructs.Task": {
+            "type": "object",
+            "properties": {
+                "command": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/globalstructs.Command"
+                    }
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
                     "type": "string"
                 },
                 "priority": {
@@ -471,6 +508,20 @@ const docTemplate = `{
                 },
                 "workerName": {
                     "type": "string"
+                }
+            }
+        },
+        "globalstructs.TaskSwagger": {
+            "type": "object",
+            "properties": {
+                "command": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/globalstructs.CommandSwagger"
+                    }
+                },
+                "priority": {
+                    "type": "boolean"
                 }
             }
         },

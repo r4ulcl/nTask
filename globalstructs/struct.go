@@ -14,10 +14,27 @@ type Task struct {
 	Priority   bool      `json:"priority"`
 }
 
+// Command struct for Commands in a task
 type Command struct {
-	Module string   `json:"module"`
-	Args   []string `json:"args"`
-	Output string   `json:"output"`
+	Module         string   `json:"module"`
+	Args           []string `json:"args"`
+	FileContent    string   `json:"fileContent"`
+	RemoteFilePath string   `json:"remoteFilePath"`
+	Output         string   `json:"output"`
+}
+
+// Task Struct for swagger docs, for the POST
+type TaskSwagger struct {
+	Commands []CommandSwagger `json:"command"`
+	Priority bool             `json:"priority"`
+}
+
+// Command struct for swagger documentation
+type CommandSwagger struct {
+	Module         string   `json:"module"`
+	Args           []string `json:"args"`
+	FileContent    string   `json:"fileContent"`
+	RemoteFilePath string   `json:"remoteFilePath"`
 }
 
 // Worker struct to store all worker information.

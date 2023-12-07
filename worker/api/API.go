@@ -40,6 +40,7 @@ func HandleGetStatus(w http.ResponseWriter, r *http.Request, status *globalstruc
 		log.Println(string(jsonData))
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))
 }
@@ -76,6 +77,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, status *globalstruct
 	go processTask(status, config, &requestTask, verbose)
 
 	// Respond immediately without waiting for the task to complete
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, requestTask.ID)
 }
@@ -111,6 +113,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, status *globalstru
 		http.Error(w, "{\"error\": \"Error killing process: "+id+"\"}", http.StatusServiceUnavailable)
 	} else {
 		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintln(w, "{\"id\": "+id+", \"status\": \"deleted\"}")
 	}
 
@@ -131,6 +134,7 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, status *globalstructs
 
 	if _, exists := status.WorkingIDs[id]; exists {
 		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintln(w, "{ \"id\": \""+id+"\" \n \"status\": \"running\"}")
 	} else {
 		http.Error(w, "{\"error\" : \"ID not found\"}", http.StatusBadRequest)
