@@ -62,7 +62,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, status *globalstruct
 	var requestTask globalstructs.Task
 	err := json.NewDecoder(r.Body).Decode(&requestTask)
 	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid callback body\" }", http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid callback body: "+err.Error()+"\"}", http.StatusBadRequest)
 		return
 	}
 	// Process TASK
@@ -153,14 +153,13 @@ func processTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig,
 		log.Println("Start processing task", task.ID, " workCount: ", status.IddleThreads)
 	}
 
-	output, err := modules.ProcessModule(task, config, status, task.ID, verbose)
+	err := modules.ProcessModule(task, config, status, task.ID, verbose)
 	if err != nil {
 		log.Println("Error ProcessModule:", err)
 		task.Status = "failed"
 	} else {
 		task.Status = "done"
 	}
-	task.Output = output
 
 	// While manager doesnt responds loop
 	for {

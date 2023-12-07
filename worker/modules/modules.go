@@ -75,16 +75,32 @@ func runModule(command string, arguments []string, status *globalstructs.WorkerS
 	return output, nil
 }
 
-func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status *globalstructs.WorkerStatus, id string, verbose bool) (string, error) {
-	module := task.Module
-	arguments := task.Args
+// ProcessModule processes a task by iterating through its commands and executing corresponding modules
+func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status *globalstructs.WorkerStatus, id string, verbose bool) error {
+	for num, command := range task.Commands {
+		module := command.Module
+		arguments := command.Args
 
-	command, found := config.Modules[module]
-	if !found {
-		return "Unknown task", fmt.Errorf("unknown command")
+		// Check if the module exists in the worker configuration
+		commandAux, found := config.Modules[module]
+		if !found {
+			// Return an error if the module is not found
+			return fmt.Errorf("unknown command: %s", module)
+		}
+
+		// Execute the module and get the output and any error
+		outputCommand, err := runModule(commandAux, arguments, status, id, verbose)
+		if err != nil {
+			// Return an error if there is an issue running the module
+			return fmt.Errorf("error running task: %v", err)
+		}
+
+		// Store the output in the task struct for the current command
+		task.Commands[num].Output = outputCommand
 	}
 
-	return runModule(command, arguments, status, id, verbose)
+	// Return nil if the task is processed successfully
+	return nil
 }
 
 func GetRandomDuration(base, random int, verbose bool) int {

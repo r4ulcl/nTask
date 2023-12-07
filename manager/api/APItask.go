@@ -43,13 +43,13 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 	// get tasks
 	tasks, err := database.GetTasks(w, r, db, verbose)
 	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid callback body\"}", http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid callback body GetTasks: "+err.Error()+"\"}", http.StatusBadRequest)
 		return
 	}
 
 	jsonData, err := json.Marshal(tasks)
 	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid callback body\"}", http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid callback body Marshal:"+err.Error()+"\"}", http.StatusBadRequest)
 		return
 	}
 
@@ -82,7 +82,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	var request globalstructs.Task
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid callback body\"}", http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid callback body: "+err.Error()+"\"}", http.StatusBadRequest)
 		return
 	}
 
@@ -105,7 +105,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 
 	jsonData, err := json.Marshal(request)
 	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid callback body\"}", http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid callback body: "+err.Error()+"\"}", http.StatusBadRequest)
 		return
 	}
 

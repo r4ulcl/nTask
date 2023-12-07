@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,10 +13,16 @@ import (
 
 // AddTask adds a task to the database
 func AddTask(db *sql.DB, task globalstructs.Task, verbose bool) error {
+	// Convert []command to string and insert
+	structJson, err := json.Marshal(task.Commands)
+	if err != nil {
+		return err
+	}
+	commandJson := string(structJson)
+
 	// Insert the JSON data into the MySQL table
-	argsString := strings.Join(task.Args, ",")
-	_, err := db.Exec("INSERT INTO task (ID, module, args, status, WorkerName, output) VALUES (?, ?, ?, ?, ?, ?)",
-		task.ID, task.Module, argsString, task.Status, task.WorkerName, task.Output)
+	_, err = db.Exec("INSERT INTO task (ID, command, status, WorkerName, priority) VALUES (?, ?, ?, ?, ?)",
+		task.ID, commandJson, task.Status, task.WorkerName, task.Priority)
 	if err != nil {
 		if verbose {
 			log.Println(err)
@@ -27,10 +34,16 @@ func AddTask(db *sql.DB, task globalstructs.Task, verbose bool) error {
 
 // UpdateTask updates all fields of a task in the database.
 func UpdateTask(db *sql.DB, task globalstructs.Task, verbose bool) error {
+	// Convert []command to string and insert
+	structJson, err := json.Marshal(task.Commands)
+	if err != nil {
+		return err
+	}
+	commandJson := string(structJson)
+
 	// Update all fields in the MySQL table
-	argsString := strings.Join(task.Args, ",")
-	_, err := db.Exec("UPDATE task SET module=?, args=?, status=?, WorkerName=?, output=? WHERE ID=?",
-		task.Module, argsString, task.Status, task.WorkerName, task.Output, task.ID)
+	_, err = db.Exec("UPDATE task SET command=?, status=?, WorkerName=?, priority=? WHERE ID=?",
+		commandJson, task.Status, task.WorkerName, task.Priority, task.ID)
 	if err != nil {
 		if verbose {
 			log.Println(err)
@@ -65,19 +78,15 @@ func RmTask(db *sql.DB, id string, verbose bool) error {
 func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose bool) ([]globalstructs.Task, error) {
 	queryParams := r.URL.Query()
 
-	sql := "SELECT ID, module, args, createdAt, updatedAt, status, workerName, output, priority FROM task WHERE 1=1 "
+	sql := "SELECT ID, command, createdAt, updatedAt, status, workerName, priority FROM task WHERE 1=1 "
 
 	// Add filters for each parameter if provided
 	if ID := queryParams.Get("ID"); ID != "" {
 		sql += fmt.Sprintf(" AND ID = '%s'", ID)
 	}
 
-	if module := queryParams.Get("module"); module != "" {
-		sql += fmt.Sprintf(" AND module = '%s'", module)
-	}
-
-	if args := queryParams.Get("args"); args != "" {
-		sql += fmt.Sprintf(" AND args = '%s'", args)
+	if command := queryParams.Get("command"); command != "" {
+		sql += fmt.Sprintf(" AND command = '%s'", command)
 	}
 
 	if createdAt := queryParams.Get("createdAt"); createdAt != "" {
@@ -96,10 +105,6 @@ func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose bool) 
 		sql += fmt.Sprintf(" AND workerName = '%s'", workerName)
 	}
 
-	if output := queryParams.Get("output"); output != "" {
-		sql += fmt.Sprintf(" AND output = '%s'", output)
-	}
-
 	if priority := queryParams.Get("priority"); priority != "" {
 		sql += fmt.Sprintf(" AND priority = '%s'", priority)
 	}
@@ -110,7 +115,7 @@ func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose bool) 
 
 // GetTasksPending gets only tasks with status pending
 func GetTasksPending(db *sql.DB, verbose bool) ([]globalstructs.Task, error) {
-	sql := "SELECT ID, module, args, createdAt, updatedAt, status, WorkerName, output, priority FROM task WHERE status = 'pending' ORDER BY priority DESC, createdAt ASC"
+	sql := "SELECT ID, command, createdAt, updatedAt, status, WorkerName, priority FROM task WHERE status = 'pending' ORDER BY priority DESC, createdAt ASC"
 	return GetTasksSQL(sql, db, verbose)
 }
 
@@ -132,17 +137,15 @@ func GetTasksSQL(sql string, db *sql.DB, verbose bool) ([]globalstructs.Task, er
 	for rows.Next() {
 		// Declare variables to store JSON data
 		var ID string
-		var module string
-		var args string
+		var commandAux string
 		var createdAt string
 		var updatedAt string
 		var status string
 		var WorkerName string
-		var output string
 		var priority bool
 
 		// Scan the values from the row into variables
-		err := rows.Scan(&ID, &module, &args, &createdAt, &updatedAt, &status, &WorkerName, &output, &priority)
+		err := rows.Scan(&ID, &commandAux, &createdAt, &updatedAt, &status, &WorkerName, &priority)
 		if err != nil {
 			if verbose {
 				log.Println(err)
@@ -153,13 +156,18 @@ func GetTasksSQL(sql string, db *sql.DB, verbose bool) ([]globalstructs.Task, er
 		// Data into a Task struct
 		var task globalstructs.Task
 		task.ID = ID
-		task.Module = module
-		task.Args = strings.Split(args, ",")
+
+		// String to []struct
+		var command []globalstructs.Command
+		err = json.NewDecoder(strings.NewReader(commandAux)).Decode(&command)
+		if err != nil {
+			return tasks, err
+		}
+		task.Commands = command
 		task.CreatedAt = createdAt
 		task.UpdatedAt = updatedAt
 		task.Status = status
 		task.WorkerName = WorkerName
-		task.Output = output
 		task.Priority = priority
 
 		// Append the task to the slice
@@ -181,15 +189,15 @@ func GetTasksSQL(sql string, db *sql.DB, verbose bool) ([]globalstructs.Task, er
 func GetTask(db *sql.DB, id string, verbose bool) (globalstructs.Task, error) {
 	var task globalstructs.Task
 	// Retrieve the JSON data from the MySQL table
-	var module string
-	var args string
+	var commandAux string
 	var createdAt string
 	var updatedAt string
 	var status string
 	var WorkerName string
-	var output string
-	err := db.QueryRow("SELECT ID, createdAt, updatedAt, module, args, status, WorkerName, output FROM task WHERE ID = ?",
-		id).Scan(&id, &createdAt, &updatedAt, &module, &args, &status, &WorkerName, &output)
+	var priority bool
+
+	err := db.QueryRow("SELECT ID, createdAt, updatedAt, command, status, WorkerName, priority FROM task WHERE ID = ?",
+		id).Scan(&id, &createdAt, &updatedAt, &commandAux, &status, &WorkerName, &priority)
 	if err != nil {
 		if verbose {
 			log.Println(err)
@@ -199,13 +207,18 @@ func GetTask(db *sql.DB, id string, verbose bool) (globalstructs.Task, error) {
 
 	// Data back to a struct
 	task.ID = id
-	task.Module = module
-	task.Args = strings.Split(args, ",")
+	// String to []struct
+	var command []globalstructs.Command
+	err = json.NewDecoder(strings.NewReader(commandAux)).Decode(&command)
+	if err != nil {
+		return task, err
+	}
+	task.Commands = command
 	task.CreatedAt = createdAt
 	task.UpdatedAt = updatedAt
 	task.Status = status
 	task.WorkerName = WorkerName
-	task.Output = output
+	task.Priority = priority
 
 	return task, nil
 }
@@ -230,19 +243,6 @@ func GetTaskWorker(db *sql.DB, id string, verbose bool) (string, error) {
 //SetTasksWorkerFailed set to failed all task running worker workerName
 func SetTasksWorkerFailed(db *sql.DB, workerName string, verbose bool) error {
 	_, err := db.Exec("UPDATE task SET status = 'failed' WHERE workerName = ? AND status = 'running' ", workerName)
-	if err != nil {
-		if verbose {
-			log.Println(err)
-		}
-		return err
-	}
-	return nil
-}
-
-// SetTaskOutput saves the output of the task in the database
-func SetTaskOutput(db *sql.DB, id, output string, verbose bool) error {
-	// Update the output column of the task table for the given ID
-	_, err := db.Exec("UPDATE task SET output = ? WHERE ID = ?", output, id)
 	if err != nil {
 		if verbose {
 			log.Println(err)

@@ -144,6 +144,7 @@ func StartManager(swagger bool, configFile string, verbose bool) {
 		db, err = database.ConnectDB(config.DBUsername, config.DBPassword, config.DBHost, config.DBPort, config.DBDatabase, verbose)
 		if err != nil {
 			log.Println(err)
+			db.Close()
 			time.Sleep(time.Second * 5)
 		} else {
 			break

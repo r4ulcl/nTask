@@ -5,15 +5,19 @@ package globalstructs
 
 // Task Struct to store all Task information.
 type Task struct {
-	ID         string   `json:"id"`
-	Module     string   `json:"module"`
-	Args       []string `json:"args"`
-	CreatedAt  string   `json:"createdAt"`
-	UpdatedAt  string   `json:"updatedAt"`
-	Status     string   `json:"status"` // pending, running, done, failed, deleted
-	WorkerName string   `json:"workerName"`
-	Output     string   `json:"output"`
-	Priority   bool     `json:"priority"`
+	ID         string    `json:"id"`
+	Commands   []Command `json:"command"`
+	CreatedAt  string    `json:"createdAt"`
+	UpdatedAt  string    `json:"updatedAt"`
+	Status     string    `json:"status"` // pending, running, done, failed, deleted
+	WorkerName string    `json:"workerName"`
+	Priority   bool      `json:"priority"`
+}
+
+type Command struct {
+	Module string   `json:"module"`
+	Args   []string `json:"args"`
+	Output string   `json:"output"`
 }
 
 // Worker struct to store all worker information.

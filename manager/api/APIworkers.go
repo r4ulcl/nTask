@@ -35,13 +35,13 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	var result globalstructs.Task
 	err := json.NewDecoder(r.Body).Decode(&result)
 	if err != nil {
-		http.Error(w, "Invalid callback body", http.StatusBadRequest)
+		http.Error(w, "Invalid callback body: "+err.Error()+"", http.StatusBadRequest)
 		return
 	}
 
 	if verbose {
 		log.Println(result)
-		log.Println("Received result (ID: ", result.ID, " from : ", result.WorkerName, " with output: ", result.Output)
+		log.Println("Received result (ID: ", result.ID, " from : ", result.WorkerName, " with command: ", result.Commands)
 	}
 
 	// Update task with the worker one
@@ -100,13 +100,13 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 	// get workers
 	workers, err := database.GetWorkers(db, verbose)
 	if err != nil {
-		http.Error(w, "Invalid callback body", http.StatusBadRequest)
+		http.Error(w, "Invalid callback body: "+err.Error()+"", http.StatusBadRequest)
 		return
 	}
 
 	jsonData, err := json.Marshal(workers)
 	if err != nil {
-		http.Error(w, "Invalid callback body", http.StatusBadRequest)
+		http.Error(w, "Invalid callback body: "+err.Error()+"", http.StatusBadRequest)
 		return
 	}
 
@@ -142,7 +142,7 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	var request globalstructs.Worker
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		http.Error(w, "Invalid callback body", http.StatusBadRequest)
+		http.Error(w, "Invalid callback body: "+err.Error()+"", http.StatusBadRequest)
 		return
 	}
 
@@ -249,13 +249,13 @@ func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.Ma
 
 	worker, err := database.GetWorker(db, name, verbose)
 	if err != nil {
-		http.Error(w, "Invalid callback body"+err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid callback body: "+err.Error()+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	jsonData, err := json.Marshal(worker)
 	if err != nil {
-		http.Error(w, "Invalid callback body"+err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid callback body: "+err.Error()+err.Error(), http.StatusBadRequest)
 		return
 	}
 
