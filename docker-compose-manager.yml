@@ -1,7 +1,8 @@
 version: '3.4'
 services:
   manager:
-    build: ./manager
+    build: ./manager/
+    #image: nettask_manager
     restart: unless-stopped
     container_name: nettask_manager
     ports:
@@ -13,35 +14,6 @@ services:
     volumes:
       - ./manager.conf:/config/manager.conf
       - ./output/:/config/output/
-
-  worker1:
-    build: ./worker
-    #image: nettask_manager
-    restart: unless-stopped
-    container_name: NetTask-worker
-    ports:
-      - 9981:8081
-    depends_on:
-      - manager
-    env_file: .env
-    command: --worker
-    volumes:
-      - ./worker.conf:/config/worker.conf
-
-  worker2:
-    #build: ./
-    image: NetTask-worker
-    restart: unless-stopped
-    container_name: NetTask-worker2
-    ports:
-      - 9982:8081
-    depends_on:
-      - manager
-    env_file: .env
-    command: --worker
-    volumes:
-      - ./worker2.conf:/config/worker.conf
-
   db:
     image: mysql
     #command: --default-authentication-plugin=mysql_native_password

@@ -15,8 +15,8 @@ RUN mkdir /config
 RUN cp $GOPATH/src/github.com/r4ulcl/NetTask/sql.sql /config/sql.sql 
 
 # STEP 2 build a small image
-# start from scratch
-FROM ubuntu
+# start from kali for worker
+FROM kali
 #GOPATH doesn-t exists in scratch
 ENV GOPATH='/go' 
 

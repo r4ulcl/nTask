@@ -195,9 +195,8 @@ func SendAddTask(db *sql.DB, worker *globalstructs.Worker, task *globalstructs.T
 			return err
 		}
 	} else {
-		if verbose {
-			log.Println("POST request failed with status:", resp.Status)
-		}
+		message := "POST request failed with status:" + resp.Status + ". worker problably working"
+		return fmt.Errorf(message)
 	}
 
 	return nil
@@ -242,7 +241,8 @@ func SendDeleteTask(db *sql.DB, worker *globalstructs.Worker, task *globalstruct
 			return err
 		}
 	} else {
-		log.Println("POST request failed with status:", resp.Status)
+		message := "POST request failed with status:" + resp.Status + ". worker problably working"
+		return fmt.Errorf(message)
 	}
 
 	return nil
