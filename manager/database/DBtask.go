@@ -115,7 +115,8 @@ func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose bool) 
 
 // GetTasksPending gets only tasks with status pending
 func GetTasksPending(db *sql.DB, verbose bool) ([]globalstructs.Task, error) {
-	sql := "SELECT ID, command, createdAt, updatedAt, status, WorkerName, priority FROM task WHERE status = 'pending' ORDER BY priority DESC, createdAt ASC"
+	sql := "SELECT ID, command, createdAt, updatedAt, status, WorkerName, " +
+		"priority FROM task WHERE status = 'pending' ORDER BY priority DESC, createdAt ASC"
 	return GetTasksSQL(sql, db, verbose)
 }
 

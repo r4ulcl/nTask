@@ -12,7 +12,8 @@ import (
 // AddWorker adds a worker to the database.
 func AddWorker(db *sql.DB, worker *globalstructs.Worker, verbose bool) error {
 	// Insert the JSON data into the MySQL table
-	_, err := db.Exec("INSERT INTO worker (name, ip, port, oauthToken, IddleThreads, up, downCount) VALUES (?, ?, ?, ?, ?, ?, ?)",
+	_, err := db.Exec("INSERT INTO worker (name, ip, port, oauthToken, IddleThreads, up, downCount)"+
+		" VALUES (?, ?, ?, ?, ?, ?, ?)",
 		worker.Name, worker.IP, worker.Port, worker.OauthToken, worker.IddleThreads, worker.UP, worker.DownCount)
 	if err != nil {
 		return err
@@ -129,7 +130,8 @@ func GetWorker(db *sql.DB, name string, verbose bool) (globalstructs.Worker, err
 	var up bool
 	var downCount int
 
-	err := db.QueryRow("SELECT name, ip, port, oauthToken, IddleThreads,  up, downCount FROM worker WHERE name = ?", name).Scan(
+	err := db.QueryRow("SELECT name, ip, port, oauthToken, IddleThreads,  up, downCount FROM worker WHERE name = ?",
+		name).Scan(
 		&name2, &ip, &port, &oauthToken, &IddleThreads, &up, &downCount)
 	if err != nil {
 		if verbose {
@@ -153,7 +155,8 @@ func GetWorker(db *sql.DB, name string, verbose bool) (globalstructs.Worker, err
 // UpdateWorker updates the information of a worker in the database.
 func UpdateWorker(db *sql.DB, worker *globalstructs.Worker, verbose bool) error {
 	// Update the JSON data in the MySQL table based on the worker's name
-	_, err := db.Exec("UPDATE worker SET name = ?, ip = ?, port = ?, oauthToken = ?,IddleThreads = ?, UP = ?, downCount = ? WHERE name = ?",
+	_, err := db.Exec("UPDATE worker SET name = ?, ip = ?, port = ?, oauthToken = ?,"+
+		" IddleThreads = ?, UP = ?, downCount = ? WHERE name = ?",
 		worker.IP, worker.Port, worker.OauthToken, worker.IddleThreads, worker.UP, worker.DownCount, worker.Name)
 	if err != nil {
 		if verbose {
@@ -221,7 +224,8 @@ func AddWorkerIddleThreads1(db *sql.DB, worker string, verbose bool) error {
 
 // SetWorkerworkingToString sets the status of a worker to the specified working value using the worker's name.
 func SubtractWorkerIddleThreads1(db *sql.DB, worker string, verbose bool) error {
-	_, err := db.Exec("UPDATE worker SET IddleThreads = CASE WHEN IddleThreads > 0 THEN IddleThreads - 1 ELSE 0 END WHERE name = ?", worker)
+	_, err := db.Exec("UPDATE worker SET IddleThreads = CASE WHEN IddleThreads > 0 THEN IddleThreads - 1 "+
+		"ELSE 0 END WHERE name = ?", worker)
 	if err != nil {
 		if verbose {
 			log.Println(err)
