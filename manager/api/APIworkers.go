@@ -15,9 +15,9 @@ import (
 	"github.com/r4ulcl/NetTask/manager/utils"
 )
 
-// HandleCallback handles the callback from a slave
-// @Summary Handle callback from slave
-// @Description Handle callback from slave
+// HandleCallback handles the callback from a worker
+// @Summary Handle callback from worker
+// @Description Handle callback from worker
 // @Tags callback
 // @Accept json
 // @Produce json

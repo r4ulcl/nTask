@@ -125,7 +125,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @Success 200 {array} string
 // @Router /task/{ID} [delete]
-// @Param ID path string false "task ID"http.Error(w, "{ \"error\" : \"Invalid callback body\"}", http.StatusBadRequest)
+// @Param ID path string false "task ID"
 func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
 	oauthKey := r.Header.Get("Authorization")
 	if incorrectOauth(oauthKey, config.OAuthToken, verbose) {
