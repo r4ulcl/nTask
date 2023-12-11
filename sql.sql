@@ -16,5 +16,6 @@ CREATE TABLE IF NOT EXISTS task (
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     status VARCHAR(255), 
     workerName VARCHAR(255),
-    priority BOOLEAN DEFAULT false
+    priority BOOLEAN DEFAULT false,
+    FOREIGN KEY (workerName) REFERENCES worker(name)
 );
