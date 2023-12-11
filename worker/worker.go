@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -73,6 +74,19 @@ func loadWorkerConfig(filename string, verbose bool) (*utils.WorkerConfig, error
 	return &config, nil
 }
 
+func checkIPMiddleware(allowedIP string) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			clientIP, _, _ := net.SplitHostPort(r.RemoteAddr)
+			if clientIP != allowedIP {
+				// Optionally, log or handle unauthorized access here
+				return // Do not respond, just exit the middleware
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 func startSwaggerWeb(router *mux.Router, verbose bool) {
 	// Serve Swagger UI at /swagger
 	router.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
@@ -85,7 +99,7 @@ func startSwaggerWeb(router *mux.Router, verbose bool) {
 	}).Methods("GET")
 }
 
-func StartWorker(swagger bool, configFile string, verbose bool) {
+func StartWorker(swagger bool, configFile, certFile, keyFile string, verbose bool) {
 	log.Println("Running as worker router...")
 
 	// if config file empty set default
@@ -117,6 +131,9 @@ func StartWorker(swagger bool, configFile string, verbose bool) {
 	}
 
 	router := mux.NewRouter()
+
+	// Only allow API from manager
+	router.Use(checkIPMiddleware(workerConfig.ManagerIP))
 
 	if swagger {
 		// Start swagger endpoint

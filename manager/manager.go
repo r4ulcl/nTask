@@ -2,8 +2,10 @@
 package manager
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -47,8 +49,8 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB, verbose bool) error {
 			log.Println(err.Error())
 		}
 
-		// log.Println(len(tasks))
-		// log.Println(len(workers))
+		//log.Println(len(tasks))
+		//log.Println(len(workers))
 
 		// if there are tasks
 		if len(tasks) > 0 && len(workers) > 0 {
@@ -66,7 +68,7 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB, verbose bool) error {
 							time.Sleep(time.Second * 1)
 						}
 					}
-				}	
+				}
 			}
 		} else {
 			// only wait if not tasks or no workers
@@ -127,7 +129,7 @@ func startSwaggerWeb(router *mux.Router, verbose bool) {
 	}).Methods("GET")
 }
 
-func StartManager(swagger bool, configFile string, verbose bool) {
+func StartManager(swagger bool, configFile, certFile, keyFile string, verbose bool) {
 	log.Println("Running as manager...")
 
 	// if config file empty set default
@@ -179,10 +181,24 @@ func StartManager(swagger bool, configFile string, verbose bool) {
 	// Task
 	addHandleTask(router, config, db, verbose)
 
+	amw := authenticationMiddleware{tokenUsers: make(map[string]string), tokenWorkers: make(map[string]string)}
+	amw.Populate(config)
+	router.Use(amw.Middleware)
+
 	http.Handle("/", router)
-	err = http.ListenAndServe(":"+config.Port, nil)
-	if err != nil {
-		log.Println(err)
+
+	// Set string for the port
+	addr := fmt.Sprintf(":%s", config.Port)
+
+	// if there is cert is HTTPS
+	if certFile != "" {
+		log.Fatal(http.ListenAndServeTLS(addr, certFile, keyFile, router))
+
+	} else {
+		err = http.ListenAndServe(":"+config.Port, nil)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 
 	/*
@@ -214,3 +230,64 @@ func allowCORS(handler http.Handler, verbose bool) http.Handler {
 	})
 }
 */
+
+// Define our struct
+type authenticationMiddleware struct {
+	tokenUsers   map[string]string
+	tokenWorkers map[string]string
+}
+
+// Initialize it somewhere
+func (amw *authenticationMiddleware) Populate(config *utils.ManagerConfig) {
+	// the key is the token instead of user
+	for k, v := range config.Users {
+		amw.tokenUsers[v] = k
+	}
+	for k, v := range config.Workers {
+		amw.tokenWorkers[v] = k
+	}
+}
+
+// Middleware function, which will be called for each request
+func (amw *authenticationMiddleware) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("Authorization")
+		user, foundUser := amw.tokenUsers[token]
+		worker, foundWorker := amw.tokenWorkers[token]
+		if foundUser {
+			// We found the token in our map
+			log.Printf("Authenticated user %s\n", user)
+
+			// Add the username to the request context
+			ctx := context.WithValue(r.Context(), "username", user)
+
+			// Pass down the request with the updated context to the next middleware (or final handler)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		} else if foundWorker {
+			// We found the token in our map
+			log.Printf("Authenticated worker %s\n", user)
+
+			// Add the username to the request context
+			ctx := context.WithValue(r.Context(), "worker", worker)
+
+			// Pass down the request with the updated context to the next middleware (or final handler)
+			next.ServeHTTP(w, r.WithContext(ctx))
+
+		} else {
+			// Write an error and stop the handler chain
+			http.Error(w, "Forbidden", http.StatusForbidden)
+		}
+	})
+}
+
+//handler
+//    username, ok := r.Context().Value("username").(string)
+//    if !ok {
+//        // Handle the case where the username is not found in the context
+//        http.Error(w, "Username not found", http.StatusInternalServerError)
+//        return
+//    }
+
+// if user is worker cant access
+
+// listado -> user, token, mode (user/worker) if user allow X

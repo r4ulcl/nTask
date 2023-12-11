@@ -34,9 +34,9 @@ import (
 // @Param output query string false "Task output"
 // @Param priority query bool false "Task priority"
 func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
-	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken, verbose) {
-		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
+	_, ok := r.Context().Value("username").(string)
+	if !ok {
+		http.Error(w, "{ \"error\" : \"Username not found\" }", http.StatusUnauthorized)
 		return
 	}
 
@@ -74,15 +74,22 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 // @Router /task [post]
 // @Param task body globalstructs.TaskSwagger true "Task object to create"
 func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
-	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken, verbose) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers, verbose) {
+	username, okUser := r.Context().Value("username").(string)
+	if !okUser {
+		if verbose {
+			log.Println("{ \"error\" : \"Unauthorized\" }")
+		}
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
+	log.Println("HandleTaskPost", username)
 
 	var request globalstructs.Task
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
+		if verbose {
+			log.Println("{ \"error\" : \"Invalid callback body: " + err.Error() + "\"}")
+		}
 		http.Error(w, "{ \"error\" : \"Invalid callback body: "+err.Error()+"\"}", http.StatusBadRequest)
 		return
 	}
@@ -96,6 +103,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 
 	// set status
 	request.Status = "pending"
+	request.Username = username
 
 	err = database.AddTask(db, request, verbose)
 	if err != nil {
@@ -104,7 +112,14 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 		return
 	}
 
-	jsonData, err := json.Marshal(request)
+	task, err := database.GetTask(db, request.ID, verbose)
+	if err != nil {
+		message := "{ \"error\" : \"Invalid task info: " + err.Error() + "\" }"
+		http.Error(w, message, http.StatusBadRequest)
+		return
+	}
+
+	jsonData, err := json.Marshal(task)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \"Invalid callback body: "+err.Error()+"\"}", http.StatusBadRequest)
 		return
@@ -127,9 +142,9 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 // @Router /task/{ID} [delete]
 // @Param ID path string false "task ID"
 func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
-	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken, verbose) {
-		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
+	_, ok := r.Context().Value("username").(string)
+	if !ok {
+		http.Error(w, "{ \"error\" : \"Username not found\" }", http.StatusUnauthorized)
 		return
 	}
 
@@ -176,9 +191,9 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 // @Router /task/{ID} [get]
 // @Param ID path string false "task ID"
 func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
-	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken, verbose) {
-		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
+	_, ok := r.Context().Value("username").(string)
+	if !ok {
+		http.Error(w, "{ \"error\" : \"Username not found\" }", http.StatusUnauthorized)
 		return
 	}
 

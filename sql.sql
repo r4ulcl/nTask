@@ -14,8 +14,9 @@ CREATE TABLE IF NOT EXISTS task (
     command TEXT,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    executedAt TIMESTAMP NOT NULL DEFAULT '1970-01-01 00:00:01',
     status VARCHAR(255), 
     workerName VARCHAR(255),
-    priority BOOLEAN DEFAULT false,
-    FOREIGN KEY (workerName) REFERENCES worker(name)
+    username VARCHAR(255),
+    priority BOOLEAN DEFAULT false
 );

@@ -27,11 +27,12 @@ import (
 // @Failure 401 {string} string "Unauthorized"
 // @Router /callback [post]
 func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
-	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken, verbose) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers, verbose) {
+	_, okWorker := r.Context().Value("worker").(string)
+	if !okWorker {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
+
 	var result globalstructs.Task
 	err := json.NewDecoder(r.Body).Decode(&result)
 	if err != nil {
@@ -92,9 +93,10 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 // @Success 200 {string} string "OK"
 // @Router /worker [get]
 func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
-	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken, verbose) {
-		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
+	username, ok := r.Context().Value("username").(string)
+	if !ok {
+		log.Println(username)
+		http.Error(w, "{ \"error\" : \"Username not found\" }", http.StatusUnauthorized)
 		return
 	}
 
@@ -135,8 +137,9 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 // @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @Param worker body globalstructs.Worker true "Worker object to create"
 func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
-	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken, verbose) && incorrectOauthWorker(oauthKey, config.OauthTokenWorkers, verbose) {
+	_, okUser := r.Context().Value("username").(string)
+	_, okWorker := r.Context().Value("worker").(string)
+	if !okUser && !okWorker {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
@@ -211,8 +214,9 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 // @Router /worker/{NAME} [delete]
 // @Param NAME path string false "Worker NAME"
 func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
-	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken, verbose) {
+	_, okUser := r.Context().Value("username").(string)
+	_, okWorker := r.Context().Value("worker").(string)
+	if !okUser && !okWorker {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
@@ -242,9 +246,9 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 // @Router /worker/{NAME} [get]
 // @Param NAME path string false "Worker NAME"
 func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
-	oauthKey := r.Header.Get("Authorization")
-	if incorrectOauth(oauthKey, config.OAuthToken, verbose) {
-		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
+	_, ok := r.Context().Value("username").(string)
+	if !ok {
+		http.Error(w, "{ \"error\" : \"Username not found\" }", http.StatusUnauthorized)
 		return
 	}
 

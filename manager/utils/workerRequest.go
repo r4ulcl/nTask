@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -41,11 +41,11 @@ func verifyWorkers(db *sql.DB, verbose bool) {
 
 // verifyWorker checks and sets if the worker is UP.
 func verifyWorker(db *sql.DB, worker *globalstructs.Worker, verbose bool) error {
-	workerURL := "http://" + worker.IP + ":" + worker.Port
+	workerURL := "http://" + worker.IP + ":" + worker.Port + "/status"
 
 	// Create an HTTP client and send a GET request to workerURL/status
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", workerURL+"/status", nil)
+	req, err := http.NewRequest("GET", workerURL, nil)
 	if err != nil {
 		if verbose {
 			log.Println("Failed to create request to:", workerURL, " error:", err)
@@ -112,7 +112,7 @@ func verifyWorker(db *sql.DB, worker *globalstructs.Worker, verbose bool) error 
 	}
 
 	// Read the response body into a byte slice
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Println("Error reading response body:", err)
 		return err
@@ -142,9 +142,16 @@ func verifyWorker(db *sql.DB, worker *globalstructs.Worker, verbose bool) error 
 func SendAddTask(db *sql.DB, worker *globalstructs.Worker, task *globalstructs.Task, verbose bool) error {
 	workerURL := "http://" + worker.IP + ":" + worker.Port
 
+	// Set task as executed
+	err := database.SetTaskExecutedAt(db, task.ID, verbose)
+	if err != nil {
+		log.Println("Error SetWorkerNameTask in request:", err)
+		return err
+	}
+
 	// Set workerName in DB and in object
 	task.WorkerName = worker.Name
-	err := database.SetTaskWorkerName(db, task.ID, worker.Name, verbose)
+	err = database.SetTaskWorkerName(db, task.ID, worker.Name, verbose)
 	if err != nil {
 		log.Println("Error SetWorkerNameTask in request:", err)
 		return err

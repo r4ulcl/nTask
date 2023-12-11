@@ -9,8 +9,10 @@ type Task struct {
 	Commands   []Command `json:"command"`
 	CreatedAt  string    `json:"createdAt"`
 	UpdatedAt  string    `json:"updatedAt"`
+	ExecutedAt string    `json:"executedAt"`
 	Status     string    `json:"status"` // pending, running, done, failed, deleted
 	WorkerName string    `json:"workerName"`
+	Username   string    `json:"username"`
 	Priority   bool      `json:"priority"`
 }
 
