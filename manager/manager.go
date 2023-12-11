@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -78,40 +79,40 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB, verbose bool) error {
 	}
 }
 
-func addHandleWorker(router *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
+func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
 	// worker
-	router.HandleFunc("/worker", func(w http.ResponseWriter, r *http.Request) {
+	workers.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleWorkerGet(w, r, config, db, verbose)
 	}).Methods("GET") // get workers
 
-	router.HandleFunc("/worker", func(w http.ResponseWriter, r *http.Request) {
+	workers.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleWorkerPost(w, r, config, db, verbose)
 	}).Methods("POST") // add worker
 
-	router.HandleFunc("/worker/{NAME}", func(w http.ResponseWriter, r *http.Request) {
+	workers.HandleFunc("{NAME}", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleWorkerDeleteName(w, r, config, db, verbose)
 	}).Methods("DELETE") // delete worker
 
-	router.HandleFunc("/worker/{NAME}", func(w http.ResponseWriter, r *http.Request) {
+	workers.HandleFunc("{NAME}", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleWorkerStatus(w, r, config, db, verbose)
 	}).Methods("GET") // check status 1 worker
 }
 
-func addHandleTask(router *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
+func addHandleTask(task *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
 	// task
-	router.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+	task.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleTaskGet(w, r, config, db, verbose)
 	}).Methods("GET") // check tasks
 
-	router.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+	task.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleTaskPost(w, r, config, db, verbose)
 	}).Methods("POST") // Add task
 
-	router.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
+	task.HandleFunc("{ID}", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleTaskDelete(w, r, config, db, verbose)
 	}).Methods("DELETE") // Delete task
 
-	router.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
+	task.HandleFunc("{ID}", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleTaskStatus(w, r, config, db, verbose)
 	}).Methods("GET") // get status task
 
@@ -119,7 +120,8 @@ func addHandleTask(router *mux.Router, config *utils.ManagerConfig, db *sql.DB, 
 
 func startSwaggerWeb(router *mux.Router, verbose bool) {
 	// Serve Swagger UI at /swagger
-	router.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
+	swagger := router.PathPrefix("/swagger").Subrouter()
+	swagger.PathPrefix("").Handler(httpSwagger.Handler(
 		httpSwagger.URL("/docs/swagger.json"), // URL to the swagger.json file
 	))
 
@@ -163,6 +165,9 @@ func StartManager(swagger bool, configFile, certFile, keyFile string, verbose bo
 
 	router := mux.NewRouter()
 
+	amw := authenticationMiddleware{tokenUsers: make(map[string]string), tokenWorkers: make(map[string]string)}
+	amw.Populate(config)
+
 	if swagger {
 		// Start swagger endpoint
 		startSwaggerWeb(router, verbose)
@@ -171,18 +176,22 @@ func StartManager(swagger bool, configFile, certFile, keyFile string, verbose bo
 	// r.HandleFunc("/send/{recipient}", handleSendMessage).Methods("POST")
 
 	// CallBack
-	router.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+	callback := router.PathPrefix("/callback").Subrouter()
+	callback.Use(amw.Middleware)
+	callback.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleCallback(w, r, config, db, verbose)
 	}).Methods("POST") // get callback info from task
 
 	// Worker
-	addHandleWorker(router, config, db, verbose)
+	workers := router.PathPrefix("/worker").Subrouter()
+	workers.Use(amw.Middleware)
+	addHandleWorker(workers, config, db, verbose)
 
 	// Task
-	addHandleTask(router, config, db, verbose)
+	task := router.PathPrefix("/task").Subrouter()
+	task.Use(amw.Middleware)
+	addHandleTask(task, config, db, verbose)
 
-	amw := authenticationMiddleware{tokenUsers: make(map[string]string), tokenWorkers: make(map[string]string)}
-	amw.Populate(config)
 	router.Use(amw.Middleware)
 
 	http.Handle("/", router)
@@ -193,7 +202,6 @@ func StartManager(swagger bool, configFile, certFile, keyFile string, verbose bo
 	// if there is cert is HTTPS
 	if certFile != "" {
 		log.Fatal(http.ListenAndServeTLS(addr, certFile, keyFile, router))
-
 	} else {
 		err = http.ListenAndServe(":"+config.Port, nil)
 		if err != nil {
@@ -251,31 +259,33 @@ func (amw *authenticationMiddleware) Populate(config *utils.ManagerConfig) {
 // Middleware function, which will be called for each request
 func (amw *authenticationMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := r.Header.Get("Authorization")
-		user, foundUser := amw.tokenUsers[token]
-		worker, foundWorker := amw.tokenWorkers[token]
-		if foundUser {
-			// We found the token in our map
-			log.Printf("Authenticated user %s\n", user)
+		if !strings.Contains(r.URL.Path, "/swagger/") && r.URL.Path != "/docs/swagger.json" {
+			token := r.Header.Get("Authorization")
+			user, foundUser := amw.tokenUsers[token]
+			worker, foundWorker := amw.tokenWorkers[token]
+			if foundUser {
+				// We found the token in our map
+				log.Printf("Authenticated user %s\n", user)
 
-			// Add the username to the request context
-			ctx := context.WithValue(r.Context(), "username", user)
+				// Add the username to the request context
+				ctx := context.WithValue(r.Context(), "username", user)
 
-			// Pass down the request with the updated context to the next middleware (or final handler)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		} else if foundWorker {
-			// We found the token in our map
-			log.Printf("Authenticated worker %s\n", user)
+				// Pass down the request with the updated context to the next middleware (or final handler)
+				next.ServeHTTP(w, r.WithContext(ctx))
+			} else if foundWorker {
+				// We found the token in our map
+				log.Printf("Authenticated worker %s\n", user)
 
-			// Add the username to the request context
-			ctx := context.WithValue(r.Context(), "worker", worker)
+				// Add the username to the request context
+				ctx := context.WithValue(r.Context(), "worker", worker)
 
-			// Pass down the request with the updated context to the next middleware (or final handler)
-			next.ServeHTTP(w, r.WithContext(ctx))
+				// Pass down the request with the updated context to the next middleware (or final handler)
+				next.ServeHTTP(w, r.WithContext(ctx))
 
-		} else {
-			// Write an error and stop the handler chain
-			http.Error(w, "Forbidden", http.StatusForbidden)
+			} else {
+				// Write an error and stop the handler chain
+				http.Error(w, "Forbidden!", http.StatusForbidden)
+			}
 		}
 	})
 }
