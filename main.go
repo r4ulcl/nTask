@@ -29,21 +29,25 @@ func main() {
 	var swagger bool
 	var verbose bool
 	var configFile string
+	var certFile string
+	var keyFile string
 	flag.BoolVar(&isManager, "manager", false, "Run as manager")
 	flag.BoolVar(&isWorker, "worker", false, "Run as worker")
 	flag.BoolVar(&swagger, "swagger", false, "Start the swager endpoint (/swagger)")
 	flag.BoolVar(&verbose, "verbose", false, "Set verbose mode")
 	flag.StringVar(&configFile, "configFile", "", "Path to the config file")
+	flag.StringVar(&certFile, "cert", "", "TLS certificate file cert.pem")
+	flag.StringVar(&keyFile, "key", "", "TLS private key file key.pem")
 
 	flag.Parse()
 
 	// Check the argument and call the appropriate function
 	switch {
 	case isManager:
-		manager.StartManager(swagger, configFile, verbose)
+		manager.StartManager(swagger, configFile, certFile, keyFile, verbose)
 	case isWorker:
-		worker.StartWorker(swagger, configFile, verbose)
+		worker.StartWorker(swagger, configFile, certFile, keyFile, verbose)
 	default:
-		log.Println("Incorrect opction")
+		log.Println("Incorrect option")
 	}
 }
