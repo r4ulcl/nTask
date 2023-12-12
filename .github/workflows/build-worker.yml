@@ -1,4 +1,4 @@
-name: Docker Build and Publish
+name: Docker Build and Publish Worker
 
 on:
   push:
@@ -56,6 +56,5 @@ jobs:
           file: ./worker/Dockerfile
           platforms: linux/amd64
           push: true
-          #tags: ${{ github.repository_NAME }}/${{ github.repository_name }}:latest,${{ github.repository_NAME }}/${{ github.repository_name }}:main
           tags: ghcr.io/${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          labels: ghcr.io/${{ steps.meta.outputs.labels }}
