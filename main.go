@@ -5,21 +5,21 @@ import (
 
 	"fmt"
 
-	"github.com/r4ulcl/NetTask/manager"
-	"github.com/r4ulcl/NetTask/worker"
+	"github.com/r4ulcl/nTask/manager"
+	"github.com/r4ulcl/nTask/worker"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
-// @title NetTask API
+// @title nTask API
 // @version 1.0
-// @description NetTask API documentation
+// @description nTask API documentation
 // @contact.name r4ulcl
 // @contact.url https://r4ulcl.com/contact/
 // @contact.email me@r4ulcl.com
 
 // @license.name  GPL-3.0
-// @license.url https://github.com/r4ulcl/NetTask/blob/main/LICENSE
+// @license.url https://github.com/r4ulcl/nTask/blob/main/LICENSE
 
 // @BasePath /
 // @Security OAuth2.0

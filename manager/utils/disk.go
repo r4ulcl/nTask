@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/r4ulcl/NetTask/globalstructs"
+	"github.com/r4ulcl/nTask/globalstructs"
 )
 
 func SaveTaskToDisk(task globalstructs.Task, path string, verbose bool) error {

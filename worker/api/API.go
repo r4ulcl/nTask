@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
-	"github.com/r4ulcl/NetTask/worker/modules"
-	"github.com/r4ulcl/NetTask/worker/utils"
+	globalstructs "github.com/r4ulcl/nTask/globalstructs"
+	"github.com/r4ulcl/nTask/worker/modules"
+	"github.com/r4ulcl/nTask/worker/utils"
 )
 
 // ------------------------------------------------------------------------------------

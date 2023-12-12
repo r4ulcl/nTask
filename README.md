@@ -1,6 +1,6 @@
-# NetTask
+# nTask
 
-NetTask is a program for distributing tasks (any command or program) among different computers using API communications, both for managing the Manager and for the workers. The main idea is to be able to launch task requests from any client to the manager for it to handle them. The manager sends these tasks in order to the different available workers, receiving a request from the worker with the execution result. Once this is done, it is stored in the database and optionally can be sent to a URL/API to manage the output in another program or API.
+nTask is a program for distributing tasks (any command or program) among different computers using API communications, both for managing the Manager and for the workers. The main idea is to be able to launch task requests from any client to the manager for it to handle them. The manager sends these tasks in order to the different available workers, receiving a request from the worker with the execution result. Once this is done, it is stored in the database and optionally can be sent to a URL/API to manage the output in another program or API.
 
 The manager uses a MySQL database to store all the information, storing both the information of each worker and all the task information. The manager also has a public API that is accessed with an authentication token.
 
@@ -30,18 +30,18 @@ The manager uses a MySQL database to store all the information, storing both the
 ### Docker
 
 ``` bash
-docker pull r4ulcl/NetTask
+docker pull r4ulcl/nTask
 ```
 
 ### Manual install
 
-To use the NetTask manager, you will need Go installed on your machine. You can download and install Go from the official website: [https://golang.org](https://golang.org).
+To use the nTask manager, you will need Go installed on your machine. You can download and install Go from the official website: [https://golang.org](https://golang.org).
 
 Once Go is installed, you can clone the repository and build the manager:
 
 ```
-$ git clone https://github.com/r4ulcl/NetTask.git
-$ cd NetTask
+$ git clone https://github.com/r4ulcl/nTask.git
+$ cd nTask
 $ go build
 ```
 
@@ -124,7 +124,7 @@ Each worker uses to identify itself as unique to the manager the name and the ip
 
 ### Docker compose
 
-Once the configuration files have been modified. To run NetTask in manager mode the easiest way is to run the docker compose manager as follows. 
+Once the configuration files have been modified. To run nTask in manager mode the easiest way is to run the docker compose manager as follows. 
 
 ``` bash
 docker compose -f docker-compose-manager.yml up -d 
@@ -140,15 +140,15 @@ docker compose -f docker-compose-worker.yml up -d
 To start the manager, run the executable:
 
 ```
-$ ./NetTask -manager
+$ ./nTask -manager
 ```
 
 The manager will read the configuration file, connect to the database, and start listening for incoming connections on the specified port.
 
 ## Flags
 
- - `--manager`: Run NetTask as manager
- - `--worker`: Run NetTask as worker
+ - `--manager`: Run nTask as manager
+ - `--worker`: Run nTask as worker
  - `--swagger`: Start the swager endpoint (/swagger)
  - `--verbose`: Set verbose mode
  - `--configFile`: Path to the config file for manager and worker
@@ -156,7 +156,7 @@ The manager will read the configuration file, connect to the database, and start
 
 ## API Endpoints manager
 
-The NetTask manager exposes the following API endpoints for the user/manager:
+The nTask manager exposes the following API endpoints for the user/manager:
 
 - `GET /task`: Get information about all tasks.
 - `POST /task`: Add a new task.
@@ -174,7 +174,7 @@ The API endpoints can be accessed using a REST client such as cURL or Postman.
 
 ## Swagger Documentation
 
-The NetTask manager also provides Swagger documentation for its API. You can access the Swagger UI at `/swagger/` and the Swagger JSON at `/docs/swagger.json`.
+The nTask manager also provides Swagger documentation for its API. You can access the Swagger UI at `/swagger/` and the Swagger JSON at `/docs/swagger.json`.
 
 ## TODO
 - Add cloud instances
@@ -192,4 +192,4 @@ The NetTask manager also provides Swagger documentation for its API. You can acc
 
 ## License
 
-[GNU General Public License v3.0](https://github.com/r4ulcl/NetTask/blob/master/LICENSE)
+[GNU General Public License v3.0](https://github.com/r4ulcl/nTask/blob/master/LICENSE)

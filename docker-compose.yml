@@ -1,9 +1,11 @@
 version: '3.4'
 services:
   manager:
-    build: ./manager
+    build: 
+      context: .
+      dockerfile: ./manager/Dockerfile
     restart: unless-stopped
-    container_name: nettask_manager
+    container_name: nTask_manager
     ports:
       - 9980:8080
     depends_on:
@@ -15,10 +17,12 @@ services:
       - ./output/:/config/output/
 
   worker1:
-    build: ./worker
-    #image: nettask_manager
+    build: 
+      context: .
+      dockerfile: ./worker/Dockerfile
+    #image: nTask_manager
     restart: unless-stopped
-    container_name: NetTask-worker
+    container_name: nTask-worker
     ports:
       - 9981:8081
     depends_on:
@@ -30,9 +34,9 @@ services:
 
   worker2:
     #build: ./
-    image: NetTask-worker
+    image: nTask-worker1
     restart: unless-stopped
-    container_name: NetTask-worker2
+    container_name: nTask-worker2
     ports:
       - 9982:8081
     depends_on:

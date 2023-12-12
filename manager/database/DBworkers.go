@@ -6,7 +6,7 @@ import (
 	"log"
 	"strconv"
 
-	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
+	globalstructs "github.com/r4ulcl/nTask/globalstructs"
 )
 
 // AddWorker adds a worker to the database.

@@ -1,21 +1,5 @@
 version: '3.4'
 services:
-  manager:
-    build:
-      context: .
-      dockerfile: ./manager/Dockerfile
-    #image: nTask_manager
-    restart: unless-stopped
-    container_name: nTask_manager
-    ports:
-      - 9980:8080
-    depends_on:
-      - db
-    env_file: .env
-    command: -swagger -manager 
-    volumes:
-      - ./manager.conf:/config/manager.conf
-      - ./output/:/config/output/
   db:
     image: mysql
     #command: --default-authentication-plugin=mysql_native_password

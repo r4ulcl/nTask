@@ -13,8 +13,8 @@ import (
 	"net/http"
 	"time"
 
-	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
-	"github.com/r4ulcl/NetTask/manager/database"
+	globalstructs "github.com/r4ulcl/nTask/globalstructs"
+	"github.com/r4ulcl/nTask/manager/database"
 )
 
 // VerifyWorkersLoop checks and sets if the workers are UP infinitely.

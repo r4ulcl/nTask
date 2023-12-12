@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
-	"github.com/r4ulcl/NetTask/worker/api"
-	"github.com/r4ulcl/NetTask/worker/utils"
+	globalstructs "github.com/r4ulcl/nTask/globalstructs"
+	"github.com/r4ulcl/nTask/worker/api"
+	"github.com/r4ulcl/nTask/worker/utils"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 

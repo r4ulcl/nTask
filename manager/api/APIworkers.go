@@ -10,9 +10,9 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
-	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
-	"github.com/r4ulcl/NetTask/manager/database"
-	"github.com/r4ulcl/NetTask/manager/utils"
+	globalstructs "github.com/r4ulcl/nTask/globalstructs"
+	"github.com/r4ulcl/nTask/manager/database"
+	"github.com/r4ulcl/nTask/manager/utils"
 )
 
 // HandleCallback handles the callback from a worker

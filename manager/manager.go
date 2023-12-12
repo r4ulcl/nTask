@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/r4ulcl/NetTask/manager/api"
-	"github.com/r4ulcl/NetTask/manager/database"
-	"github.com/r4ulcl/NetTask/manager/utils"
+	"github.com/r4ulcl/nTask/manager/api"
+	"github.com/r4ulcl/nTask/manager/database"
+	"github.com/r4ulcl/nTask/manager/utils"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 

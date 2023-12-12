@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
+	globalstructs "github.com/r4ulcl/nTask/globalstructs"
 )
 
 // CallbackUserTaskMessage is a function that sends a task message as a callback to a specified URL

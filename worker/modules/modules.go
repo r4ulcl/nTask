@@ -9,8 +9,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/r4ulcl/NetTask/globalstructs"
-	"github.com/r4ulcl/NetTask/worker/utils"
+	"github.com/r4ulcl/nTask/globalstructs"
+	"github.com/r4ulcl/nTask/worker/utils"
 )
 
 func runModule(command string, arguments []string, status *globalstructs.WorkerStatus, id string, verbose bool) (string, error) {

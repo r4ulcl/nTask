@@ -1,4 +1,4 @@
-module github.com/r4ulcl/NetTask
+module github.com/r4ulcl/nTask
 
 go 1.20
 

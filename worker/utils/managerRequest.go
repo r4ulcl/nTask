@@ -8,7 +8,7 @@ import (
 	"log"
 	"net/http"
 
-	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
+	globalstructs "github.com/r4ulcl/nTask/globalstructs"
 )
 
 // AddWorker sends a POST request to add a worker to the manager

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	globalstructs "github.com/r4ulcl/NetTask/globalstructs"
+	globalstructs "github.com/r4ulcl/nTask/globalstructs"
 )
 
 // AddTask adds a task to the database

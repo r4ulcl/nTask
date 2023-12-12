@@ -1,10 +1,12 @@
 version: '3.4'
 services:
   worker:
-    build: ./worker/
-    #image: nettask_worker
+    build: 
+      context: .
+      dockerfile: ./worker/Dockerfile
+    #image: nTask_worker
     restart: unless-stopped
-    container_name: NetTask-worker
+    container_name: nTask-worker
     ports:
       - 9981:8081
     depends_on:
