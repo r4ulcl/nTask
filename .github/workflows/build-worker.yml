@@ -48,13 +48,13 @@ jobs:
       - name: Login to GitHub Container Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Build and push docker
+      - name: Build and push docker Github
         id: docker_build_ghcr
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v2
         with:
           context: .
           file: ./worker/Dockerfile
           platforms: linux/amd64
           push: true
           tags: ghcr.io/${{ steps.meta.outputs.tags }}
-          labels: ghcr.io/${{ steps.meta.outputs.labels }}
+          labels: ${{ steps.meta.outputs.labels }}
