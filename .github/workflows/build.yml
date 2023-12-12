@@ -29,7 +29,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           #images: ${{ github.repository_NAME }}/${{ github.repository_name }}
-          images: r4ulcl/NetTask
+          images: r4ulcl/NetTask-manager
 
 #      - name: Build and push docker
 #        id: docker_build
@@ -50,6 +50,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          dockerfile: ./manager/Dockerfile
           platforms: linux/amd64
           push: true
           #tags: ${{ github.repository_NAME }}/${{ github.repository_name }}:latest,${{ github.repository_NAME }}/${{ github.repository_name }}:main
