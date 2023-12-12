@@ -16,7 +16,7 @@ const docTemplate = `{
         },
         "license": {
             "name": "GPL-3.0",
-            "url": "https://github.com/r4ulcl/NetTask/blob/main/LICENSE"
+            "url": "https://github.com/r4ulcl/nTask/blob/main/LICENSE"
         },
         "version": "{{.Version}}"
     },
@@ -25,7 +25,7 @@ const docTemplate = `{
     "paths": {
         "/callback": {
             "post": {
-                "description": "Handle callback from slave",
+                "description": "Handle callback from worker",
                 "consumes": [
                     "application/json"
                 ],
@@ -35,7 +35,7 @@ const docTemplate = `{
                 "tags": [
                     "callback"
                 ],
-                "summary": "Handle callback from slave",
+                "summary": "Handle callback from worker",
                 "parameters": [
                     {
                         "type": "string",
@@ -493,6 +493,9 @@ const docTemplate = `{
                 "createdAt": {
                     "type": "string"
                 },
+                "executedAt": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -504,6 +507,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updatedAt": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 },
                 "workerName": {
@@ -566,8 +572,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "",
 	BasePath:         "/",
 	Schemes:          []string{},
-	Title:            "NetTask API",
-	Description:      "NetTask API documentation",
+	Title:            "nTask API",
+	Description:      "nTask API documentation",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

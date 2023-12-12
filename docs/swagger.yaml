@@ -36,6 +36,8 @@ definitions:
         type: array
       createdAt:
         type: string
+      executedAt:
+        type: string
       id:
         type: string
       priority:
@@ -44,6 +46,8 @@ definitions:
         description: pending, running, done, failed, deleted
         type: string
       updatedAt:
+        type: string
+      username:
         type: string
       workerName:
         type: string
@@ -80,18 +84,18 @@ info:
     email: me@r4ulcl.com
     name: r4ulcl
     url: https://r4ulcl.com/contact/
-  description: NetTask API documentation
+  description: nTask API documentation
   license:
     name: GPL-3.0
-    url: https://github.com/r4ulcl/NetTask/blob/main/LICENSE
-  title: NetTask API
+    url: https://github.com/r4ulcl/nTask/blob/main/LICENSE
+  title: nTask API
   version: "1.0"
 paths:
   /callback:
     post:
       consumes:
       - application/json
-      description: Handle callback from slave
+      description: Handle callback from worker
       parameters:
       - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
         description: OAuth Key
@@ -112,7 +116,7 @@ paths:
           description: Unauthorized
           schema:
             type: string
-      summary: Handle callback from slave
+      summary: Handle callback from worker
       tags:
       - callback
   /task:

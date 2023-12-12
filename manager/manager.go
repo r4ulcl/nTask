@@ -120,8 +120,8 @@ func addHandleTask(task *mux.Router, config *utils.ManagerConfig, db *sql.DB, ve
 
 func startSwaggerWeb(router *mux.Router, verbose bool) {
 	// Serve Swagger UI at /swagger
-	swagger := router.PathPrefix("/swagger").Subrouter()
-	swagger.PathPrefix("").Handler(httpSwagger.Handler(
+	//swagger := router.PathPrefix("/swagger").Subrouter()
+	router.PathPrefix("/swagger").Handler(httpSwagger.Handler(
 		httpSwagger.URL("/docs/swagger.json"), // URL to the swagger.json file
 	))
 

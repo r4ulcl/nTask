@@ -20,6 +20,8 @@ FROM kalilinux/kali-rolling
 #GOPATH doesn-t exists in scratch
 ENV GOPATH='/go' 
 
+RUN apt-get update && apt-get install procps net-tools curl nmap -y
+
 # Copy our static executable
 COPY --from=builder /$GOPATH/bin/nTask /$GOPATH/bin/nTask
 #Copy SQL file

@@ -1,8 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "NetTask API documentation",
-        "title": "NetTask API",
+        "description": "nTask API documentation",
+        "title": "nTask API",
         "contact": {
             "name": "r4ulcl",
             "url": "https://r4ulcl.com/contact/",
@@ -10,7 +10,7 @@
         },
         "license": {
             "name": "GPL-3.0",
-            "url": "https://github.com/r4ulcl/NetTask/blob/main/LICENSE"
+            "url": "https://github.com/r4ulcl/nTask/blob/main/LICENSE"
         },
         "version": "1.0"
     },
@@ -18,7 +18,7 @@
     "paths": {
         "/callback": {
             "post": {
-                "description": "Handle callback from slave",
+                "description": "Handle callback from worker",
                 "consumes": [
                     "application/json"
                 ],
@@ -28,7 +28,7 @@
                 "tags": [
                     "callback"
                 ],
-                "summary": "Handle callback from slave",
+                "summary": "Handle callback from worker",
                 "parameters": [
                     {
                         "type": "string",
@@ -486,6 +486,9 @@
                 "createdAt": {
                     "type": "string"
                 },
+                "executedAt": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -497,6 +500,9 @@
                     "type": "string"
                 },
                 "updatedAt": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 },
                 "workerName": {

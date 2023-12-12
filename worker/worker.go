@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -76,13 +77,34 @@ func loadWorkerConfig(filename string, verbose bool) (*utils.WorkerConfig, error
 	return &config, nil
 }
 
-func checkIPMiddleware(allowedIP string) mux.MiddlewareFunc {
+func getDockerDomain(internalIP string) (string, error) {
+	addrs, err := net.LookupAddr(internalIP)
+	if err != nil {
+		return "", err
+	}
+
+	// The returned address might be in the form "hostname.domain".
+	// We want to extract the Docker service name, which is the part before the first dot.
+	parts := strings.Split(addrs[0], ".")
+	dockerDomain := parts[0]
+
+	return dockerDomain, nil
+}
+
+func checkIPMiddleware(allowedIP string, verbose bool) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			clientIP, _, _ := net.SplitHostPort(r.RemoteAddr)
 			if clientIP != allowedIP {
-				// Optionally, log or handle unauthorized access here
-				return // Do not respond, just exit the middleware
+				container_name, _ := getDockerDomain(clientIP)
+				if container_name != allowedIP {
+					// Optionally, log or handle unauthorized access here
+					if verbose {
+						log.Println("Manager IP not in whitelist, clientIP:", clientIP)
+					}
+					w.WriteHeader(http.StatusForbidden)
+					return // Do not respond, just exit the middleware
+				}
 			}
 			next.ServeHTTP(w, r)
 		})
@@ -169,7 +191,7 @@ func StartWorker(swagger bool, configFile, certFolder string, verifyAltName, ver
 	router := mux.NewRouter()
 
 	// Only allow API from manager
-	router.Use(checkIPMiddleware(config.ManagerIP))
+	router.Use(checkIPMiddleware(config.ManagerIP, verbose))
 
 	if swagger {
 		// Start swagger endpoint
