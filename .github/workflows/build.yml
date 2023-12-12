@@ -54,7 +54,7 @@ jobs:
           platforms: linux/amd64
           push: true
           #tags: ${{ github.repository_NAME }}/${{ github.repository_name }}:latest,${{ github.repository_NAME }}/${{ github.repository_name }}:main
-          tags: latest, ${{ steps.meta.outputs.tags }}
+          tags: ${{ github.repository_NAME }}/${{ github.repository_name }}:latest, ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           registry: ghcr.io
             
