@@ -45,6 +45,10 @@ jobs:
       - name: Login to GitHub Container Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+      - name: List files in build context
+        run: |
+          ls -R ./manager/Dockerfile ; cat ./manager/Dockerfile
+          
       - name: Build and push docker
         id: docker_build_ghcr
         uses: docker/build-push-action@v5
