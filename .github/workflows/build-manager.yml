@@ -57,5 +57,5 @@ jobs:
           file: ./manager/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/${{ steps.meta.outputs.tags }}
+          tags: ghcr.io/${{ github.actor }}/ntask-manager:latest, ghcr.io/${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

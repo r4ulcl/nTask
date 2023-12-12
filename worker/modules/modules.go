@@ -3,9 +3,9 @@ package modules
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/rand"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -51,7 +51,7 @@ func runModule(command string, arguments []string, status *globalstructs.WorkerS
 		if verbose {
 			fmt.Println("Error starting command:", err)
 		}
-		return "", err
+		return err.Error(), err
 	}
 
 	status.WorkingIDs[id] = cmd.Process.Pid
@@ -62,7 +62,7 @@ func runModule(command string, arguments []string, status *globalstructs.WorkerS
 		if verbose {
 			fmt.Println("Error waiting for command:", err)
 		}
-		return "", err
+		return err.Error(), err
 	}
 
 	// Capture the output of the script
@@ -133,7 +133,7 @@ func StringList(list []string, verbose bool) string {
 // SaveStringToFile saves a string to a file.
 func SaveStringToFile(filename string, content string) error {
 	// Write the string content to the file
-	err := ioutil.WriteFile(filename, []byte(content), 0644)
+	err := os.WriteFile(filename, []byte(content), 0644)
 	if err != nil {
 		return fmt.Errorf("error saving string to file: %v", err)
 	}
