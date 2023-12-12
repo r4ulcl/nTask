@@ -1,18 +1,20 @@
 package utils
 
 import (
+	"net/http"
 	"sync"
 )
 
 type WorkerConfig struct {
 	Name              string            `json:"name"`
-	IddleThreads      int               `json:"IddleThreads"`
+	IddleThreads      int               `json:"iddleThreads"`
 	ManagerIP         string            `json:"managerIP"`
 	ManagerPort       string            `json:"managerPort"`
 	ManagerOauthToken string            `json:"managerOauthToken"`
 	OAuthToken        string            `json:"oauthToken"`
 	Port              string            `json:"port"`
 	Modules           map[string]string `json:"modules"`
+	ClientHTTP        *http.Client      `json:"clientHTTP"`
 }
 
 type Task struct {

@@ -2,10 +2,13 @@ package utils
 
 import (
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -15,15 +18,15 @@ import (
 )
 
 // VerifyWorkersLoop checks and sets if the workers are UP infinitely.
-func VerifyWorkersLoop(db *sql.DB, verbose bool) {
+func VerifyWorkersLoop(db *sql.DB, config *ManagerConfig, verbose bool) {
 	for {
-		go verifyWorkers(db, verbose)
+		go verifyWorkers(db, config, verbose)
 		time.Sleep(5 * time.Second)
 	}
 }
 
 // verifyWorkers checks and sets if the workers are UP.
-func verifyWorkers(db *sql.DB, verbose bool) {
+func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose bool) {
 	// Get all UP workers from the database
 	workers, err := database.GetWorkerUP(db, verbose)
 	if err != nil {
@@ -32,7 +35,7 @@ func verifyWorkers(db *sql.DB, verbose bool) {
 
 	// Verify each worker
 	for _, worker := range workers {
-		err := verifyWorker(db, &worker, verbose)
+		err := verifyWorker(db, config, &worker, verbose)
 		if err != nil {
 			log.Print(err)
 		}
@@ -40,11 +43,22 @@ func verifyWorkers(db *sql.DB, verbose bool) {
 }
 
 // verifyWorker checks and sets if the worker is UP.
-func verifyWorker(db *sql.DB, worker *globalstructs.Worker, verbose bool) error {
-	workerURL := "http://" + worker.IP + ":" + worker.Port + "/status"
-
+func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, verbose bool) error {
+	var workerURL string
+	if transport, ok := config.ClientHTTP.Transport.(*http.Transport); ok {
+		if transport.TLSClientConfig != nil {
+			workerURL = "https://" + worker.IP + ":" + worker.Port + "/status"
+		} else {
+			workerURL = "http://" + worker.IP + ":" + worker.Port + "/status"
+		}
+	} else {
+		workerURL = "http://" + worker.IP + ":" + worker.Port + "/status"
+	}
+	if verbose {
+		log.Println("workerURL:", workerURL)
+	}
 	// Create an HTTP client and send a GET request to workerURL/status
-	client := &http.Client{}
+
 	req, err := http.NewRequest("GET", workerURL, nil)
 	if err != nil {
 		if verbose {
@@ -62,7 +76,7 @@ func verifyWorker(db *sql.DB, worker *globalstructs.Worker, verbose bool) error 
 
 	req.Header.Set("Authorization", worker.OauthToken)
 
-	resp, err := client.Do(req)
+	resp, err := config.ClientHTTP.Do(req)
 	if err != nil {
 		if verbose {
 			log.Println("Error making request:", err)
@@ -139,8 +153,17 @@ func verifyWorker(db *sql.DB, worker *globalstructs.Worker, verbose bool) error 
 }
 
 // SendAddTask sends a request to a worker to add a task.
-func SendAddTask(db *sql.DB, worker *globalstructs.Worker, task *globalstructs.Task, verbose bool) error {
-	workerURL := "http://" + worker.IP + ":" + worker.Port
+func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose bool) error {
+	var workerURL string
+	if transport, ok := config.ClientHTTP.Transport.(*http.Transport); ok {
+		if transport.TLSClientConfig != nil {
+			workerURL = "https://" + worker.IP + ":" + worker.Port + "/task"
+		} else {
+			workerURL = "http://" + worker.IP + ":" + worker.Port + "/task"
+		}
+	} else {
+		workerURL = "http://" + worker.IP + ":" + worker.Port + "/task"
+	}
 
 	// Set task as executed
 	err := database.SetTaskExecutedAt(db, task.ID, verbose)
@@ -164,7 +187,7 @@ func SendAddTask(db *sql.DB, worker *globalstructs.Worker, task *globalstructs.T
 	}
 
 	// Create a new POST request with JSON payload
-	req, err := http.NewRequest("POST", workerURL+"/task", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", workerURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Println("Error creating request:", err)
 		return err
@@ -177,8 +200,8 @@ func SendAddTask(db *sql.DB, worker *globalstructs.Worker, task *globalstructs.T
 	req.Header.Set("Content-Type", "application/json")
 
 	// Send the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
+
+	resp, err := config.ClientHTTP.Do(req)
 	if err != nil {
 		log.Println("Error sending request:", err)
 		return err
@@ -210,8 +233,17 @@ func SendAddTask(db *sql.DB, worker *globalstructs.Worker, task *globalstructs.T
 }
 
 // SendDeleteTask sends a request to a worker to stop and delete a task.
-func SendDeleteTask(db *sql.DB, worker *globalstructs.Worker, task *globalstructs.Task, verbose bool) error {
-	workerURL := "http://" + worker.IP + ":" + worker.Port + "/task/" + task.ID
+func SendDeleteTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose bool) error {
+	var workerURL string
+	if transport, ok := config.ClientHTTP.Transport.(*http.Transport); ok {
+		if transport.TLSClientConfig != nil {
+			workerURL = "https://" + worker.IP + ":" + worker.Port + "/task/" + task.ID
+		} else {
+			workerURL = "http://" + worker.IP + ":" + worker.Port + "/task/" + task.ID
+		}
+	} else {
+		workerURL = "http://" + worker.IP + ":" + worker.Port + "/task/" + task.ID
+	}
 
 	// Create a new DELETE request
 	req, err := http.NewRequest("DELETE", workerURL, nil)
@@ -226,8 +258,8 @@ func SendDeleteTask(db *sql.DB, worker *globalstructs.Worker, task *globalstruct
 	req.Header.Set("Content-Type", "application/json")
 
 	// Send the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
+
+	resp, err := config.ClientHTTP.Do(req)
 	if err != nil {
 		return err
 	}
@@ -261,3 +293,68 @@ func SendGetTask(db *sql.DB, OauthTokenWorkers string, worker *globalstructs.Wor
 	return task, nil
 }
 */
+
+// CreateTLSClientWithCACert from cert.pem
+func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose bool) (*http.Client, error) {
+	// Load CA certificate from file
+	caCert, err := ioutil.ReadFile(caCertPath)
+	if err != nil {
+		fmt.Printf("Failed to read CA certificate file: %v\n", err)
+		return nil, err
+	}
+
+	// Create a certificate pool and add the CA certificate
+	certPool := x509.NewCertPool()
+	certPool.AppendCertsFromPEM(caCert)
+
+	// Replace 'cert' with the expected certificate that the server should present
+	//var cert *x509.Certificate
+
+	var tlsConfig *tls.Config
+
+	// Create a TLS configuration with the custom VerifyPeerCertificate function
+	if !verifyAltName {
+		tlsConfig = &tls.Config{
+			InsecureSkipVerify: true, // Enable server verification
+			RootCAs:            certPool,
+			VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+				if len(rawCerts) == 0 {
+					return fmt.Errorf("no certificates provided by the server")
+				}
+
+				serverCert, err := x509.ParseCertificate(rawCerts[0])
+				if err != nil {
+					return fmt.Errorf("failed to parse server certificate: %v", err)
+				}
+
+				// Verify the server certificate against the CA certificate
+				opts := x509.VerifyOptions{
+					Roots:         certPool,
+					Intermediates: x509.NewCertPool(),
+				}
+				_, err = serverCert.Verify(opts)
+				if err != nil {
+					return fmt.Errorf("failed to verify server certificate: %v", err)
+				}
+
+				return nil
+			},
+		}
+	} else {
+		log.Println("verifyAltName YES", !verifyAltName)
+
+		tlsConfig = &tls.Config{
+			InsecureSkipVerify: false, // Ensure that server verification is enabled
+			RootCAs:            certPool,
+		}
+	}
+
+	// Create HTTP client with TLS
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
+		},
+	}
+
+	return client, nil
+}

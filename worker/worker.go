@@ -99,7 +99,7 @@ func startSwaggerWeb(router *mux.Router, verbose bool) {
 	}).Methods("GET")
 }
 
-func StartWorker(swagger bool, configFile, certFile, keyFile string, verbose bool) {
+func StartWorker(swagger bool, configFile, certFolder string, verifyAltName, verbose bool) {
 	log.Println("Running as worker router...")
 
 	// if config file empty set default
@@ -117,6 +117,18 @@ func StartWorker(swagger bool, configFile, certFile, keyFile string, verbose boo
 		WorkingIDs:   make(map[string]int),
 	}
 
+	if certFolder != "" {
+		// Create an HTTP client with the custom TLS configuration
+		clientHTTP, err := utils.CreateTLSClientWithCACert(certFolder+"/ca-cert.pem", verifyAltName, verbose)
+		if err != nil {
+			fmt.Println("Error creating HTTP client:", err)
+			return
+		}
+
+		workerConfig.ClientHTTP = clientHTTP
+	} else {
+		workerConfig.ClientHTTP = &http.Client{}
+	}
 	// Loop until connects
 	for {
 		err = utils.AddWorker(workerConfig, verbose)
@@ -153,19 +165,21 @@ func StartWorker(swagger bool, configFile, certFile, keyFile string, verbose boo
 		api.HandleTaskDelete(w, r, &status, workerConfig, verbose)
 	}).Methods("DELETE") // delete task
 
-	/*
-		router.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
-			api.HandleTaskGet(w, r, status, workerConfig)
-		}).Methods("GET") // check task status
-
-		router.HandleFunc("/task", handletaskMessage).Methods("POST")
-		router.HandleFunc("/status", handleGetStatus).Methods("GET")
-		router.HandleFunc("/tasks", handleGetTasks).Methods("GET")
-		router.HandleFunc("/task/{id}", handleGetTask).Methods("GET")
-	*/
 	http.Handle("/", router)
-	err = http.ListenAndServe(":"+workerConfig.Port, nil)
-	if err != nil {
-		log.Fatal(err)
+
+	// Set string for the port
+	addr := fmt.Sprintf(":%s", workerConfig.Port)
+	if verbose {
+		log.Println(addr)
+	}
+
+	// if there is cert is HTTPS
+	if certFolder != "" {
+		log.Fatal(http.ListenAndServeTLS(addr, certFolder+"/cert.pem", certFolder+"/key.pem", router))
+	} else {
+		err = http.ListenAndServe(addr, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }

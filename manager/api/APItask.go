@@ -163,7 +163,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 		return
 	}
 
-	err = utils.SendDeleteTask(db, &worker, &task, verbose)
+	err = utils.SendDeleteTask(db, config, &worker, &task, verbose)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
 		return

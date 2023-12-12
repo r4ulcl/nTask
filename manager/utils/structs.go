@@ -1,5 +1,7 @@
 package utils
 
+import "net/http"
+
 type ManagerConfig struct {
 	Users         map[string]string `json:"users"`
 	Workers       map[string]string `json:"workers"`
@@ -12,6 +14,7 @@ type ManagerConfig struct {
 	CallbackURL   string            `json:"callbackURL"`
 	CallbackToken string            `json:"callbackToken"`
 	DiskPath      string            `json:"diskPath"`
+	ClientHTTP    *http.Client      `json:"clientHTTP"`
 }
 
 /*

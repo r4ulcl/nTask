@@ -4,6 +4,27 @@ NetTask is a program for distributing tasks (any command or program) among diffe
 
 The manager uses a MySQL database to store all the information, storing both the information of each worker and all the task information. The manager also has a public API that is accessed with an authentication token.
 
+## Features
+
+- Manager API to send tasks.
+- Multiples workers.
+- MySQL database for save all tasks information.
+- Task modules configured in worker.conf JSON. 
+- Same binary for manager and worker.
+- Multiple commands in a task, to execute sequential in a worker.
+- Send file in a task and save in a custom path.
+- Whitelist in workers to only access from manager.
+- Docker and docker compose.
+- Multiples users in manager (using oauth token).
+- Each worker with a different token.
+- TLS in manager and between Manager and Workers, verifying the CA. 
+- Ability to configure one VPS and clone it using the different hostnames as ids. 
+- Compatible with dynamic IPs in workers.
+- Callback option after task executed.
+- Output to file.
+- Swagger documentation.
+- Swagger web (optional).
+
 ## Installation
 
 ### Docker
@@ -25,6 +46,14 @@ $ go build
 ```
 
 ## Configuration
+
+### SSL (optional)
+
+You can use any certificate for the manager and the worker. If you want to use a self signed certificate you can execute the following code, by default the manager and workers only check the certificate, not the IP or domain. If you want to check fully the certificate edit the script with the correct fields and use the flag `-verifyAltName`.
+
+``` bash
+bash generateCert.sh
+```
 
 ### manager
 
@@ -64,8 +93,8 @@ Create a configuration file `workerouter.conf` with the following structure:
 
   ```json
     {
-      "Name": "",
-      "IddleThreads": 3,
+      "name": "",
+      "iddleThreads": 3,
       "managerIP" : "10.10.20.10",
       "managerPort" : "8180",
       "managerOauthToken": "IeH0vpYFz2Yol6RdLvYZz62TFMv5FF",
@@ -81,7 +110,7 @@ Create a configuration file `workerouter.conf` with the following structure:
    ```
 
    - `name`: (optional) The name of the worker. If not provided, the hostname will be used.
-   - `IddleThreads`: Number of threads in the worker (default 1)
+   - `iddleThreads`: Number of threads in the worker (default 1)
    - `managerIP`: Manager IP
    - `managerPort`: manager port
    - `managerOauthToken`: Manager configured OauthToken for workers

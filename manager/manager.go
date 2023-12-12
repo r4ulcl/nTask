@@ -63,7 +63,7 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB, verbose bool) error {
 				for _, worker := range workers {
 					// if WorkerName not send or set this worker, just sendAddTask
 					if task.WorkerName == "" || task.WorkerName == worker.Name {
-						err = utils.SendAddTask(db, &worker, &task, verbose)
+						err = utils.SendAddTask(db, config, &worker, &task, verbose)
 						if err != nil {
 							log.Println(err.Error())
 							time.Sleep(time.Second * 1)
@@ -131,7 +131,7 @@ func startSwaggerWeb(router *mux.Router, verbose bool) {
 	}).Methods("GET")
 }
 
-func StartManager(swagger bool, configFile, certFile, keyFile string, verbose bool) {
+func StartManager(swagger bool, configFile, certFolder string, verifyAltName, verbose bool) {
 	log.Println("Running as manager...")
 
 	// if config file empty set default
@@ -157,8 +157,20 @@ func StartManager(swagger bool, configFile, certFile, keyFile string, verbose bo
 		}
 	}
 
+	// Create an HTTP client with the custom TLS configuration
+	if certFolder != "" {
+		clientHTTP, err := utils.CreateTLSClientWithCACert(certFolder+"/ca-cert.pem", verifyAltName, verbose)
+		if err != nil {
+			fmt.Println("Error creating HTTP client:", err)
+			return
+		}
+		config.ClientHTTP = clientHTTP
+	} else {
+		config.ClientHTTP = &http.Client{}
+	}
+
 	// verify status workers infinite
-	go utils.VerifyWorkersLoop(db, verbose)
+	go utils.VerifyWorkersLoop(db, config, verbose)
 
 	// manage task, routine to send task to iddle workers
 	go manageTasks(config, db, verbose)
@@ -192,7 +204,7 @@ func StartManager(swagger bool, configFile, certFile, keyFile string, verbose bo
 	task.Use(amw.Middleware)
 	addHandleTask(task, config, db, verbose)
 
-	router.Use(amw.Middleware)
+	//router.Use(amw.Middleware)
 
 	http.Handle("/", router)
 
@@ -200,10 +212,10 @@ func StartManager(swagger bool, configFile, certFile, keyFile string, verbose bo
 	addr := fmt.Sprintf(":%s", config.Port)
 
 	// if there is cert is HTTPS
-	if certFile != "" {
-		log.Fatal(http.ListenAndServeTLS(addr, certFile, keyFile, router))
+	if certFolder != "" {
+		log.Fatal(http.ListenAndServeTLS(addr, certFolder+"/cert.pem", certFolder+"/key.pem", router))
 	} else {
-		err = http.ListenAndServe(":"+config.Port, nil)
+		err = http.ListenAndServe(addr, nil)
 		if err != nil {
 			log.Println(err)
 		}

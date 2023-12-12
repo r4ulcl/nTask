@@ -26,7 +26,16 @@ func AddWorker(config *WorkerConfig, verbose bool) error {
 	payload, _ := json.Marshal(worker)
 
 	// Create a new POST request to add the worker
-	url := "http://" + config.ManagerIP + ":" + config.ManagerPort + "/worker"
+	var url string
+	if transport, ok := config.ClientHTTP.Transport.(*http.Transport); ok {
+		if transport.TLSClientConfig != nil {
+			url = "https://" + config.ManagerIP + ":" + config.ManagerPort + "/worker"
+		} else {
+			url = "http://" + config.ManagerIP + ":" + config.ManagerPort + "/worker"
+		}
+	} else {
+		url = "http://" + config.ManagerIP + ":" + config.ManagerPort + "/worker"
+	}
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
 		return err
@@ -37,8 +46,7 @@ func AddWorker(config *WorkerConfig, verbose bool) error {
 	req.Header.Set("Authorization", config.ManagerOauthToken)
 
 	// Create an HTTP client and make the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := config.ClientHTTP.Do(req)
 	if err != nil {
 		return err
 	}
@@ -61,8 +69,16 @@ func AddWorker(config *WorkerConfig, verbose bool) error {
 // CallbackTaskMessage sends a POST request to the manager to callback with a task message
 func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task, verbose bool) error {
 	// Create the callback URL using the manager IP and port
-	url := "http://" + config.ManagerIP + ":" + config.ManagerPort + "/callback"
-
+	var url string
+	if transport, ok := config.ClientHTTP.Transport.(*http.Transport); ok {
+		if transport.TLSClientConfig != nil {
+			url = "https://" + config.ManagerIP + ":" + config.ManagerPort + "/callback"
+		} else {
+			url = "http://" + config.ManagerIP + ":" + config.ManagerPort + "/callback"
+		}
+	} else {
+		url = "http://" + config.ManagerIP + ":" + config.ManagerPort + "/callback"
+	}
 	// Marshal the task object into JSON
 	payload, _ := json.Marshal(task)
 
@@ -80,8 +96,8 @@ func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task, verbose
 	req.Header.Set("Authorization", config.ManagerOauthToken)
 
 	// Create an HTTP client and make the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
+
+	resp, err := config.ClientHTTP.Do(req)
 	if err != nil {
 		if verbose {
 			log.Println("Error making request:", err)
