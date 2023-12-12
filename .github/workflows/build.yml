@@ -29,7 +29,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           #images: ${{ github.repository_NAME }}/${{ github.repository_name }}
-          images: r4ulcl/NetTask-manager
+          images: ${{ github.actor }}/NetTask-manager
 
 #      - name: Build and push docker
 #        id: docker_build
@@ -54,7 +54,7 @@ jobs:
           platforms: linux/amd64
           push: true
           #tags: ${{ github.repository_NAME }}/${{ github.repository_name }}:latest,${{ github.repository_NAME }}/${{ github.repository_name }}:main
-          tags: ${{ github.repository_NAME }}/${{ github.repository_name }}:latest, ${{ steps.meta.outputs.tags }}
+          tags: ${{ github.actor }}/NetTask-manager:latest, ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           registry: ghcr.io
             
