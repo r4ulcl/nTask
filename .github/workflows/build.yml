@@ -54,11 +54,10 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          dockerfile: ./manager/Dockerfile
+          file: ./manager/Dockerfile
           platforms: linux/amd64
           push: true
           #tags: ${{ github.repository_NAME }}/${{ github.repository_name }}:latest,${{ github.repository_NAME }}/${{ github.repository_name }}:main
-          tags: ${{ github.actor }}/nettask-manager:latest, ${{ steps.meta.outputs.tags }}
+          tags: ghcr.io/${{ github.actor }}/nettask-manager:latest, ghcr.io/${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          registry: ghcr.io
             
