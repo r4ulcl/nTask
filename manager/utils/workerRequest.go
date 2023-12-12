@@ -165,20 +165,8 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 		workerURL = "http://" + worker.IP + ":" + worker.Port + "/task"
 	}
 
-	// Set task as executed
-	err := database.SetTaskExecutedAt(db, task.ID, verbose)
-	if err != nil {
-		log.Println("Error SetWorkerNameTask in request:", err)
-		return err
-	}
-
 	// Set workerName in DB and in object
 	task.WorkerName = worker.Name
-	err = database.SetTaskWorkerName(db, task.ID, worker.Name, verbose)
-	if err != nil {
-		log.Println("Error SetWorkerNameTask in request:", err)
-		return err
-	}
 
 	// Convert the struct to JSON
 	jsonData, err := json.Marshal(task)
@@ -216,6 +204,20 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 		// Set the task and worker as working
 		err := database.SetTaskStatus(db, task.ID, "running", verbose)
 		if err != nil {
+			return err
+		}
+
+		// Set task as executed
+		err = database.SetTaskExecutedAt(db, task.ID, verbose)
+		if err != nil {
+			log.Println("Error SetTaskExecutedAt in request:", err)
+			return err
+		}
+
+		// Set workerName in DB and in object
+		err = database.SetTaskWorkerName(db, task.ID, worker.Name, verbose)
+		if err != nil {
+			log.Println("Error SetWorkerNameTask in request:", err)
 			return err
 		}
 
