@@ -28,11 +28,11 @@ jobs:
           #images: ${{ github.repository_NAME }}/${{ github.repository_name }}
           images: ${{ github.actor }}/ntask-worker
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v1 
-        with:
-          username: ${{ github.actor }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+#      - name: Login to DockerHub
+#        uses: docker/login-action@v1 
+#        with:
+#          username: ${{ github.actor }}
+#          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
 #      - name: Build and push docker
 #        id: docker_build
@@ -48,7 +48,7 @@ jobs:
       - name: Login to GitHub Container Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Build and push docker Github
+      - name: Build and push docker
         id: docker_build_ghcr
         uses: docker/build-push-action@v5
         with:
