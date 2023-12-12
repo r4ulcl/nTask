@@ -9,6 +9,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -107,15 +109,37 @@ func StartWorker(swagger bool, configFile, certFolder string, verifyAltName, ver
 		configFile = "worker.conf"
 	}
 
-	workerConfig, err := loadWorkerConfig(configFile, verbose)
+	config, err := loadWorkerConfig(configFile, verbose)
 	if err != nil {
 		log.Fatal("Error loading config file: ", err)
 	}
 
 	status := globalstructs.WorkerStatus{
-		IddleThreads: workerConfig.IddleThreads,
+		IddleThreads: config.IddleThreads,
 		WorkingIDs:   make(map[string]int),
 	}
+
+	// Create a channel to receive signals for Ctrl+C
+	sigChan := make(chan os.Signal, 1)
+	// Notify the sigChan for interrupt signals (e.g., Ctrl+C)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	// Create a goroutine to handle the signal
+	go func(config *utils.WorkerConfig) {
+		// Wait for a signal
+		sig := <-sigChan
+		fmt.Println("\nReceived signal:", sig)
+
+		// Execute your function or cleanup here
+		fmt.Println("Executing cleanup function...")
+		// Your function code here
+		err := utils.DeleteWorker(config, verbose)
+		if err != nil {
+			log.Println(err)
+		}
+
+		// Exit the program gracefully
+		os.Exit(0)
+	}(config)
 
 	if certFolder != "" {
 		// Create an HTTP client with the custom TLS configuration
@@ -125,13 +149,13 @@ func StartWorker(swagger bool, configFile, certFolder string, verifyAltName, ver
 			return
 		}
 
-		workerConfig.ClientHTTP = clientHTTP
+		config.ClientHTTP = clientHTTP
 	} else {
-		workerConfig.ClientHTTP = &http.Client{}
+		config.ClientHTTP = &http.Client{}
 	}
 	// Loop until connects
 	for {
-		err = utils.AddWorker(workerConfig, verbose)
+		err = utils.AddWorker(config, verbose)
 		if err != nil {
 			if verbose {
 				log.Println(err)
@@ -145,7 +169,7 @@ func StartWorker(swagger bool, configFile, certFolder string, verifyAltName, ver
 	router := mux.NewRouter()
 
 	// Only allow API from manager
-	router.Use(checkIPMiddleware(workerConfig.ManagerIP))
+	router.Use(checkIPMiddleware(config.ManagerIP))
 
 	if swagger {
 		// Start swagger endpoint
@@ -153,22 +177,22 @@ func StartWorker(swagger bool, configFile, certFolder string, verifyAltName, ver
 	}
 
 	router.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleGetStatus(w, r, &status, workerConfig, verbose)
+		api.HandleGetStatus(w, r, &status, config, verbose)
 	}).Methods("GET") // check worker status
 
 	// Task
 	router.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskPost(w, r, &status, workerConfig, verbose)
+		api.HandleTaskPost(w, r, &status, config, verbose)
 	}).Methods("POST") // Add task
 
 	router.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskDelete(w, r, &status, workerConfig, verbose)
+		api.HandleTaskDelete(w, r, &status, config, verbose)
 	}).Methods("DELETE") // delete task
 
 	http.Handle("/", router)
 
 	// Set string for the port
-	addr := fmt.Sprintf(":%s", workerConfig.Port)
+	addr := fmt.Sprintf(":%s", config.Port)
 	if verbose {
 		log.Println(addr)
 	}

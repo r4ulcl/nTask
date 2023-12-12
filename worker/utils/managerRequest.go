@@ -66,6 +66,50 @@ func AddWorker(config *WorkerConfig, verbose bool) error {
 	return nil
 }
 
+// AddWorker sends a POST request to add a worker to the manager
+func DeleteWorker(config *WorkerConfig, verbose bool) error {
+	var url string
+	if transport, ok := config.ClientHTTP.Transport.(*http.Transport); ok {
+		if transport.TLSClientConfig != nil {
+			url = "https://" + config.ManagerIP + ":" + config.ManagerPort + "/worker/" + config.Name
+		} else {
+			url = "http://" + config.ManagerIP + ":" + config.ManagerPort + "/worker/" + config.Name
+		}
+	} else {
+		url = "http://" + config.ManagerIP + ":" + config.ManagerPort + "/worker/" + config.Name
+	}
+
+	// Create a new DELETE request
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return err
+	}
+
+	// Add custom headers, including the OAuth header
+	req.Header.Set("Authorization", config.ManagerOauthToken)
+
+	// Specify the content type as JSON
+	req.Header.Set("Content-Type", "application/json")
+
+	// Send the request
+
+	resp, err := config.ClientHTTP.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Check the response status
+	log.Println(resp.StatusCode)
+	if resp.StatusCode == http.StatusOK {
+		if verbose {
+			log.Println("DELETE request was successful")
+		}
+	}
+
+	return nil
+}
+
 // CallbackTaskMessage sends a POST request to the manager to callback with a task message
 func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task, verbose bool) error {
 	// Create the callback URL using the manager IP and port

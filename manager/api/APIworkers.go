@@ -232,7 +232,7 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, "")
+	fmt.Fprintln(w, "{\"status\": \"OK\"}")
 }
 
 // HandleWorkerStatus returns the status of a worker

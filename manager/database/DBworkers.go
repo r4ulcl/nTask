@@ -34,7 +34,7 @@ func RmWorkerName(db *sql.DB, name string, verbose bool) error {
 	a, _ := result.RowsAffected()
 
 	if a < 1 {
-		return fmt.Errorf("worker not found")
+		return fmt.Errorf("{\"error\": \"worker not found\"}")
 	}
 
 	return nil
@@ -52,7 +52,7 @@ func RmWorkerIPPort(db *sql.DB, ip, port string, verbose bool) error {
 	a, _ := result.RowsAffected()
 
 	if a < 1 {
-		return fmt.Errorf("worker not found")
+		return fmt.Errorf("{\"error\": \"worker not found\"}")
 	}
 
 	return nil
