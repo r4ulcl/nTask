@@ -18,19 +18,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3   
 
+      # worker docker
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          #images: ${{ github.repository_NAME }}/${{ github.repository_name }}
+          images: ${{ github.actor }}/nTask-worker
+
 #      - name: Login to DockerHub
 #        uses: docker/login-action@v1 
 #        with:
 #          username: ${{ github.repository_NAME }}
 #          password: ${{ secrets.DOCKERHUB_TOKEN }}
 #
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          #images: ${{ github.repository_NAME }}/${{ github.repository_name }}
-          images: ${{ github.actor }}/NetTask-manager
-
 #      - name: Build and push docker
 #        id: docker_build
 #        uses: docker/build-push-action@v2
@@ -45,19 +46,14 @@ jobs:
       - name: Login to GitHub Container Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: List files in build context
-        run: |
-          ls -R ./manager/Dockerfile ; cat ./manager/Dockerfile
-          
       - name: Build and push docker
         id: docker_build_ghcr
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./manager/Dockerfile
+          file: ./worker/Dockerfile
           platforms: linux/amd64
           push: true
           #tags: ${{ github.repository_NAME }}/${{ github.repository_name }}:latest,${{ github.repository_NAME }}/${{ github.repository_name }}:main
-          tags: ghcr.io/${{ github.actor }}/nettask-manager:latest, ghcr.io/${{ steps.meta.outputs.tags }}
+          tags: ghcr.io/${{ github.actor }}/nTask-worker:latest, ghcr.io/${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-            
