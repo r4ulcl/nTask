@@ -28,8 +28,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ github.repository_NAME }}/${{ github.repository_name }}
-        
+          #images: ${{ github.repository_NAME }}/${{ github.repository_name }}
+          images: r4ulcl/NetTask
+
 #      - name: Build and push docker
 #        id: docker_build
 #        uses: docker/build-push-action@v2
