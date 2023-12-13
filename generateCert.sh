@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Set the Common Name for the Certificate Authority
-CA_NAME="MyCA"
+CA_NAME="nTask"
+O_NAME="r4ulcl"
 
 # Set the Common Names for the SSL certificates
 MANAGER_CERT_NAME="Manager"
@@ -26,7 +27,7 @@ mkdir -p certs/${WORKER_FOLDER}
 openssl genpkey -algorithm RSA -out certs/ca-key.pem
 
 # Step 2: Generate a self-signed certificate for the CA
-openssl req -x509 -new -key certs/ca-key.pem -out certs/ca-cert.pem -subj "/CN=${CA_NAME}"
+openssl req -x509 -new -key certs/ca-key.pem -out certs/ca-cert.pem -subj "/CN=${CA_NAME}/O=${O_NAME}"
 
 # Copy the CA certificate to each server folder
 cp certs/ca-cert.pem certs/${MANAGER_FOLDER}/
@@ -36,19 +37,19 @@ cp certs/ca-cert.pem certs/${WORKER_FOLDER}/
 openssl genpkey -algorithm RSA -out certs/${MANAGER_FOLDER}/key.pem
 
 # Step 4: Generate a Certificate Signing Request (CSR) for the Manager SSL certificate
-openssl req -new -key certs/${MANAGER_FOLDER}/key.pem -out certs/${MANAGER_FOLDER}/csr.pem -subj "/CN=${MANAGER_CERT_NAME}" -addext "subjectAltName = IP:${MANAGER_IP},DNS:${MANAGER_HOSTNAME}"
+openssl req -new -key certs/${MANAGER_FOLDER}/key.pem -out certs/${MANAGER_FOLDER}/csr.pem -subj "/CN=${MANAGER_CERT_NAME}/O=${O_NAME}" -addext "subjectAltName = IP:${MANAGER_IP},DNS:${MANAGER_HOSTNAME}"
 
 # Step 5: Sign the Manager SSL certificate with the CA
-openssl x509 -req -in certs/${MANAGER_FOLDER}/csr.pem -CA certs/ca-cert.pem -CAkey certs/ca-key.pem -out certs/${MANAGER_FOLDER}/cert.pem -CAcreateserial -extfile <(printf "subjectAltName = IP:${MANAGER_IP},DNS:${MANAGER_HOSTNAME}")
+openssl x509 -req -in certs/${MANAGER_FOLDER}/csr.pem -CA certs/ca-cert.pem -CAkey certs/ca-key.pem -out certs/${MANAGER_FOLDER}/cert.pem -CAcreateserial -extfile <(printf "subjectAltName = IP:${MANAGER_IP},DNS:${MANAGER_HOSTNAME}") -days 365
 
 # Step 6: Generate a private key for the Worker SSL certificate
 openssl genpkey -algorithm RSA -out certs/${WORKER_FOLDER}/key.pem
 
 # Step 7: Generate a Certificate Signing Request (CSR) for the Worker SSL certificate
-openssl req -new -key certs/${WORKER_FOLDER}/key.pem -out certs/${WORKER_FOLDER}/csr.pem -subj "/CN=${WORKER_CERT_NAME}" -addext "subjectAltName = IP:${WORKER_IP},DNS:${WORKER_HOSTNAME}"
+openssl req -new -key certs/${WORKER_FOLDER}/key.pem -out certs/${WORKER_FOLDER}/csr.pem -subj "/CN=${WORKER_CERT_NAME}/O=${O_NAME}" -addext "subjectAltName = IP:${WORKER_IP},DNS:${WORKER_HOSTNAME}"
 
 # Step 8: Sign the Worker SSL certificate with the CA
-openssl x509 -req -in certs/${WORKER_FOLDER}/csr.pem -CA certs/ca-cert.pem -CAkey certs/ca-key.pem -out certs/${WORKER_FOLDER}/cert.pem -CAcreateserial -extfile <(printf "subjectAltName = IP:${WORKER_IP},DNS:${WORKER_HOSTNAME}")
+openssl x509 -req -in certs/${WORKER_FOLDER}/csr.pem -CA certs/ca-cert.pem -CAkey certs/ca-key.pem -out certs/${WORKER_FOLDER}/cert.pem -CAcreateserial -extfile <(printf "subjectAltName = IP:${WORKER_IP},DNS:${WORKER_HOSTNAME}") -days 365
 
 # Optional: Display information about the generated certificates
 echo "Manager Certificate:"
