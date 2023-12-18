@@ -13,31 +13,39 @@ import (
 	"github.com/r4ulcl/nTask/worker/utils"
 )
 
-func runModule(command string, arguments []string, status *globalstructs.WorkerStatus, id string, verbose bool) (string, error) {
+func runModule(config *utils.WorkerConfig, command string, arguments string, status *globalstructs.WorkerStatus, id string, verbose bool) (string, error) {
 	// if command is empty, like in the example "exec" to exec any binary
 	// the first argument is the command
-	if command == "" && len(arguments) > 0 {
-		command = arguments[0]
-		arguments = arguments[1:]
+	var cmd *exec.Cmd
+	if config.InsecureModules {
+		cmdStr := command
+		cmd = exec.Command("sh", "-c", cmdStr)
+
+	} else {
+		// Convert arguments to array
+		argumentsArray := strings.Split(arguments, " ")
+		if command == "" && len(arguments) > 0 {
+			command = argumentsArray[0]
+			argumentsArray = argumentsArray[1:]
+		}
+
+		// Check if module has space, to separate it in command and args
+		if strings.Contains(command, " ") {
+			parts := strings.SplitN(command, " ", 2)
+			argumentsArray = append([]string{parts[1]}, argumentsArray...)
+
+			// Update the inputString to contain only the first part
+			command = parts[0]
+		}
+
+		if verbose {
+			log.Println("command: ", command)
+			log.Println("argumentsArray: ", argumentsArray)
+		}
+
+		// Command to run the module
+		cmd = exec.Command(command, argumentsArray...)
 	}
-
-	// Check if module has space, to separate it in command and args
-	if strings.Contains(command, " ") {
-		parts := strings.SplitN(command, " ", 2)
-		arguments = append([]string{parts[1]}, arguments...)
-
-		// Update the inputString to contain only the first part
-		command = parts[0]
-	}
-
-	if verbose {
-		log.Println("command: ", command)
-		log.Println("arguments: ", arguments)
-	}
-
-	// Command to run the module
-	cmd := exec.Command(command, arguments...)
-
 	// Create a buffer to store the command output
 	var stdout, stderr bytes.Buffer
 
@@ -103,7 +111,7 @@ func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status 
 		}
 
 		// Execute the module and get the output and any error
-		outputCommand, err := runModule(commandAux, arguments, status, id, verbose)
+		outputCommand, err := runModule(config, commandAux, arguments, status, id, verbose)
 		if err != nil {
 			// Return an error if there is an issue running the module
 			return fmt.Errorf("error running task: %v", err)

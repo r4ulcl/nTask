@@ -18,11 +18,11 @@ type Task struct {
 
 // Command struct for Commands in a task
 type Command struct {
-	Module         string   `json:"module"`
-	Args           []string `json:"args"`
-	FileContent    string   `json:"fileContent"`
-	RemoteFilePath string   `json:"remoteFilePath"`
-	Output         string   `json:"output"`
+	Module         string `json:"module"`
+	Args           string `json:"args"`
+	FileContent    string `json:"fileContent"`
+	RemoteFilePath string `json:"remoteFilePath"`
+	Output         string `json:"output"`
 }
 
 // Task Struct for swagger docs, for the POST
@@ -33,10 +33,10 @@ type TaskSwagger struct {
 
 // Command struct for swagger documentation
 type CommandSwagger struct {
-	Module         string   `json:"module"`
-	Args           []string `json:"args"`
-	FileContent    string   `json:"fileContent"`
-	RemoteFilePath string   `json:"remoteFilePath"`
+	Module         string `json:"module"`
+	Args           string `json:"args"`
+	FileContent    string `json:"fileContent"`
+	RemoteFilePath string `json:"remoteFilePath"`
 }
 
 // Worker struct to store all worker information.
