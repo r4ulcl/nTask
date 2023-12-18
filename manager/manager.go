@@ -5,10 +5,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -22,20 +23,32 @@ import (
 func loadManagerConfig(filename string, verbose bool) (*utils.ManagerConfig, error) {
 	var config utils.ManagerConfig
 
-	content, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return &config, err
+	// Validate filename
+	if filename == "" {
+		return nil, errors.New("filename cannot be empty")
 	}
 
+	// Check if file exists
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		return nil, fmt.Errorf("config file does not exist")
+	}
+
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use specific error message for json.Unmarshal failure
 	err = json.Unmarshal(content, &config)
 	if err != nil {
-		return &config, err
+		return nil, fmt.Errorf("error unmarshaling JSON: %w", err)
 	}
 
+	// Return nil instead of &config when error occurs
 	return &config, nil
 }
 
-func manageTasks(config *utils.ManagerConfig, db *sql.DB, verbose bool) error {
+func manageTasks(config *utils.ManagerConfig, db *sql.DB, verbose bool) {
 	// infinite loop eecuted with go routine
 	for {
 		// Get all tasks in order and if priority
@@ -301,15 +314,3 @@ func (amw *authenticationMiddleware) Middleware(next http.Handler) http.Handler 
 		}
 	})
 }
-
-//handler
-//    username, ok := r.Context().Value("username").(string)
-//    if !ok {
-//        // Handle the case where the username is not found in the context
-//        http.Error(w, "Username not found", http.StatusInternalServerError)
-//        return
-//    }
-
-// if user is worker cant access
-
-// listado -> user, token, mode (user/worker) if user allow X
