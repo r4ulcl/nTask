@@ -4,6 +4,8 @@ nTask is a program for distributing tasks (any command or program) among differe
 
 The manager uses a MySQL database to store all the information, storing both the information of each worker and all the task information. The manager also has a public API that is accessed with an authentication token.
 
+The idea is to connect another API, a Telegram bot or a simple bash script to this API to process task. 
+
 ## Features
 
 - Manager API to send tasks.
@@ -29,8 +31,11 @@ The manager uses a MySQL database to store all the information, storing both the
 
 ### Docker
 
+Both images use the same binary, but the manager uses a scratch image just to run the binary and the worker uses a kali-linux image to install tools and dependencies easier. 
+
 ``` bash
-docker pull r4ulcl/nTask
+docker pull r4ulcl/nTask-manager
+docker pull r4ulcl/nTask-worker
 ```
 
 ### Manual install
@@ -55,24 +60,30 @@ You can use any certificate for the manager and the worker. If you want to use a
 bash generateCert.sh
 ```
 
-### manager
+### Manager
 
 The manager requires a configuration file named `manager.conf` to be present in the same directory as the executable. The configuration file should be in JSON format and contain the following fields:
 
   ```json
-    {
-      "oauthToken": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-      "oauthTokenWorkers": "IeH0vpYFz2Yol6RdLvYZz62TFMv5FF",
-      "port": "8180",
-      "dbUsername" : "your_username",
-      "dbPassword" : "your_password",
-      "dbHost" : "10.10.20.10",
-      "dbPort" : "3306",
-      "dbDatabase" : "manager",
-      "callbackURL" : "",
-      "callbackToken" : "",
-      "diskPath": "./output"
-    }
+  {
+  "users": {
+    "user1" : "WLJ2xVQZ5TXVw4qEznZDnmEEV",
+    "user2" : "WLJ2xVQZ5TXVw4qEznZDnmEE2",
+    "user3" : "WLJ2xVQZ5TXVw4qEznZDnmEE3"
+  },
+    "workers": {
+      "workers" : "IeH0vpYFz2Yol6RdLvYZz62TFMv5FF"
+  },
+  "port": "8080",
+  "dbUsername" : "your_username",
+  "dbPassword" : "your_password",
+  "dbHost" : "db",
+  "dbPort" : "3306",
+  "dbDatabase" : "manager",
+  "callbackURL" : "",
+  "callbackToken" : "",
+  "diskPath": "./output"
+}
   ```
 
 - `oauthToken`: OauthToken for user in the manager API.
@@ -92,35 +103,44 @@ The manager requires a configuration file named `manager.conf` to be present in 
 Create a configuration file `workerouter.conf` with the following structure:
 
   ```json
-    {
-      "name": "",
-      "iddleThreads": 3,
-      "managerIP" : "10.10.20.10",
-      "managerPort" : "8180",
-      "managerOauthToken": "IeH0vpYFz2Yol6RdLvYZz62TFMv5FF",
-      "OauthToken": "",
-      "port": "8182",
-      "modules": {
-        "sleep": "/usr/bin/sleep",
-        "curl": "/usr/bin/curl",
-        "module1": "python3 ./worker/modules/module1.py",
-        "exec": ""
-      }
-    }
+{
+  "name": "",
+  "iddleThreads": 1,
+  "managerIP" : "nTask_manager",
+  "managerPort" : "8080",
+  "managerOauthToken": "IeH0vpYFz2Yol6RdLvYZz62TFMv5FF",
+  "oauthToken": "",
+  "port": "8081",
+  "modules": {
+    "sleep": "/usr/bin/sleep",
+    "curl": "/usr/bin/curl",
+    "module1": "python3 ./worker/modules/module1.py",
+    "exec": ""
+  }
+}
+
    ```
 
    - `name`: (optional) The name of the worker. If not provided, the hostname will be used.
    - `iddleThreads`: Number of threads in the worker (default 1)
-   - `managerIP`: Manager IP
+   - `managerIP`: Manager IP or domain
    - `managerPort`: manager port
    - `managerOauthToken`: Manager configured OauthToken for workers
-   - `OauthToken`: (optional) OauthToken for the worker. If not provided, the worker will set a random one on start. 
+   - `oauthToken`: (optional) OauthToken for the worker. If not provided, the worker will set a random one on start. 
    - `port`: The port number on which the worker should listen for incoming requests.
    - `modules`: A map of module names to executable commands.
    
 Each worker uses to identify itself as unique to the manager the name and the ip:port, so if the name is left blank and the IP and port of each client is different, the same VPS can be cloned indefinitely if each VPS has a different hostname. 
 
-## Usage
+## Usage manager
+
+I recommend the following configuration:
+- Manager:
+  - Execute the manager in a docker compose in the manager sever.
+- Worker:
+  - Create a new Dockerfile installing the needed tools in the docker for the workers.
+  - Create a VPS, install all the tools and nTask and execute it there.
+  - If you want to execute external tools in docker you cant share the docker.sock with this docker and execute any docker from the nTask docker. 
 
 ### Docker compose
 
@@ -130,6 +150,20 @@ Once the configuration files have been modified. To run nTask in manager mode th
 docker compose -f docker-compose-manager.yml up -d 
 ```
 
+### Binary 
+
+To start the manager, run the executable:
+
+```
+$ ./nTask manager
+```
+
+The manager will read the configuration file, connect to the database, and start listening for incoming connections on the specified port.
+
+## Usage worker
+
+### Docker compose
+
 Once the manager is up, we can run the following docker compose on each worker instance
 ``` bash
 docker compose -f docker-compose-worker.yml up -d 
@@ -137,13 +171,14 @@ docker compose -f docker-compose-worker.yml up -d
 
 ### Binary 
 
-To start the manager, run the executable:
-
 ```
-$ ./nTask -manager
+$ ./nTask worker
 ```
 
-The manager will read the configuration file, connect to the database, and start listening for incoming connections on the specified port.
+### Custom Dockerfile
+
+Edit the `./worker/Dockerfile` file adding the needed tools for the modules. You can also modify the docker image, the default one is Kali. 
+
 
 ## Flags
 
@@ -163,7 +198,7 @@ The nTask manager exposes the following API endpoints for the user/manager:
 - `DELETE /task/{ID}`: Delete a task with the specified ID.
 - `GET /task/{ID}`: Get the status of a task with the specified ID.
 
-API endpoint only for workers:
+API endpoint for workers:
 - `GET /worker`: Get information about all workers.
 - `POST /worker`: Add a new worker.
 - `DELETE /worker/{NAME}`: Delete a worker with the specified name.
@@ -173,6 +208,12 @@ API endpoint only for workers:
 The API endpoints can be accessed using a REST client such as cURL or Postman.
 
 ## Swagger Documentation
+
+### Generating Swagger docs
+``` bash
+go install github.com/swaggo/swag/cmd/swag@latest
+swag init
+```
 
 The nTask manager also provides Swagger documentation for its API. You can access the Swagger UI at `/swagger/` and the Swagger JSON at `/docs/swagger.json`.
 
