@@ -36,7 +36,8 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	var result globalstructs.Task
 	err := json.NewDecoder(r.Body).Decode(&result)
 	if err != nil {
-		http.Error(w, "Invalid callback body: "+err.Error()+"", http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid callback body: "+err.Error()+"\"}", http.StatusBadRequest)
+
 		return
 	}
 
@@ -48,14 +49,16 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	// Update task with the worker one
 	err = database.UpdateTask(db, result, verbose)
 	if err != nil {
-		http.Error(w, "Error UpdateTask ", http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Error UpdateTask: "+err.Error()+"\"}", http.StatusBadRequest)
+
 		return
 	}
 
 	//Add value to thread working
 	err = database.AddWorkerIddleThreads1(db, result.WorkerName, verbose)
 	if err != nil {
-		http.Error(w, "Error AddWorkerIddleThreads1 ", http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Error AddWorkerIddleThreads1: "+err.Error()+"\"}", http.StatusBadRequest)
+
 		return
 	}
 
@@ -103,13 +106,15 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 	// get workers
 	workers, err := database.GetWorkers(db, verbose)
 	if err != nil {
-		http.Error(w, "Invalid callback body: "+err.Error()+"", http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid callback body: "+err.Error()+"\"}", http.StatusBadRequest)
+
 		return
 	}
 
 	jsonData, err := json.Marshal(workers)
 	if err != nil {
-		http.Error(w, "Invalid callback body: "+err.Error()+"", http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid Marshal body: "+err.Error()+"\"}", http.StatusBadRequest)
+
 		return
 	}
 
@@ -147,7 +152,7 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	var request globalstructs.Worker
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		http.Error(w, "Invalid callback body: "+err.Error()+"", http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid Decode body: "+err.Error()+"\"}", http.StatusBadRequest)
 		return
 	}
 
@@ -170,27 +175,30 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 				//Update oauth key
 				err := database.SetWorkerOauthToken(request.OauthToken, db, &request, verbose)
 				if err != nil {
-					http.Error(w, "Error setWorkerUp ", http.StatusBadRequest)
+					http.Error(w, "{ \"error\" : \"Error SetWorkerOauthToken: "+err.Error()+"\"}", http.StatusBadRequest)
+
 					return
 				}
 
 				// set worker up
 				err = database.SetWorkerUPto(true, db, &request, verbose)
 				if err != nil {
-					http.Error(w, "Error setWorkerUp ", http.StatusBadRequest)
+					http.Error(w, "{ \"error\" : \"Error setWorkerUp: "+err.Error()+"\"}", http.StatusBadRequest)
+
 					return
 				}
 
 				// reset down count
 				err = database.SetWorkerDownCount(0, db, &request, verbose)
 				if err != nil {
-					http.Error(w, "Error SetWorkerCount ", http.StatusBadRequest)
+					http.Error(w, "{ \"error\" : \"Error SetWorkerDownCount: "+err.Error()+"\"}", http.StatusBadRequest)
+
 					return
 				}
 				return
 			} else {
-				message := "Invalid worker info: " + err.Error()
-				http.Error(w, message, http.StatusBadRequest)
+				http.Error(w, "{ \"error\" : \"Invalid worker info: "+err.Error()+"\"}", http.StatusBadRequest)
+
 				return
 			}
 		}
@@ -226,7 +234,8 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 
 	err := database.RmWorkerName(db, name, verbose)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"RmWorkerName: "+err.Error()+"\"}", http.StatusBadRequest)
+
 		return
 	}
 
@@ -257,13 +266,15 @@ func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.Ma
 
 	worker, err := database.GetWorker(db, name, verbose)
 	if err != nil {
-		http.Error(w, "Invalid callback body: "+err.Error()+err.Error(), http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid GetWorker body: "+err.Error()+"\"}", http.StatusBadRequest)
+
 		return
 	}
 
 	jsonData, err := json.Marshal(worker)
 	if err != nil {
-		http.Error(w, "Invalid callback body: "+err.Error()+err.Error(), http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid Marshal body: "+err.Error()+"\"}", http.StatusBadRequest)
+
 		return
 	}
 

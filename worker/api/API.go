@@ -34,7 +34,7 @@ func HandleGetStatus(w http.ResponseWriter, r *http.Request, status *globalstruc
 
 	jsonData, err := json.Marshal(status)
 	if err != nil {
-		http.Error(w, "Invalid callback body"+err.Error(), http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid Marshal body: "+err.Error()+"\"}", http.StatusBadRequest)
 		return
 	}
 

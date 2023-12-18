@@ -97,13 +97,22 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	// Set Random ID
 	request.ID, err = generateRandomID(30, verbose)
 	if err != nil {
-		http.Error(w, "Invalid ID generated", http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid ID generated: "+err.Error()+"\"}", http.StatusBadRequest)
 		return
 	}
 
 	// set status
 	request.Status = "pending"
 	request.Username = username
+
+	if request.WorkerName != "" {
+		// Check if worker from user exists
+		_, err := database.GetWorker(db, request.WorkerName, verbose)
+		if err != nil {
+			http.Error(w, "{ \"error\" : \"Invalid WorkerName (not found): "+err.Error()+"\"}", http.StatusBadRequest)
+			return
+		}
+	}
 
 	err = database.AddTask(db, request, verbose)
 	if err != nil {
@@ -204,13 +213,14 @@ func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	// get task from ID
 	task, err := database.GetTask(db, id, verbose)
 	if err != nil {
-		http.Error(w, "Invalid GetTask body"+err.Error(), http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid GetTask body: "+err.Error()+"\"}", http.StatusBadRequest)
+
 		return
 	}
 
 	jsonData, err := json.Marshal(task)
 	if err != nil {
-		http.Error(w, "Invalid Marshal body"+err.Error(), http.StatusBadRequest)
+		http.Error(w, "{ \"error\" : \"Invalid Marshal body: "+err.Error()+"\"}", http.StatusBadRequest)
 		return
 	}
 
