@@ -217,6 +217,11 @@ swag init
 
 The nTask manager also provides Swagger documentation for its API. You can access the Swagger UI at `/swagger/` and the Swagger JSON at `/docs/swagger.json`.
 
+## Diagram
+
+![Diagram](./resources/nTask-diagram.png)
+
+
 ## TODO
 - Add cloud instances
     - DigitalOcean
