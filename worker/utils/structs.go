@@ -13,6 +13,7 @@ type WorkerConfig struct {
 	ManagerOauthToken string            `json:"managerOauthToken"`
 	OAuthToken        string            `json:"oauthToken"`
 	Port              string            `json:"port"`
+	CertFolder        string            `json:"certFolder"`
 	InsecureModules   bool              `json:"insecureModules"`
 	Modules           map[string]string `json:"modules"`
 	ClientHTTP        *http.Client      `json:"clientHTTP"`

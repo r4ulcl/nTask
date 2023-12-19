@@ -123,7 +123,7 @@ func startSwaggerWeb(router *mux.Router, verbose bool) {
 	}).Methods("GET")
 }
 
-func StartWorker(swagger bool, configFile, certFolder string, verifyAltName, verbose bool) {
+func StartWorker(swagger bool, configFile string, verifyAltName, verbose bool) {
 	log.Println("Running as worker router...")
 
 	// if config file empty set default
@@ -163,9 +163,9 @@ func StartWorker(swagger bool, configFile, certFolder string, verifyAltName, ver
 		os.Exit(0)
 	}(config)
 
-	if certFolder != "" {
+	if config.CertFolder != "" {
 		// Create an HTTP client with the custom TLS configuration
-		clientHTTP, err := utils.CreateTLSClientWithCACert(certFolder+"/ca-cert.pem", verifyAltName, verbose)
+		clientHTTP, err := utils.CreateTLSClientWithCACert(config.CertFolder+"/ca-cert.pem", verifyAltName, verbose)
 		if err != nil {
 			fmt.Println("Error creating HTTP client:", err)
 			return
@@ -220,8 +220,8 @@ func StartWorker(swagger bool, configFile, certFolder string, verifyAltName, ver
 	}
 
 	// if there is cert is HTTPS
-	if certFolder != "" {
-		log.Fatal(http.ListenAndServeTLS(addr, certFolder+"/cert.pem", certFolder+"/key.pem", router))
+	if config.CertFolder != "" {
+		log.Fatal(http.ListenAndServeTLS(addr, config.CertFolder+"/cert.pem", config.CertFolder+"/key.pem", router))
 	} else {
 		err = http.ListenAndServe(addr, nil)
 		if err != nil {

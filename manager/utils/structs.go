@@ -14,6 +14,7 @@ type ManagerConfig struct {
 	CallbackURL   string            `json:"callbackURL"`
 	CallbackToken string            `json:"callbackToken"`
 	DiskPath      string            `json:"diskPath"`
+	CertFolder    string            `json:"certFolder"`
 	ClientHTTP    *http.Client      `json:"clientHTTP"`
 }
 
