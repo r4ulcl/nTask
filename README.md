@@ -1,3 +1,40 @@
+<p align="center">
+  <img src="resources/nTask.png">
+</p>
+
+<p align="center">
+   <a href="https://github.com/r4ulcl/nTask/releases">
+    <img src="https://img.shields.io/github/v/release/r4ulcl/nTask" alt="GitHub releases">
+  </a>
+  <a href="https://github.com/r4ulcl/nTask/stargazers">
+    <img src="https://img.shields.io/github/stars/r4ulcl/nTask.svg" alt="GitHub stars">
+  </a>
+  <a href="https://github.com/r4ulcl/nTask/network">
+    <img src="https://img.shields.io/github/forks/r4ulcl/nTask.svg" alt="GitHub forks">
+  </a>
+  <a href="https://github.com/r4ulcl/nTask/issues">
+    <img src="https://img.shields.io/github/issues/r4ulcl/nTask.svg" alt="GitHub issues">
+  </a>
+  <a href="https://www.codefactor.io/repository/github/r4ulcl/nTask">
+    <img src="https://www.codefactor.io/repository/github/r4ulcl/nTask/badge" alt="CodeFactor" />
+  </a>
+    <a href="https://github.com/r4ulcl/nTask">
+    <img src="https://tokei.rs/b1/github/r4ulcl/nTask" alt="LoC" />
+  </a>
+  <a href="https://github.com/r4ulcl/nTask/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/r4ulcl/nTask.svg" alt="GitHub license">
+  </a>
+
+  <br>
+  <a href="https://hub.docker.com/r/r4ulcl/nTask">
+    <img src="https://github.com/r4ulcl/nTask/actions/workflows/docker-image.yml/badge.svg" alt="Docker Image">
+  </a>
+    <a href="https://hub.docker.com/r/r4ulcl/nTask/tags">
+    <img src="https://github.com/r4ulcl/nTask/actions/workflows/docker-image-dev.yml/badge.svg" alt="Docker Image dev">
+  </a>
+  
+  </p>
+
 # nTask
 
 nTask is a program for distributing tasks (any command or program) among different computers using API communications, both for managing the Manager and for the workers. The main idea is to be able to launch task requests from any client to the manager for it to handle them. The manager sends these tasks in order to the different available workers, receiving a request from the worker with the execution result. Once this is done, it is stored in the database and optionally can be sent to a URL/API to manage the output in another program or API.
@@ -111,6 +148,7 @@ Create a configuration file `workerouter.conf` with the following structure:
   "managerOauthToken": "IeH0vpYFz2Yol6RdLvYZz62TFMv5FF",
   "oauthToken": "",
   "port": "8081",
+  "insecureModules": true,
   "modules": {
     "sleep": "/usr/bin/sleep",
     "curl": "/usr/bin/curl",
@@ -120,7 +158,6 @@ Create a configuration file `workerouter.conf` with the following structure:
 }
 
    ```
-
    - `name`: (optional) The name of the worker. If not provided, the hostname will be used.
    - `iddleThreads`: Number of threads in the worker (default 1)
    - `managerIP`: Manager IP or domain
@@ -128,7 +165,10 @@ Create a configuration file `workerouter.conf` with the following structure:
    - `managerOauthToken`: Manager configured OauthToken for workers
    - `oauthToken`: (optional) OauthToken for the worker. If not provided, the worker will set a random one on start. 
    - `port`: The port number on which the worker should listen for incoming requests.
+   - `insecureModules`: This flag set the modules execution to allow any string like `;` or `|` to use onliners. 
    - `modules`: A map of module names to executable commands.
+
+IMPORTANT: The `exec` moduel and the `insecureModules` flag allow any user/attacker remote execution in the workers. Be carefull. 
    
 Each worker uses to identify itself as unique to the manager the name and the ip:port, so if the name is left blank and the IP and port of each client is different, the same VPS can be cloned indefinitely if each VPS has a different hostname. 
 
@@ -147,7 +187,7 @@ I recommend the following configuration:
 Once the configuration files have been modified. To run nTask in manager mode the easiest way is to run the docker compose manager as follows. 
 
 ``` bash
-docker compose -f docker-compose-manager.yml up -d 
+docker compose up manager -d
 ```
 
 ### Binary 
@@ -165,8 +205,9 @@ The manager will read the configuration file, connect to the database, and start
 ### Docker compose
 
 Once the manager is up, we can run the following docker compose on each worker instance
+
 ``` bash
-docker compose -f docker-compose-worker.yml up -d 
+docker compose up worker -d
 ```
 
 ### Binary 
