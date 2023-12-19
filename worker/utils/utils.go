@@ -6,9 +6,9 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 )
 
 // GenerateToken Generate oauth
@@ -29,7 +29,7 @@ func GenerateToken(length int, verbose bool) (string, error) {
 // CreateTLSClientWithCACert from cert.pem
 func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose bool) (*http.Client, error) {
 	// Load CA certificate from file
-	caCert, err := ioutil.ReadFile(caCertPath)
+	caCert, err := os.ReadFile(caCertPath)
 	if err != nil {
 		fmt.Printf("Failed to read CA certificate file: %v\n", err)
 		return nil, err

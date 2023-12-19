@@ -8,9 +8,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	globalstructs "github.com/r4ulcl/nTask/globalstructs"
@@ -299,7 +299,7 @@ func SendGetTask(db *sql.DB, OauthTokenWorkers string, worker *globalstructs.Wor
 // CreateTLSClientWithCACert from cert.pem
 func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose bool) (*http.Client, error) {
 	// Load CA certificate from file
-	caCert, err := ioutil.ReadFile(caCertPath)
+	caCert, err := os.ReadFile(caCertPath)
 	if err != nil {
 		fmt.Printf("Failed to read CA certificate file: %v\n", err)
 		return nil, err

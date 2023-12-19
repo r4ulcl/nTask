@@ -4,7 +4,6 @@ package worker
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -23,7 +22,7 @@ import (
 
 func loadWorkerConfig(filename string, verbose bool) (*utils.WorkerConfig, error) {
 	var config utils.WorkerConfig
-	content, err := ioutil.ReadFile(filename)
+	content, err := os.ReadFile(filename)
 	if err != nil {
 		if verbose {
 			log.Println("Error reading worker config file: ", err)

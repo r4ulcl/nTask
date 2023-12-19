@@ -6,8 +6,8 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -47,7 +47,7 @@ func ConnectDB(username, password, host, port, database string, verbose bool) (*
 // It returns an error if the initialization fails.
 func initFromFile(db *sql.DB, filePath string, verbose bool) error {
 	// Read the SQL file
-	sqlFile, err := ioutil.ReadFile(filePath)
+	sqlFile, err := os.ReadFile(filePath)
 	if err != nil {
 		return err
 	}
