@@ -1,7 +1,7 @@
 {
     "schemes": [
-        "http",
-        "https"
+        "https",
+        "http"
     ],
     "swagger": "2.0",
     "info": {
@@ -9,7 +9,7 @@
         "title": "nTask API",
         "contact": {
             "name": "r4ulcl",
-            "url": "https://r4ulcl.com/contact/",
+            "url": "https://r4ulcl.com",
             "email": "me@r4ulcl.com"
         },
         "license": {
@@ -24,7 +24,7 @@
             "post": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Handle callback from worker",
@@ -38,16 +38,6 @@
                     "worker"
                 ],
                 "summary": "Handle callback from worker",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK"
@@ -71,7 +61,7 @@
             "get": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Get status of tasks",
@@ -86,14 +76,6 @@
                 ],
                 "summary": "Get all tasks",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "Task ID",
@@ -171,7 +153,7 @@
             "post": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Add a new tasks",
@@ -186,14 +168,6 @@
                 ],
                 "summary": "Add a new tasks",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "description": "Task object to create",
                         "name": "task",
@@ -221,7 +195,7 @@
             "get": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Get status of a task",
@@ -236,14 +210,6 @@
                 ],
                 "summary": "Get status of a task",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "task ID",
@@ -267,7 +233,7 @@
             "delete": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Delete a tasks",
@@ -282,14 +248,6 @@
                 ],
                 "summary": "Delete a tasks",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "task ID",
@@ -315,7 +273,7 @@
             "get": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Handle worker request",
@@ -329,16 +287,6 @@
                     "worker"
                 ],
                 "summary": "Get workers",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -354,7 +302,7 @@
             "post": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Add a worker, normally done by the worker",
@@ -369,14 +317,6 @@
                 ],
                 "summary": "Add a worker",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "description": "Worker object to create",
                         "name": "worker",
@@ -404,7 +344,7 @@
             "get": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Get status of worker",
@@ -419,14 +359,6 @@
                 ],
                 "summary": "Get status of worker",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "Worker NAME",
@@ -450,7 +382,7 @@
             "delete": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Remove a worker from the system",
@@ -465,14 +397,6 @@
                 ],
                 "summary": "Remove a worker",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "Worker NAME",
@@ -611,9 +535,17 @@
             }
         }
     },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "description": "ApiKeyAuth to login",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    },
     "security": [
         {
-            "api_key": []
+            "ApiKeyAuth": []
         }
     ]
 }

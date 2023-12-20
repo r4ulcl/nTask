@@ -20,11 +20,10 @@ import (
 // @Tags worker
 // @accept application/json
 // @produce application/json
-/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @success 200 "OK"
 // @failure 400 {string} string "Invalid callback body"
 // @failure 401 {string} string "Unauthorized"
-// @security api_key
+// @security ApiKeyAuth
 // @router /callback [post]
 func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, okWorker := r.Context().Value("worker").(string)
@@ -88,9 +87,8 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 // @Tags worker
 // @accept application/json
 // @produce application/json
-/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @success 200 {array} globalstructs.Worker
-// @security api_key
+// @security ApiKeyAuth
 // @router /worker [get]
 func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	username, ok := r.Context().Value("username").(string)
@@ -131,10 +129,9 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 // @Tags worker
 // @accept application/json
 // @produce application/json
-/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @param worker body globalstructs.Worker true "Worker object to create"
 // @success 200 {array} globalstructs.Worker
-// @security api_key
+// @security ApiKeyAuth
 // @router /worker [post]
 func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, okUser := r.Context().Value("username").(string)
@@ -212,10 +209,9 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 // @Tags worker
 // @accept application/json
 // @produce application/json
-/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @param NAME path string true "Worker NAME"
 // @success 200 {array} string
-// @security api_key
+// @security ApiKeyAuth
 // @router /worker/{NAME} [delete]
 func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, okUser := r.Context().Value("username").(string)
@@ -246,10 +242,9 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 // @Tags worker
 // @accept application/json
 // @produce application/json
-/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @param NAME path string true "Worker NAME"
 // @success 200 {array} globalstructs.Worker
-// @security api_key
+// @security ApiKeyAuth
 // @router /worker/{NAME} [get]
 func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, ok := r.Context().Value("username").(string)

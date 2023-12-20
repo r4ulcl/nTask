@@ -79,7 +79,7 @@ info:
   contact:
     email: me@r4ulcl.com
     name: r4ulcl
-    url: https://r4ulcl.com/contact/
+    url: https://r4ulcl.com
   description: nTask API documentation
   license:
     name: GPL-3.0
@@ -92,13 +92,6 @@ paths:
       consumes:
       - application/json
       description: Handle callback from worker
-      parameters:
-      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: API Key
-        in: header
-        name: Authorization
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -113,7 +106,7 @@ paths:
           schema:
             type: string
       security:
-      - api_key: []
+      - ApiKeyAuth: []
       summary: Handle callback from worker
       tags:
       - worker
@@ -123,12 +116,6 @@ paths:
       - application/json
       description: Get status of tasks
       parameters:
-      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: API Key
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: Task ID
         in: query
         name: ID
@@ -181,7 +168,7 @@ paths:
               $ref: '#/definitions/globalstructs.Task'
             type: array
       security:
-      - api_key: []
+      - ApiKeyAuth: []
       summary: Get all tasks
       tags:
       - task
@@ -190,12 +177,6 @@ paths:
       - application/json
       description: Add a new tasks
       parameters:
-      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: API Key
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: Task object to create
         in: body
         name: task
@@ -212,7 +193,7 @@ paths:
               $ref: '#/definitions/globalstructs.Task'
             type: array
       security:
-      - api_key: []
+      - ApiKeyAuth: []
       summary: Add a new tasks
       tags:
       - task
@@ -222,12 +203,6 @@ paths:
       - application/json
       description: Delete a tasks
       parameters:
-      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: API Key
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: task ID
         in: path
         name: ID
@@ -243,7 +218,7 @@ paths:
               type: string
             type: array
       security:
-      - api_key: []
+      - ApiKeyAuth: []
       summary: Delete a tasks
       tags:
       - task
@@ -252,12 +227,6 @@ paths:
       - application/json
       description: Get status of a task
       parameters:
-      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: API Key
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: task ID
         in: path
         name: ID
@@ -273,7 +242,7 @@ paths:
               $ref: '#/definitions/globalstructs.Task'
             type: array
       security:
-      - api_key: []
+      - ApiKeyAuth: []
       summary: Get status of a task
       tags:
       - task
@@ -282,13 +251,6 @@ paths:
       consumes:
       - application/json
       description: Handle worker request
-      parameters:
-      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: API Key
-        in: header
-        name: Authorization
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -299,7 +261,7 @@ paths:
               $ref: '#/definitions/globalstructs.Worker'
             type: array
       security:
-      - api_key: []
+      - ApiKeyAuth: []
       summary: Get workers
       tags:
       - worker
@@ -308,12 +270,6 @@ paths:
       - application/json
       description: Add a worker, normally done by the worker
       parameters:
-      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: API Key
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: Worker object to create
         in: body
         name: worker
@@ -330,7 +286,7 @@ paths:
               $ref: '#/definitions/globalstructs.Worker'
             type: array
       security:
-      - api_key: []
+      - ApiKeyAuth: []
       summary: Add a worker
       tags:
       - worker
@@ -340,12 +296,6 @@ paths:
       - application/json
       description: Remove a worker from the system
       parameters:
-      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: API Key
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: Worker NAME
         in: path
         name: NAME
@@ -361,7 +311,7 @@ paths:
               type: string
             type: array
       security:
-      - api_key: []
+      - ApiKeyAuth: []
       summary: Remove a worker
       tags:
       - worker
@@ -370,12 +320,6 @@ paths:
       - application/json
       description: Get status of worker
       parameters:
-      - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: API Key
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: Worker NAME
         in: path
         name: NAME
@@ -391,13 +335,19 @@ paths:
               $ref: '#/definitions/globalstructs.Worker'
             type: array
       security:
-      - api_key: []
+      - ApiKeyAuth: []
       summary: Get status of worker
       tags:
       - worker
 schemes:
-- http
 - https
+- http
 security:
-- api_key: []
+- ApiKeyAuth: []
+securityDefinitions:
+  ApiKeyAuth:
+    description: ApiKeyAuth to login
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

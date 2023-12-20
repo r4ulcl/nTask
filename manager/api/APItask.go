@@ -20,7 +20,6 @@ import (
 // @Tags task
 // @accept application/json
 // @produce application/json
-/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @param ID query string false "Task ID"
 // @param module query string false "Task module"
 // @param args query string false "Task args"
@@ -31,7 +30,7 @@ import (
 // @param output query string false "Task output"
 // @param priority query boolean false "Task priority"
 // @success 200 {array} globalstructs.Task
-// @security api_key
+// @security ApiKeyAuth
 // @router /task [get]
 func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, ok := r.Context().Value("username").(string)
@@ -68,10 +67,9 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 // @Tags task
 // @accept application/json
 // @produce application/json
-/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @param task body globalstructs.TaskSwagger true "Task object to create"
 // @success 200 {array} globalstructs.Task
-// @security api_key
+// @security ApiKeyAuth
 // @router /task [post]
 func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	username, okUser := r.Context().Value("username").(string)
@@ -151,10 +149,9 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 // @Tags task
 // @accept application/json
 // @produce application/json
-/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @param ID path string true "task ID"
 // @success 200 {array} string
-// @security api_key
+// @security ApiKeyAuth
 // @router /task/{ID} [delete]
 func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, ok := r.Context().Value("username").(string)
@@ -200,10 +197,9 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 // @Tags task
 // @accept application/json
 // @produce application/json
-/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
 // @param ID path string true "task ID"
 // @success 200 {array} globalstructs.Task
-// @security api_key
+// @security ApiKeyAuth
 // @router /task/{ID} [get]
 func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, ok := r.Context().Value("username").(string)

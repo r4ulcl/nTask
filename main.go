@@ -15,19 +15,19 @@ import (
 // @version 1.0
 // @description nTask API documentation
 // @contact.name r4ulcl
-// @contact.url https://r4ulcl.com/contact/
+// @contact.url https://r4ulcl.com
 // @contact.email me@r4ulcl.com
 // @license.name  GPL-3.0
 // @license.url https://github.com/r4ulcl/nTask/blob/main/LICENSE
 // @basePath /
-// @schemes http https
+// @schemes https http
 // @BasePath /
-// @Security api_key
-// @SecurityDefinitions.api_key
-// api_key:
-//   type: apiKey
-//   name: Authorization
-//   in: header
+// @Security ApiKeyAuth
+// @securityDefinitions.apikey ApiKeyAuth
+// @SecurityScheme ApiKeyAuth
+// @in header
+// @name Authorization
+// @description ApiKeyAuth to login
 
 // Config holds configuration parameters
 type Arguments struct {
@@ -41,13 +41,12 @@ type Arguments struct {
 func main() {
 	var arguments Arguments
 
+	version := "v0.1.0"
+
 	var rootCmd = &cobra.Command{
-		Use:   "nTask",
-		Short: "Your program description",
-		Run: func(cmd *cobra.Command, args []string) {
-			// Your global command logic here
-			fmt.Println("Global command")
-		},
+		Use:     "nTask",
+		Short:   "Your program description",
+		Version: version, // Set the version here
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return validateGlobalFlags(cmd.Flags(), &arguments)
 		},

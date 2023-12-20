@@ -11,7 +11,7 @@ const docTemplate = `{
         "title": "{{.Title}}",
         "contact": {
             "name": "r4ulcl",
-            "url": "https://r4ulcl.com/contact/",
+            "url": "https://r4ulcl.com",
             "email": "me@r4ulcl.com"
         },
         "license": {
@@ -27,7 +27,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Handle callback from worker",
@@ -41,16 +41,6 @@ const docTemplate = `{
                     "worker"
                 ],
                 "summary": "Handle callback from worker",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK"
@@ -74,7 +64,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Get status of tasks",
@@ -89,14 +79,6 @@ const docTemplate = `{
                 ],
                 "summary": "Get all tasks",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "Task ID",
@@ -174,7 +156,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Add a new tasks",
@@ -189,14 +171,6 @@ const docTemplate = `{
                 ],
                 "summary": "Add a new tasks",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "description": "Task object to create",
                         "name": "task",
@@ -224,7 +198,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Get status of a task",
@@ -239,14 +213,6 @@ const docTemplate = `{
                 ],
                 "summary": "Get status of a task",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "task ID",
@@ -270,7 +236,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Delete a tasks",
@@ -285,14 +251,6 @@ const docTemplate = `{
                 ],
                 "summary": "Delete a tasks",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "task ID",
@@ -318,7 +276,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Handle worker request",
@@ -332,16 +290,6 @@ const docTemplate = `{
                     "worker"
                 ],
                 "summary": "Get workers",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -357,7 +305,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Add a worker, normally done by the worker",
@@ -372,14 +320,6 @@ const docTemplate = `{
                 ],
                 "summary": "Add a worker",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "description": "Worker object to create",
                         "name": "worker",
@@ -407,7 +347,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Get status of worker",
@@ -422,14 +362,6 @@ const docTemplate = `{
                 ],
                 "summary": "Get status of worker",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "Worker NAME",
@@ -453,7 +385,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "api_key": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Remove a worker from the system",
@@ -468,14 +400,6 @@ const docTemplate = `{
                 ],
                 "summary": "Remove a worker",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "API Key",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "Worker NAME",
@@ -614,9 +538,17 @@ const docTemplate = `{
             }
         }
     },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "description": "ApiKeyAuth to login",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    },
     "security": [
         {
-            "api_key": []
+            "ApiKeyAuth": []
         }
     ]
 }`
@@ -626,7 +558,7 @@ var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "",
 	BasePath:         "/",
-	Schemes:          []string{"http", "https"},
+	Schemes:          []string{"https", "http"},
 	Title:            "nTask API",
 	Description:      "nTask API documentation",
 	InfoInstanceName: "swagger",

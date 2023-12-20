@@ -25,9 +25,6 @@ import (
 func HandleGetStatus(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig, verbose, debug bool) {
 	oauthKeyClient := r.Header.Get("Authorization")
 	if oauthKeyClient != config.OAuthToken {
-		if debug {
-			log.Println("{ \"error\" : \"Unauthorized\" }")
-		}
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}

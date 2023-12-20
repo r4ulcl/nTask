@@ -20,11 +20,11 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-func loadWorkerConfig(filename string, verbose bool) (*utils.WorkerConfig, error) {
+func loadWorkerConfig(filename string, verbose, debug bool) (*utils.WorkerConfig, error) {
 	var config utils.WorkerConfig
 	content, err := os.ReadFile(filename)
 	if err != nil {
-		if verbose {
+		if debug {
 			log.Println("Error reading worker config file: ", err)
 		}
 		return &config, err
@@ -32,7 +32,7 @@ func loadWorkerConfig(filename string, verbose bool) (*utils.WorkerConfig, error
 
 	err = json.Unmarshal(content, &config)
 	if err != nil {
-		if verbose {
+		if debug {
 			log.Println("Error unmarshalling worker config: ", err)
 		}
 		return &config, err
@@ -43,7 +43,7 @@ func loadWorkerConfig(filename string, verbose bool) (*utils.WorkerConfig, error
 		hostname := ""
 		hostname, err = os.Hostname()
 		if err != nil {
-			if verbose {
+			if debug {
 				log.Println("Error getting hostname:", err)
 			}
 			return &config, err
@@ -53,9 +53,9 @@ func loadWorkerConfig(filename string, verbose bool) (*utils.WorkerConfig, error
 
 	// if OauthToken is empty create a new token
 	if config.OAuthToken == "" {
-		config.OAuthToken, err = utils.GenerateToken(32, verbose)
+		config.OAuthToken, err = utils.GenerateToken(32, verbose, debug)
 		if err != nil {
-			if verbose {
+			if debug {
 				log.Println("Error generating OAuthToken:", err)
 			}
 			return &config, err
@@ -64,7 +64,7 @@ func loadWorkerConfig(filename string, verbose bool) (*utils.WorkerConfig, error
 	}
 
 	// Print the values from the struct
-	if verbose {
+	if debug {
 		log.Println("Name:", config.Name)
 		log.Println("Tasks:")
 
@@ -90,7 +90,7 @@ func getDockerDomain(internalIP string) (string, error) {
 	return dockerDomain, nil
 }
 
-func checkIPMiddleware(allowedIP string, verbose bool) mux.MiddlewareFunc {
+func checkIPMiddleware(allowedIP string, verbose, debug bool) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			clientIP, _, _ := net.SplitHostPort(r.RemoteAddr)
@@ -98,7 +98,7 @@ func checkIPMiddleware(allowedIP string, verbose bool) mux.MiddlewareFunc {
 				container_name, _ := getDockerDomain(clientIP)
 				if container_name != allowedIP {
 					// Optionally, log or handle unauthorized access here
-					if verbose {
+					if debug {
 						log.Println("Manager IP not in whitelist, clientIP:", clientIP)
 					}
 					w.WriteHeader(http.StatusForbidden)
@@ -110,7 +110,7 @@ func checkIPMiddleware(allowedIP string, verbose bool) mux.MiddlewareFunc {
 	}
 }
 
-func startSwaggerWeb(router *mux.Router, verbose bool) {
+func startSwaggerWeb(router *mux.Router, verbose, debug bool) {
 	// Serve Swagger UI at /swagger
 	router.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
 		httpSwagger.URL("/docs/swagger.json"), // URL to the swagger.json file
@@ -122,7 +122,7 @@ func startSwaggerWeb(router *mux.Router, verbose bool) {
 	}).Methods("GET")
 }
 
-func StartWorker(swagger bool, configFile string, verifyAltName, verbose bool) {
+func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug bool) {
 	log.Println("Running as worker router...")
 
 	// if config file empty set default
@@ -130,7 +130,7 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose bool) {
 		configFile = "worker.conf"
 	}
 
-	config, err := loadWorkerConfig(configFile, verbose)
+	config, err := loadWorkerConfig(configFile, verbose, debug)
 	if err != nil {
 		log.Fatal("Error loading config file: ", err)
 	}
@@ -153,9 +153,9 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose bool) {
 		// Execute your function or cleanup here
 		fmt.Println("Executing cleanup function...")
 		// Your function code here
-		err := utils.DeleteWorker(config, verbose)
+		err := utils.DeleteWorker(config, verbose, debug)
 		if err != nil {
-			log.Println(err)
+			log.Println("Error worker: ", err)
 		}
 
 		// Exit the program gracefully
@@ -164,7 +164,7 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose bool) {
 
 	if config.CertFolder != "" {
 		// Create an HTTP client with the custom TLS configuration
-		clientHTTP, err := utils.CreateTLSClientWithCACert(config.CertFolder+"/ca-cert.pem", verifyAltName, verbose)
+		clientHTTP, err := utils.CreateTLSClientWithCACert(config.CertFolder+"/ca-cert.pem", verifyAltName, verbose, debug)
 		if err != nil {
 			fmt.Println("Error creating HTTP client:", err)
 			return
@@ -176,10 +176,10 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose bool) {
 	}
 	// Loop until connects
 	for {
-		err = utils.AddWorker(config, verbose)
+		err = utils.AddWorker(config, verbose, debug)
 		if err != nil {
-			if verbose {
-				log.Println(err)
+			if debug {
+				log.Println("Error worker: ", err)
 			}
 		} else {
 			break
@@ -190,31 +190,31 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose bool) {
 	router := mux.NewRouter()
 
 	// Only allow API from manager
-	router.Use(checkIPMiddleware(config.ManagerIP, verbose))
+	router.Use(checkIPMiddleware(config.ManagerIP, verbose, debug))
 
 	if swagger {
 		// Start swagger endpoint
-		startSwaggerWeb(router, verbose)
+		startSwaggerWeb(router, verbose, debug)
 	}
 
 	router.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleGetStatus(w, r, &status, config, verbose)
+		api.HandleGetStatus(w, r, &status, config, verbose, debug)
 	}).Methods("GET") // check worker status
 
 	// Task
 	router.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskPost(w, r, &status, config, verbose)
+		api.HandleTaskPost(w, r, &status, config, verbose, debug)
 	}).Methods("POST") // Add task
 
 	router.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskDelete(w, r, &status, config, verbose)
+		api.HandleTaskDelete(w, r, &status, config, verbose, debug)
 	}).Methods("DELETE") // delete task
 
 	http.Handle("/", router)
 
 	// Set string for the port
 	addr := fmt.Sprintf(":%s", config.Port)
-	if verbose {
+	if debug {
 		log.Println(addr)
 	}
 
