@@ -13,12 +13,15 @@ import (
 	"github.com/r4ulcl/nTask/worker/utils"
 )
 
-func runModule(config *utils.WorkerConfig, command string, arguments string, status *globalstructs.WorkerStatus, id string, verbose bool) (string, error) {
+func runModule(config *utils.WorkerConfig, command string, arguments string, status *globalstructs.WorkerStatus, id string, verbose, debug bool) (string, error) {
 	// if command is empty, like in the example "exec" to exec any binary
 	// the first argument is the command
 	var cmd *exec.Cmd
 	if config.InsecureModules {
-		cmdStr := command
+		cmdStr := command + " " + arguments
+		if debug {
+			log.Println("cmdStr: ", cmdStr)
+		}
 		cmd = exec.Command("sh", "-c", cmdStr)
 
 	} else {
@@ -38,7 +41,7 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 			command = parts[0]
 		}
 
-		if verbose {
+		if debug {
 			log.Println("command: ", command)
 			log.Println("argumentsArray: ", argumentsArray)
 		}
@@ -56,8 +59,17 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 	// Start the command
 	err := cmd.Start()
 	if err != nil {
-		if verbose {
-			fmt.Println("Error starting command:", err)
+		// Check if the error is an ExitError
+		if exitError, ok := err.(*exec.ExitError); ok {
+			// The command exited with a non-zero status
+			fmt.Printf("Command exited with error: %v\n", exitError)
+
+			// Print the captured standard error
+			fmt.Println("Standard Error:")
+			fmt.Print(stderr.String())
+		} else {
+			// Some other error occurred
+			fmt.Printf("Command finished with unexpected error: %v\n", err)
 		}
 		return err.Error(), err
 	}
@@ -67,8 +79,8 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 	// Wait for the command to finish
 	err = cmd.Wait()
 	if err != nil {
-		if verbose {
-			fmt.Println("Error waiting for command:", err)
+		if debug {
+			log.Println("Error waiting for command:", err)
 		}
 		return err.Error(), err
 	}
@@ -85,7 +97,7 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 }
 
 // ProcessModule processes a task by iterating through its commands and executing corresponding modules
-func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status *globalstructs.WorkerStatus, id string, verbose bool) error {
+func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status *globalstructs.WorkerStatus, id string, verbose, debug bool) error {
 	for num, command := range task.Commands {
 		module := command.Module
 		arguments := command.Args
@@ -111,7 +123,7 @@ func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status 
 		}
 
 		// Execute the module and get the output and any error
-		outputCommand, err := runModule(config, commandAux, arguments, status, id, verbose)
+		outputCommand, err := runModule(config, commandAux, arguments, status, id, verbose, debug)
 		if err != nil {
 			// Return an error if there is an issue running the module
 			return fmt.Errorf("error running task: %v", err)
@@ -125,11 +137,11 @@ func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status 
 	return nil
 }
 
-func GetRandomDuration(base, random int, verbose bool) int {
+func GetRandomDuration(base, random int, verbose, debug bool) int {
 	return rand.Intn(random) + base
 }
 
-func StringList(list []string, verbose bool) string {
+func StringList(list []string, verbose, debug bool) string {
 	stringList := ""
 	for _, item := range list {
 		stringList += item + "\n"

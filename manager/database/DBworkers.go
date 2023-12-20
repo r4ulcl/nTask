@@ -10,7 +10,7 @@ import (
 )
 
 // AddWorker adds a worker to the database.
-func AddWorker(db *sql.DB, worker *globalstructs.Worker, verbose bool) error {
+func AddWorker(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool) error {
 	// Insert the JSON data into the MySQL table
 	_, err := db.Exec("INSERT INTO worker (name, ip, port, oauthToken, IddleThreads, up, downCount)"+
 		" VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -22,7 +22,7 @@ func AddWorker(db *sql.DB, worker *globalstructs.Worker, verbose bool) error {
 }
 
 // RmWorkerName deletes a worker by its name.
-func RmWorkerName(db *sql.DB, name string, verbose bool) error {
+func RmWorkerName(db *sql.DB, name string, verbose, debug bool) error {
 	// Worker exists, proceed with deletion
 	sqlStatement := "DELETE FROM worker WHERE name = ?"
 	log.Println("Delete worker Name: ", name)
@@ -41,7 +41,7 @@ func RmWorkerName(db *sql.DB, name string, verbose bool) error {
 }
 
 // RmWorkerIPPort deletes a worker by its IP and Port.
-func RmWorkerIPPort(db *sql.DB, ip, port string, verbose bool) error {
+func RmWorkerIPPort(db *sql.DB, ip, port string, verbose, debug bool) error {
 	// Worker exists, proceed with deletion
 	sqlStatement := "DELETE FROM worker WHERE IP = ? AND port = ?"
 	result, err := db.Exec(sqlStatement, ip, port)
@@ -59,15 +59,15 @@ func RmWorkerIPPort(db *sql.DB, ip, port string, verbose bool) error {
 }
 
 // GetWorkers retrieves all workers from the database.
-func GetWorkers(db *sql.DB, verbose bool) ([]globalstructs.Worker, error) {
+func GetWorkers(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
 	// Slice to store all workers
 	var workers []globalstructs.Worker
 
 	// Query all workers from the worker table
 	rows, err := db.Query("SELECT name, ip, port, oauthToken, IddleThreads,  up, downCount FROM worker")
 	if err != nil {
-		if verbose {
-			log.Println(err)
+		if debug {
+			log.Println("Error DBworkers: ", err)
 		}
 		return workers, err
 	}
@@ -87,8 +87,8 @@ func GetWorkers(db *sql.DB, verbose bool) ([]globalstructs.Worker, error) {
 		// Scan the values from the row into variables
 		err := rows.Scan(&name, &ip, &port, &oauthToken, &IddleThreads, &up, &downCount)
 		if err != nil {
-			if verbose {
-				log.Println(err)
+			if debug {
+				log.Println("Error DBworkers: ", err)
 			}
 			return workers, err
 		}
@@ -109,8 +109,8 @@ func GetWorkers(db *sql.DB, verbose bool) ([]globalstructs.Worker, error) {
 
 	// Check for errors from iterating over rows
 	if err := rows.Err(); err != nil {
-		if verbose {
-			log.Println(err)
+		if debug {
+			log.Println("Error DBworkers: ", err)
 		}
 		return workers, err
 	}
@@ -119,7 +119,7 @@ func GetWorkers(db *sql.DB, verbose bool) ([]globalstructs.Worker, error) {
 }
 
 // GetWorker retrieves a worker from the database by its name.
-func GetWorker(db *sql.DB, name string, verbose bool) (globalstructs.Worker, error) {
+func GetWorker(db *sql.DB, name string, verbose, debug bool) (globalstructs.Worker, error) {
 	var worker globalstructs.Worker
 	// Retrieve the JSON data from the MySQL table
 	var name2 string
@@ -134,8 +134,8 @@ func GetWorker(db *sql.DB, name string, verbose bool) (globalstructs.Worker, err
 		name).Scan(
 		&name2, &ip, &port, &oauthToken, &IddleThreads, &up, &downCount)
 	if err != nil {
-		if verbose {
-			log.Println(err)
+		if debug {
+			log.Println("Error DBworkers: ", err)
 		}
 		return worker, err
 	}
@@ -153,14 +153,14 @@ func GetWorker(db *sql.DB, name string, verbose bool) (globalstructs.Worker, err
 }
 
 // UpdateWorker updates the information of a worker in the database.
-func UpdateWorker(db *sql.DB, worker *globalstructs.Worker, verbose bool) error {
+func UpdateWorker(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool) error {
 	// Update the JSON data in the MySQL table based on the worker's name
 	_, err := db.Exec("UPDATE worker SET name = ?, ip = ?, port = ?, oauthToken = ?,"+
 		" IddleThreads = ?, UP = ?, downCount = ? WHERE name = ?",
 		worker.IP, worker.Port, worker.OauthToken, worker.IddleThreads, worker.UP, worker.DownCount, worker.Name)
 	if err != nil {
-		if verbose {
-			log.Println(err)
+		if debug {
+			log.Println("Error DBworkers: ", err)
 		}
 		return err
 	}
@@ -168,12 +168,12 @@ func UpdateWorker(db *sql.DB, worker *globalstructs.Worker, verbose bool) error 
 }
 
 // SetWorkerOauthToken sets oauth token to new value.
-func SetWorkerOauthToken(oauthToken string, db *sql.DB, worker *globalstructs.Worker, verbose bool) error {
+func SetWorkerOauthToken(oauthToken string, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool) error {
 	_, err := db.Exec("UPDATE worker SET oauthToken = ? WHERE name = ?",
 		oauthToken, worker.Name)
 	if err != nil {
-		if verbose {
-			log.Println(err)
+		if debug {
+			log.Println("Error DBworkers: ", err)
 		}
 		return err
 	}
@@ -182,12 +182,12 @@ func SetWorkerOauthToken(oauthToken string, db *sql.DB, worker *globalstructs.Wo
 }
 
 // SetWorkerUPto sets the status of a worker to the specified value.
-func SetWorkerUPto(up bool, db *sql.DB, worker *globalstructs.Worker, verbose bool) error {
+func SetWorkerUPto(up bool, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool) error {
 	_, err := db.Exec("UPDATE worker SET UP = ? WHERE name = ?",
 		up, worker.Name)
 	if err != nil {
-		if verbose {
-			log.Println(err)
+		if debug {
+			log.Println("Error DBworkers: ", err)
 		}
 		return err
 	}
@@ -196,12 +196,15 @@ func SetWorkerUPto(up bool, db *sql.DB, worker *globalstructs.Worker, verbose bo
 }
 
 // SetWorkerworkingToString sets the status of a worker to the specified working value using the worker's name.
-func SetWorkerworkingTo(IddleThreads int, db *sql.DB, worker string, verbose bool) error {
+func SetIddleThreadsTo(IddleThreads int, db *sql.DB, worker string, verbose, debug bool) error {
+	if debug {
+		log.Println("Set IddleThreads to", IddleThreads)
+	}
 	_, err := db.Exec("UPDATE worker SET IddleThreads = ? WHERE name = ?",
 		IddleThreads, worker)
 	if err != nil {
-		if verbose {
-			log.Println(err)
+		if debug {
+			log.Println("Error DBworkers: ", err)
 		}
 		return err
 	}
@@ -210,25 +213,30 @@ func SetWorkerworkingTo(IddleThreads int, db *sql.DB, worker string, verbose boo
 }
 
 // SetWorkerworkingToString sets the status of a worker to the specified working value using the worker's name.
-func AddWorkerIddleThreads1(db *sql.DB, worker string, verbose bool) error {
+func AddWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool) error {
+	if debug {
+		log.Println("AddWorkerIddleThreads1")
+	}
 	_, err := db.Exec("UPDATE worker SET IddleThreads = IddleThreads + 1 WHERE name = ?;",
 		worker)
 	if err != nil {
-		if verbose {
-			log.Println(err)
+		if debug {
+			log.Println("Error DBworkers: ", err)
 		}
 		return err
 	}
 	return nil
 }
 
-// SetWorkerworkingToString sets the status of a worker to the specified working value using the worker's name.
-func SubtractWorkerIddleThreads1(db *sql.DB, worker string, verbose bool) error {
+// SubtractWorkerIddleThreads1
+func SubtractWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool) error {
+	log.Println("SubtractWorkerIddleThreads1")
+
 	_, err := db.Exec("UPDATE worker SET IddleThreads = CASE WHEN IddleThreads > 0 THEN IddleThreads - 1 "+
 		"ELSE 0 END WHERE name = ?", worker)
 	if err != nil {
-		if verbose {
-			log.Println(err)
+		if debug {
+			log.Println("Error DBworkers: ", err)
 		}
 		return err
 	}
@@ -236,27 +244,27 @@ func SubtractWorkerIddleThreads1(db *sql.DB, worker string, verbose bool) error 
 }
 
 // GetWorkerIddle retrieves all workers that are iddle.
-func GetWorkerIddle(db *sql.DB, verbose bool) ([]globalstructs.Worker, error) {
+func GetWorkerIddle(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
 	sql := "SELECT name, ip, port, oauthToken, IddleThreads, up, downCount FROM worker WHERE up = true AND IddleThreads > 0;"
-	return GetWorkerSQL(sql, db, verbose)
+	return GetWorkerSQL(sql, db, verbose, debug)
 }
 
 // GetWorkerUP retrieves all workers that are up.
-func GetWorkerUP(db *sql.DB, verbose bool) ([]globalstructs.Worker, error) {
+func GetWorkerUP(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
 	sql := "SELECT name, ip, port, oauthToken, IddleThreads, up, downCount FROM worker WHERE up = true;"
-	return GetWorkerSQL(sql, db, verbose)
+	return GetWorkerSQL(sql, db, verbose, debug)
 }
 
 // GetWorkerSQL retrieves workers information based on a SQL statement.
-func GetWorkerSQL(sql string, db *sql.DB, verbose bool) ([]globalstructs.Worker, error) {
+func GetWorkerSQL(sql string, db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
 	// Slice to store all workers
 	var workers []globalstructs.Worker
 
 	// Query all workers from the worker table
 	rows, err := db.Query(sql)
 	if err != nil {
-		if verbose {
-			log.Println(err)
+		if debug {
+			log.Println("Error DBworkers: ", err)
 		}
 		return workers, err
 	}
@@ -276,8 +284,8 @@ func GetWorkerSQL(sql string, db *sql.DB, verbose bool) ([]globalstructs.Worker,
 		// Scan the values from the row into variables
 		err := rows.Scan(&name, &ip, &port, &oauthToken, &IddleThreads, &up, &downCount)
 		if err != nil {
-			if verbose {
-				log.Println(err)
+			if debug {
+				log.Println("Error DBworkers: ", err)
 			}
 			return workers, err
 		}
@@ -298,8 +306,8 @@ func GetWorkerSQL(sql string, db *sql.DB, verbose bool) ([]globalstructs.Worker,
 
 	// Check for errors from iterating over rows
 	if err := rows.Err(); err != nil {
-		if verbose {
-			log.Println(err)
+		if debug {
+			log.Println("Error DBworkers: ", err)
 		}
 		return workers, err
 	}
@@ -308,13 +316,13 @@ func GetWorkerSQL(sql string, db *sql.DB, verbose bool) ([]globalstructs.Worker,
 }
 
 // GetWorkerCount get workers downCount by name (used to downCount until 3 to set down)
-func GetWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose bool) (int, error) {
+func GetWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool) (int, error) {
 	var countS string
 	err := db.QueryRow("SELECT downCount FROM worker WHERE name = ?",
 		worker.Name).Scan(&countS)
 	if err != nil {
-		if verbose {
-			log.Println(err)
+		if debug {
+			log.Println("Error DBworkers: ", err)
 		}
 		return -1, err
 	}
@@ -323,17 +331,19 @@ func GetWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose bool) 
 		return -1, err
 	}
 
-	log.Println("count", downCount)
+	if debug {
+		log.Println("count", downCount)
+	}
 	return downCount, nil
 }
 
 // SetWorkerCount set worker downCount to downCount int
-func SetWorkerDownCount(count int, db *sql.DB, worker *globalstructs.Worker, verbose bool) error {
+func SetWorkerDownCount(count int, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool) error {
 	_, err := db.Exec("UPDATE worker SET downCount = ? WHERE name = ?",
 		count, worker.Name)
 	if err != nil {
-		if verbose {
-			log.Println(err)
+		if debug {
+			log.Println("Error DBworkers: ", err)
 		}
 		return err
 	}
@@ -342,12 +352,12 @@ func SetWorkerDownCount(count int, db *sql.DB, worker *globalstructs.Worker, ver
 }
 
 // AddWorkerCount add 1 to worker downCount
-func AddWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose bool) error {
+func AddWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool) error {
 	_, err := db.Exec("UPDATE worker SET downCount = downCount + 1 WHERE name = ?",
 		worker.Name)
 	if err != nil {
-		if verbose {
-			log.Println(err)
+		if debug {
+			log.Println("Error DBworkers: ", err)
 		}
 		return err
 	}

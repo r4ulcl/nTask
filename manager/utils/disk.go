@@ -10,7 +10,7 @@ import (
 	"github.com/r4ulcl/nTask/globalstructs"
 )
 
-func SaveTaskToDisk(task globalstructs.Task, path string, verbose bool) error {
+func SaveTaskToDisk(task globalstructs.Task, path string, verbose, debug bool) error {
 	// Convert the struct to JSON format
 	jsonData, err := json.MarshalIndent(task, "", "    ")
 	if err != nil {

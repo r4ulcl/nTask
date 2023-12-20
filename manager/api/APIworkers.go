@@ -15,18 +15,18 @@ import (
 	"github.com/r4ulcl/nTask/manager/utils"
 )
 
-// HandleCallback handles the callback from a worker
-// @Summary Handle callback from worker
-// @Description Handle callback from worker
-// @Tags callback
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Success 200 "OK"
-// @Failure 400 {string} string "Invalid callback body"
-// @Failure 401 {string} string "Unauthorized"
-// @Router /callback [post]
-func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
+// @description Handle callback from worker
+// @summary Handle callback from worker
+// @Tags worker
+// @accept application/json
+// @produce application/json
+/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
+// @success 200 "OK"
+// @failure 400 {string} string "Invalid callback body"
+// @failure 401 {string} string "Unauthorized"
+// @security api_key
+// @router /callback [post]
+func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, okWorker := r.Context().Value("worker").(string)
 	if !okWorker {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
@@ -41,61 +41,58 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 		return
 	}
 
-	if verbose {
+	if debug {
 		log.Println(result)
 		log.Println("Received result (ID: ", result.ID, " from : ", result.WorkerName, " with command: ", result.Commands)
 	}
 
 	// Update task with the worker one
-	err = database.UpdateTask(db, result, verbose)
+	err = database.UpdateTask(db, result, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \"Error UpdateTask: "+err.Error()+"\"}", http.StatusBadRequest)
 
 		return
 	}
 
-	//Add value to thread working
-	err = database.AddWorkerIddleThreads1(db, result.WorkerName, verbose)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Error AddWorkerIddleThreads1: "+err.Error()+"\"}", http.StatusBadRequest)
-
-		return
-	}
-
 	// if callbackURL is not empty send the request to the client
 	if config.CallbackURL != "" {
-		utils.CallbackUserTaskMessage(config, &result, verbose)
+		utils.CallbackUserTaskMessage(config, &result, verbose, debug)
 	}
 
 	// if path not empty
 	if config.DiskPath != "" {
 		//get the task from DB to get updated
-		task, err := database.GetTask(db, result.ID, verbose)
+		task, err := database.GetTask(db, result.ID, verbose, debug)
 		if err != nil {
-			log.Println(err)
+			log.Println("Error: ", err)
 		}
-		err = utils.SaveTaskToDisk(task, config.DiskPath, verbose)
+		err = utils.SaveTaskToDisk(task, config.DiskPath, verbose, debug)
 		if err != nil {
-			log.Println(err)
+			log.Println("Error: ", err)
 		}
 	}
 
 	// Handle the result as needed
+
+	//Add 1 to Iddle thread in worker
+	// add 1 when finish
+	database.AddWorkerIddleThreads1(db, result.WorkerName, verbose, debug)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
 
 // HandleWorkerGet handles the request to get workers
-// @Summary Get workers
-// @Description Handle worker request
+// @description Handle worker request
+// @summary Get workers
 // @Tags worker
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Success 200 {string} string "OK"
-// @Router /worker [get]
-func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
+// @accept application/json
+// @produce application/json
+/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
+// @success 200 {array} globalstructs.Worker
+// @security api_key
+// @router /worker [get]
+func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	username, ok := r.Context().Value("username").(string)
 	if !ok {
 		log.Println(username)
@@ -104,7 +101,7 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 	}
 
 	// get workers
-	workers, err := database.GetWorkers(db, verbose)
+	workers, err := database.GetWorkers(db, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \"Invalid callback body: "+err.Error()+"\"}", http.StatusBadRequest)
 
@@ -118,7 +115,7 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 		return
 	}
 
-	if verbose {
+	if debug {
 		// Print the JSON data
 		log.Println(string(jsonData))
 	}
@@ -129,19 +126,17 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 }
 
 // HandleWorkerPost handles the request to add a worker
-// @Summary Add a worker
-// @Description Add a worker, normally done by the worker
+// @description Add a worker, normally done by the worker
+// @summary Add a worker
 // @Tags worker
-// @Accept json
-// @Produce json
-// @Success 200 {string} string
-// @Router /worker [post]
-// @Type basic
-// @In header
-// @Name Authorization
-// @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Param worker body globalstructs.Worker true "Worker object to create"
-func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
+// @accept application/json
+// @produce application/json
+/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
+// @param worker body globalstructs.Worker true "Worker object to create"
+// @success 200 {array} globalstructs.Worker
+// @security api_key
+// @router /worker [post]
+func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, okUser := r.Context().Value("username").(string)
 	_, okWorker := r.Context().Value("worker").(string)
 	if !okUser && !okWorker {
@@ -156,24 +151,24 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 		return
 	}
 
-	request.IP = ReadUserIP(r, verbose)
+	request.IP = ReadUserIP(r, verbose, debug)
 
-	if verbose {
+	if debug {
 		log.Println("request.Name", request.Name, "request.IP", request.IP, "request.Name", request.Name)
 	}
 
-	err = database.AddWorker(db, &request, verbose)
+	err = database.AddWorker(db, &request, verbose, debug)
 	if err != nil {
 		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
 			if mysqlErr.Number == 1062 { // MySQL error number for duplicate entry
 				// Set as 'failed' all workers tasks
-				err = database.SetTasksWorkerFailed(db, request.Name, verbose)
+				err = database.SetTasksWorkerFailed(db, request.Name, verbose, debug)
 				if err != nil {
 					return
 				}
 
 				//Update oauth key
-				err := database.SetWorkerOauthToken(request.OauthToken, db, &request, verbose)
+				err := database.SetWorkerOauthToken(request.OauthToken, db, &request, verbose, debug)
 				if err != nil {
 					http.Error(w, "{ \"error\" : \"Error SetWorkerOauthToken: "+err.Error()+"\"}", http.StatusBadRequest)
 
@@ -181,7 +176,7 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 				}
 
 				// set worker up
-				err = database.SetWorkerUPto(true, db, &request, verbose)
+				err = database.SetWorkerUPto(true, db, &request, verbose, debug)
 				if err != nil {
 					http.Error(w, "{ \"error\" : \"Error setWorkerUp: "+err.Error()+"\"}", http.StatusBadRequest)
 
@@ -189,7 +184,7 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 				}
 
 				// reset down count
-				err = database.SetWorkerDownCount(0, db, &request, verbose)
+				err = database.SetWorkerDownCount(0, db, &request, verbose, debug)
 				if err != nil {
 					http.Error(w, "{ \"error\" : \"Error SetWorkerDownCount: "+err.Error()+"\"}", http.StatusBadRequest)
 
@@ -212,16 +207,17 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 }
 
 // HandleWorkerDeleteName handles the request to remove a worker
-// @Summary Remove a worker
-// @Description Remove a worker from the system
+// @description Remove a worker from the system
+// @summary Remove a worker
 // @Tags worker
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Success 200 {array} string
-// @Router /worker/{NAME} [delete]
-// @Param NAME path string false "Worker NAME"
-func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
+// @accept application/json
+// @produce application/json
+/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
+// @param NAME path string true "Worker NAME"
+// @success 200 {array} string
+// @security api_key
+// @router /worker/{NAME} [delete]
+func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, okUser := r.Context().Value("username").(string)
 	_, okWorker := r.Context().Value("worker").(string)
 	if !okUser && !okWorker {
@@ -232,7 +228,7 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 	vars := mux.Vars(r)
 	name := vars["NAME"]
 
-	err := database.RmWorkerName(db, name, verbose)
+	err := database.RmWorkerName(db, name, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \"RmWorkerName: "+err.Error()+"\"}", http.StatusBadRequest)
 
@@ -245,16 +241,17 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 }
 
 // HandleWorkerStatus returns the status of a worker
-// @Summary Get status of worker
-// @Description Get status of worker
+// @description Get status of worker
+// @summary Get status of worker
 // @Tags worker
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Success 200 {array} globalstructs.Worker
-// @Router /worker/{NAME} [get]
-// @Param NAME path string false "Worker NAME"
-func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
+// @accept application/json
+// @produce application/json
+/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
+// @param NAME path string true "Worker NAME"
+// @success 200 {array} globalstructs.Worker
+// @security api_key
+// @router /worker/{NAME} [get]
+func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, ok := r.Context().Value("username").(string)
 	if !ok {
 		http.Error(w, "{ \"error\" : \"Username not found\" }", http.StatusUnauthorized)
@@ -264,7 +261,7 @@ func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.Ma
 	vars := mux.Vars(r)
 	name := vars["NAME"]
 
-	worker, err := database.GetWorker(db, name, verbose)
+	worker, err := database.GetWorker(db, name, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \"Invalid GetWorker body: "+err.Error()+"\"}", http.StatusBadRequest)
 
@@ -278,7 +275,7 @@ func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.Ma
 		return
 	}
 
-	if verbose {
+	if debug {
 		// Print the JSON data
 		log.Println("HandleWorkerStatus", string(jsonData))
 	}
@@ -291,7 +288,7 @@ func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.Ma
 // Other functions
 
 // ReadUserIP reads the user's IP address from the request
-func ReadUserIP(r *http.Request, verbose bool) string {
+func ReadUserIP(r *http.Request, verbose, debug bool) string {
 	IPAddress := r.Header.Get("X-Real-Ip")
 	if IPAddress == "" {
 		IPAddress = r.Header.Get("X-Forwarded-For")

@@ -34,6 +34,7 @@ type Arguments struct {
 	ConfigFile    string
 	Swagger       bool
 	Verbose       bool
+	Debug         bool
 	VerifyAltName bool
 }
 
@@ -55,6 +56,7 @@ func main() {
 	// Add global flags to the root command
 	rootCmd.PersistentFlags().BoolP("swagger", "s", false, "Start the swagger endpoint (/swagger)")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Set verbose mode")
+	rootCmd.PersistentFlags().BoolP("debug", "d", false, "Set debug mode")
 	rootCmd.PersistentFlags().BoolP("verifyAltName", "a", false, "Set verifyAltName to true")
 
 	// Add manager subcommand
@@ -104,12 +106,12 @@ func main() {
 
 func managerStart(arguments *Arguments) {
 	// Use config parameters to start the manager
-	manager.StartManager(arguments.Swagger, arguments.ConfigFile, arguments.VerifyAltName, arguments.Verbose)
+	manager.StartManager(arguments.Swagger, arguments.ConfigFile, arguments.VerifyAltName, arguments.Verbose, arguments.Debug)
 }
 
 func workerStart(arguments *Arguments) {
 	// Use config parameters to start the worker
-	worker.StartWorker(arguments.Swagger, arguments.ConfigFile, arguments.VerifyAltName, arguments.Verbose)
+	worker.StartWorker(arguments.Swagger, arguments.ConfigFile, arguments.VerifyAltName, arguments.Verbose, arguments.Debug)
 }
 
 func validateGlobalFlags(flags *pflag.FlagSet, arguments *Arguments) error {
@@ -120,6 +122,11 @@ func validateGlobalFlags(flags *pflag.FlagSet, arguments *Arguments) error {
 	}
 
 	arguments.Verbose, err = flags.GetBool("verbose")
+	if err != nil {
+		return err
+	}
+
+	arguments.Debug, err = flags.GetBool("debug")
 	if err != nil {
 		return err
 	}

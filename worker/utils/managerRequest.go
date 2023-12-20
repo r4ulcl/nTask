@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 
@@ -12,7 +12,7 @@ import (
 )
 
 // AddWorker sends a POST request to add a worker to the manager
-func AddWorker(config *WorkerConfig, verbose bool) error {
+func AddWorker(config *WorkerConfig, verbose, debug bool) error {
 	// Create a Worker object with the provided configuration
 	worker := globalstructs.Worker{
 		Name:         config.Name,
@@ -52,22 +52,28 @@ func AddWorker(config *WorkerConfig, verbose bool) error {
 	}
 	defer resp.Body.Close()
 
-	// Read the response body
-	body, err := ioutil.ReadAll(resp.Body)
+	const maxBufferSize = 1024
+	buffer := make([]byte, maxBufferSize)
+	// Use a bytes.Buffer to accumulate the response body
+	var body bytes.Buffer
+
+	// Use io.Copy to efficiently copy the response body to the buffer
+	_, err = io.CopyBuffer(&body, resp.Body, buffer)
 	if err != nil {
+		fmt.Println("Error copying response body:", err)
 		return err
 	}
 
 	// Check if the response status code is not 200
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("error adding the worker %s", body)
+		return fmt.Errorf("error adding the worker %d", body)
 	}
 
 	return nil
 }
 
 // AddWorker sends a POST request to add a worker to the manager
-func DeleteWorker(config *WorkerConfig, verbose bool) error {
+func DeleteWorker(config *WorkerConfig, verbose, debug bool) error {
 	var url string
 	if transport, ok := config.ClientHTTP.Transport.(*http.Transport); ok {
 		if transport.TLSClientConfig != nil {
@@ -102,7 +108,7 @@ func DeleteWorker(config *WorkerConfig, verbose bool) error {
 	// Check the response status
 	log.Println(resp.StatusCode)
 	if resp.StatusCode == http.StatusOK {
-		if verbose {
+		if debug {
 			log.Println("DELETE request was successful")
 		}
 	}
@@ -111,7 +117,7 @@ func DeleteWorker(config *WorkerConfig, verbose bool) error {
 }
 
 // CallbackTaskMessage sends a POST request to the manager to callback with a task message
-func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task, verbose bool) error {
+func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task, verbose, debug bool) error {
 	// Create the callback URL using the manager IP and port
 	var url string
 	if transport, ok := config.ClientHTTP.Transport.(*http.Transport); ok {
@@ -129,7 +135,7 @@ func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task, verbose
 	// Create a new POST request to send the task message
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
-		if verbose {
+		if debug {
 			log.Println("Error creating request:", err)
 		}
 		return err
@@ -143,14 +149,14 @@ func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task, verbose
 
 	resp, err := config.ClientHTTP.Do(req)
 	if err != nil {
-		if verbose {
+		if debug {
 			log.Println("Error making request:", err)
 		}
 		return err
 	}
 	defer resp.Body.Close()
 
-	if verbose {
+	if debug {
 		log.Println("Status Code:", resp.Status)
 	}
 	// Handle the response body as needed

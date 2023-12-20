@@ -15,25 +15,25 @@ import (
 	"github.com/r4ulcl/nTask/manager/utils"
 )
 
-// HandleTaskGet - Get all tasks
-// @Summary Get all tasks
-// @Description Get status of tasks
+// @description Get status of tasks
+// @summary Get all tasks
 // @Tags task
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Success 200 {array} globalstructs.Task
-// @Router /task [get]
-// @Param ID query string false "Task ID"
-// @Param module query string false "Task module"
-// @Param args query string false "Task args"
-// @Param createdAt query string false "Task createdAt"
-// @Param updatedAt query string false "Task updatedAt"
-// @Param status query string false "Task status" Enum(pending, running, done, failed) Example(pending)
-// @Param workerName query string false "Task workerName"
-// @Param output query string false "Task output"
-// @Param priority query bool false "Task priority"
-func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
+// @accept application/json
+// @produce application/json
+/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
+// @param ID query string false "Task ID"
+// @param module query string false "Task module"
+// @param args query string false "Task args"
+// @param createdAt query string false "Task createdAt"
+// @param updatedAt query string false "Task updatedAt"
+// @param status query string false "Task status" Enums(pending, running, done, failed, deleted)
+// @param workerName query string false "Task workerName"
+// @param output query string false "Task output"
+// @param priority query boolean false "Task priority"
+// @success 200 {array} globalstructs.Task
+// @security api_key
+// @router /task [get]
+func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, ok := r.Context().Value("username").(string)
 	if !ok {
 		http.Error(w, "{ \"error\" : \"Username not found\" }", http.StatusUnauthorized)
@@ -41,7 +41,7 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 	}
 
 	// get tasks
-	tasks, err := database.GetTasks(w, r, db, verbose)
+	tasks, err := database.GetTasks(w, r, db, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \"Invalid callback body GetTasks: "+err.Error()+"\"}", http.StatusBadRequest)
 		return
@@ -53,7 +53,7 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 		return
 	}
 
-	if verbose {
+	if debug {
 		// Print the JSON data
 		log.Println(string(jsonData))
 	}
@@ -63,31 +63,33 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 	fmt.Fprintln(w, string(jsonData))
 }
 
-// HandleTaskPost - Add a new tasks
-// @Summary Add a new tasks
-// @Description Add a new tasks
+// @description Add a new tasks
+// @summary Add a new tasks
 // @Tags task
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Success 200 {array} globalstructs.Task
-// @Router /task [post]
-// @Param task body globalstructs.TaskSwagger true "Task object to create"
-func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
+// @accept application/json
+// @produce application/json
+/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
+// @param task body globalstructs.TaskSwagger true "Task object to create"
+// @success 200 {array} globalstructs.Task
+// @security api_key
+// @router /task [post]
+func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	username, okUser := r.Context().Value("username").(string)
 	if !okUser {
-		if verbose {
+		if debug {
 			log.Println("{ \"error\" : \"Unauthorized\" }")
 		}
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
-	log.Println("HandleTaskPost", username)
+	if debug {
+		log.Println("HandleTaskPost", username)
+	}
 
 	var request globalstructs.Task
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		if verbose {
+		if debug {
 			log.Println("{ \"error\" : \"Invalid callback body: " + err.Error() + "\"}")
 		}
 		http.Error(w, "{ \"error\" : \"Invalid callback body: "+err.Error()+"\"}", http.StatusBadRequest)
@@ -95,7 +97,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	}
 
 	// Set Random ID
-	request.ID, err = generateRandomID(30, verbose)
+	request.ID, err = generateRandomID(30, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \"Invalid ID generated: "+err.Error()+"\"}", http.StatusBadRequest)
 		return
@@ -107,21 +109,25 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 
 	if request.WorkerName != "" {
 		// Check if worker from user exists
-		_, err := database.GetWorker(db, request.WorkerName, verbose)
+		_, err := database.GetWorker(db, request.WorkerName, verbose, debug)
 		if err != nil {
 			http.Error(w, "{ \"error\" : \"Invalid WorkerName (not found): "+err.Error()+"\"}", http.StatusBadRequest)
 			return
 		}
 	}
 
-	err = database.AddTask(db, request, verbose)
+	err = database.AddTask(db, request, verbose, debug)
 	if err != nil {
 		message := "{ \"error\" : \"Invalid task info: " + err.Error() + "\" }"
 		http.Error(w, message, http.StatusBadRequest)
 		return
 	}
 
-	task, err := database.GetTask(db, request.ID, verbose)
+	if verbose {
+		log.Println("Add Task to DB", request.ID)
+	}
+
+	task, err := database.GetTask(db, request.ID, verbose, debug)
 	if err != nil {
 		message := "{ \"error\" : \"Invalid task info: " + err.Error() + "\" }"
 		http.Error(w, message, http.StatusBadRequest)
@@ -140,17 +146,17 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	fmt.Fprintln(w, string(jsonData))
 }
 
-// HandleTaskDelete - Delete a tasks
-// @Summary Delete a tasks
-// @Description Delete a tasks
+// @description Delete a tasks
+// @summary Delete a tasks
 // @Tags task
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Success 200 {array} string
-// @Router /task/{ID} [delete]
-// @Param ID path string false "task ID"
-func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
+// @accept application/json
+// @produce application/json
+/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
+// @param ID path string true "task ID"
+// @success 200 {array} string
+// @security api_key
+// @router /task/{ID} [delete]
+func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, ok := r.Context().Value("username").(string)
 	if !ok {
 		http.Error(w, "{ \"error\" : \"Username not found\" }", http.StatusUnauthorized)
@@ -160,25 +166,25 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	vars := mux.Vars(r)
 	id := vars["ID"]
 
-	task, err := database.GetTask(db, id, verbose)
+	task, err := database.GetTask(db, id, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
 		return
 	}
 
-	worker, err := database.GetWorker(db, task.WorkerName, verbose)
+	worker, err := database.GetWorker(db, task.WorkerName, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
 		return
 	}
 
-	err = utils.SendDeleteTask(db, config, &worker, &task, verbose)
+	err = utils.SendDeleteTask(db, config, &worker, &task, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
 		return
 	}
 
-	err = database.RmTask(db, id, verbose)
+	err = database.RmTask(db, id, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
 		return
@@ -189,17 +195,17 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	fmt.Fprintln(w, "")
 }
 
-// HandleTaskStatus - Get status of a task
-// @Summary Get status of a task
-// @Description Get status of a task
+// @description Get status of a task
+// @summary Get status of a task
 // @Tags task
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "OAuth Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
-// @Success 200 {array} globalstructs.Task
-// @Router /task/{ID} [get]
-// @Param ID path string false "task ID"
-func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
+// @accept application/json
+// @produce application/json
+/// @param Authorization header string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)string true "API Key" default(WLJ2xVQZ5TXVw4qEznZDnmEEV)
+// @param ID path string true "task ID"
+// @success 200 {array} globalstructs.Task
+// @security api_key
+// @router /task/{ID} [get]
+func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, ok := r.Context().Value("username").(string)
 	if !ok {
 		http.Error(w, "{ \"error\" : \"Username not found\" }", http.StatusUnauthorized)
@@ -211,7 +217,7 @@ func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.Mana
 
 	// Access worker to update info if status running
 	// get task from ID
-	task, err := database.GetTask(db, id, verbose)
+	task, err := database.GetTask(db, id, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \"Invalid GetTask body: "+err.Error()+"\"}", http.StatusBadRequest)
 
@@ -224,7 +230,7 @@ func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.Mana
 		return
 	}
 
-	if verbose {
+	if debug {
 		// Print the JSON data
 		log.Println(string(jsonData))
 	}
@@ -235,7 +241,7 @@ func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.Mana
 }
 
 // generateRandomID generates a random ID of the specified length
-func generateRandomID(length int, verbose bool) (string, error) {
+func generateRandomID(length int, verbose, debug bool) (string, error) {
 	// Calculate the number of bytes needed to achieve the desired length
 	numBytes := length / 2 // Since 1 byte = 2 hex characters
 

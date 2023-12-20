@@ -3,9 +3,7 @@ definitions:
   globalstructs.Command:
     properties:
       args:
-        items:
-          type: string
-        type: array
+        type: string
       fileContent:
         type: string
       module:
@@ -18,9 +16,7 @@ definitions:
   globalstructs.CommandSwagger:
     properties:
       args:
-        items:
-          type: string
-        type: array
+        type: string
       fileContent:
         type: string
       module:
@@ -98,7 +94,7 @@ paths:
       description: Handle callback from worker
       parameters:
       - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: OAuth Key
+        description: API Key
         in: header
         name: Authorization
         required: true
@@ -116,9 +112,11 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      security:
+      - api_key: []
       summary: Handle callback from worker
       tags:
-      - callback
+      - worker
   /task:
     get:
       consumes:
@@ -126,7 +124,7 @@ paths:
       description: Get status of tasks
       parameters:
       - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: OAuth Key
+        description: API Key
         in: header
         name: Authorization
         required: true
@@ -152,7 +150,12 @@ paths:
         name: updatedAt
         type: string
       - description: Task status
-        example: pending
+        enum:
+        - pending
+        - running
+        - done
+        - failed
+        - deleted
         in: query
         name: status
         type: string
@@ -177,6 +180,8 @@ paths:
             items:
               $ref: '#/definitions/globalstructs.Task'
             type: array
+      security:
+      - api_key: []
       summary: Get all tasks
       tags:
       - task
@@ -186,7 +191,7 @@ paths:
       description: Add a new tasks
       parameters:
       - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: OAuth Key
+        description: API Key
         in: header
         name: Authorization
         required: true
@@ -206,6 +211,8 @@ paths:
             items:
               $ref: '#/definitions/globalstructs.Task'
             type: array
+      security:
+      - api_key: []
       summary: Add a new tasks
       tags:
       - task
@@ -216,7 +223,7 @@ paths:
       description: Delete a tasks
       parameters:
       - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: OAuth Key
+        description: API Key
         in: header
         name: Authorization
         required: true
@@ -224,6 +231,7 @@ paths:
       - description: task ID
         in: path
         name: ID
+        required: true
         type: string
       produces:
       - application/json
@@ -234,6 +242,8 @@ paths:
             items:
               type: string
             type: array
+      security:
+      - api_key: []
       summary: Delete a tasks
       tags:
       - task
@@ -243,7 +253,7 @@ paths:
       description: Get status of a task
       parameters:
       - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: OAuth Key
+        description: API Key
         in: header
         name: Authorization
         required: true
@@ -251,6 +261,7 @@ paths:
       - description: task ID
         in: path
         name: ID
+        required: true
         type: string
       produces:
       - application/json
@@ -261,6 +272,8 @@ paths:
             items:
               $ref: '#/definitions/globalstructs.Task'
             type: array
+      security:
+      - api_key: []
       summary: Get status of a task
       tags:
       - task
@@ -271,7 +284,7 @@ paths:
       description: Handle worker request
       parameters:
       - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: OAuth Key
+        description: API Key
         in: header
         name: Authorization
         required: true
@@ -282,7 +295,11 @@ paths:
         "200":
           description: OK
           schema:
-            type: string
+            items:
+              $ref: '#/definitions/globalstructs.Worker'
+            type: array
+      security:
+      - api_key: []
       summary: Get workers
       tags:
       - worker
@@ -292,7 +309,7 @@ paths:
       description: Add a worker, normally done by the worker
       parameters:
       - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: OAuth Key
+        description: API Key
         in: header
         name: Authorization
         required: true
@@ -309,7 +326,11 @@ paths:
         "200":
           description: OK
           schema:
-            type: string
+            items:
+              $ref: '#/definitions/globalstructs.Worker'
+            type: array
+      security:
+      - api_key: []
       summary: Add a worker
       tags:
       - worker
@@ -320,7 +341,7 @@ paths:
       description: Remove a worker from the system
       parameters:
       - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: OAuth Key
+        description: API Key
         in: header
         name: Authorization
         required: true
@@ -328,6 +349,7 @@ paths:
       - description: Worker NAME
         in: path
         name: NAME
+        required: true
         type: string
       produces:
       - application/json
@@ -338,6 +360,8 @@ paths:
             items:
               type: string
             type: array
+      security:
+      - api_key: []
       summary: Remove a worker
       tags:
       - worker
@@ -347,7 +371,7 @@ paths:
       description: Get status of worker
       parameters:
       - default: WLJ2xVQZ5TXVw4qEznZDnmEEV
-        description: OAuth Key
+        description: API Key
         in: header
         name: Authorization
         required: true
@@ -355,6 +379,7 @@ paths:
       - description: Worker NAME
         in: path
         name: NAME
+        required: true
         type: string
       produces:
       - application/json
@@ -365,9 +390,14 @@ paths:
             items:
               $ref: '#/definitions/globalstructs.Worker'
             type: array
+      security:
+      - api_key: []
       summary: Get status of worker
       tags:
       - worker
+schemes:
+- http
+- https
 security:
-- OAuth2.0: []
+- api_key: []
 swagger: "2.0"

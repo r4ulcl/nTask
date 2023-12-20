@@ -1,4 +1,8 @@
 {
+    "schemes": [
+        "http",
+        "https"
+    ],
     "swagger": "2.0",
     "info": {
         "description": "nTask API documentation",
@@ -18,6 +22,11 @@
     "paths": {
         "/callback": {
             "post": {
+                "security": [
+                    {
+                        "api_key": []
+                    }
+                ],
                 "description": "Handle callback from worker",
                 "consumes": [
                     "application/json"
@@ -26,14 +35,14 @@
                     "application/json"
                 ],
                 "tags": [
-                    "callback"
+                    "worker"
                 ],
                 "summary": "Handle callback from worker",
                 "parameters": [
                     {
                         "type": "string",
                         "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "OAuth Key",
+                        "description": "API Key",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
@@ -60,6 +69,11 @@
         },
         "/task": {
             "get": {
+                "security": [
+                    {
+                        "api_key": []
+                    }
+                ],
                 "description": "Get status of tasks",
                 "consumes": [
                     "application/json"
@@ -75,7 +89,7 @@
                     {
                         "type": "string",
                         "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "OAuth Key",
+                        "description": "API Key",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
@@ -111,8 +125,14 @@
                         "in": "query"
                     },
                     {
+                        "enum": [
+                            "pending",
+                            "running",
+                            "done",
+                            "failed",
+                            "deleted"
+                        ],
                         "type": "string",
-                        "example": "pending",
                         "description": "Task status",
                         "name": "status",
                         "in": "query"
@@ -149,6 +169,11 @@
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "api_key": []
+                    }
+                ],
                 "description": "Add a new tasks",
                 "consumes": [
                     "application/json"
@@ -164,7 +189,7 @@
                     {
                         "type": "string",
                         "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "OAuth Key",
+                        "description": "API Key",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
@@ -194,6 +219,11 @@
         },
         "/task/{ID}": {
             "get": {
+                "security": [
+                    {
+                        "api_key": []
+                    }
+                ],
                 "description": "Get status of a task",
                 "consumes": [
                     "application/json"
@@ -209,7 +239,7 @@
                     {
                         "type": "string",
                         "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "OAuth Key",
+                        "description": "API Key",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
@@ -218,7 +248,8 @@
                         "type": "string",
                         "description": "task ID",
                         "name": "ID",
-                        "in": "path"
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -234,6 +265,11 @@
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "api_key": []
+                    }
+                ],
                 "description": "Delete a tasks",
                 "consumes": [
                     "application/json"
@@ -249,7 +285,7 @@
                     {
                         "type": "string",
                         "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "OAuth Key",
+                        "description": "API Key",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
@@ -258,7 +294,8 @@
                         "type": "string",
                         "description": "task ID",
                         "name": "ID",
-                        "in": "path"
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -276,6 +313,11 @@
         },
         "/worker": {
             "get": {
+                "security": [
+                    {
+                        "api_key": []
+                    }
+                ],
                 "description": "Handle worker request",
                 "consumes": [
                     "application/json"
@@ -291,7 +333,7 @@
                     {
                         "type": "string",
                         "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "OAuth Key",
+                        "description": "API Key",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
@@ -301,12 +343,20 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "string"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/globalstructs.Worker"
+                            }
                         }
                     }
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "api_key": []
+                    }
+                ],
                 "description": "Add a worker, normally done by the worker",
                 "consumes": [
                     "application/json"
@@ -322,7 +372,7 @@
                     {
                         "type": "string",
                         "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "OAuth Key",
+                        "description": "API Key",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
@@ -341,7 +391,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "string"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/globalstructs.Worker"
+                            }
                         }
                     }
                 }
@@ -349,6 +402,11 @@
         },
         "/worker/{NAME}": {
             "get": {
+                "security": [
+                    {
+                        "api_key": []
+                    }
+                ],
                 "description": "Get status of worker",
                 "consumes": [
                     "application/json"
@@ -364,7 +422,7 @@
                     {
                         "type": "string",
                         "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "OAuth Key",
+                        "description": "API Key",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
@@ -373,7 +431,8 @@
                         "type": "string",
                         "description": "Worker NAME",
                         "name": "NAME",
-                        "in": "path"
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -389,6 +448,11 @@
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "api_key": []
+                    }
+                ],
                 "description": "Remove a worker from the system",
                 "consumes": [
                     "application/json"
@@ -404,7 +468,7 @@
                     {
                         "type": "string",
                         "default": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-                        "description": "OAuth Key",
+                        "description": "API Key",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
@@ -413,7 +477,8 @@
                         "type": "string",
                         "description": "Worker NAME",
                         "name": "NAME",
-                        "in": "path"
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -435,10 +500,7 @@
             "type": "object",
             "properties": {
                 "args": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                    "type": "string"
                 },
                 "fileContent": {
                     "type": "string"
@@ -458,10 +520,7 @@
             "type": "object",
             "properties": {
                 "args": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                    "type": "string"
                 },
                 "fileContent": {
                     "type": "string"
@@ -554,7 +613,7 @@
     },
     "security": [
         {
-            "OAuth2.0": []
+            "api_key": []
         }
     ]
 }

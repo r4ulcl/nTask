@@ -20,7 +20,7 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-func loadManagerConfig(filename string, verbose bool) (*utils.ManagerConfig, error) {
+func loadManagerConfig(filename string, verbose, debug bool) (*utils.ManagerConfig, error) {
 	var config utils.ManagerConfig
 
 	// Validate filename
@@ -48,17 +48,17 @@ func loadManagerConfig(filename string, verbose bool) (*utils.ManagerConfig, err
 	return &config, nil
 }
 
-func manageTasks(config *utils.ManagerConfig, db *sql.DB, verbose bool) {
+func manageTasks(config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	// infinite loop eecuted with go routine
 	for {
 		// Get all tasks in order and if priority
-		tasks, err := database.GetTasksPending(db, verbose)
+		tasks, err := database.GetTasksPending(db, verbose, debug)
 		if err != nil {
 			log.Println(err.Error())
 		}
 
 		// Get iddle workers
-		workers, err := database.GetWorkerIddle(db, verbose)
+		workers, err := database.GetWorkerIddle(db, verbose, debug)
 		if err != nil {
 			log.Println(err.Error())
 		}
@@ -68,7 +68,7 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB, verbose bool) {
 
 		// if there are tasks
 		if len(tasks) > 0 && len(workers) > 0 {
-			if verbose {
+			if debug {
 				log.Println("len(tasks)", len(tasks))
 				log.Println("len(workers)", len(workers))
 			}
@@ -76,62 +76,68 @@ func manageTasks(config *utils.ManagerConfig, db *sql.DB, verbose bool) {
 				for _, worker := range workers {
 					// if WorkerName not send or set this worker, just sendAddTask
 					if task.WorkerName == "" || task.WorkerName == worker.Name {
-						err = utils.SendAddTask(db, config, &worker, &task, verbose)
+						err = utils.SendAddTask(db, config, &worker, &task, verbose, debug)
 						if err != nil {
-							log.Println(err.Error())
-							time.Sleep(time.Second * 1)
+							log.Println("Error SendAddTask", err.Error())
+							//time.Sleep(time.Second * 1)
+							break
 						}
 					}
 				}
+				// Update iddle workers after loop all
+				workers, err = database.GetWorkerIddle(db, verbose, debug)
+				if err != nil {
+					log.Println(err.Error())
+				}
+				// If no workers just start again
+				if len(workers) == 0 {
+					break
+				}
 			}
-		} else {
-			// only wait if not tasks or no workers
-			time.Sleep(time.Second * 1)
 		}
-
 	}
 }
 
-func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
+func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	// worker
 	workers.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerGet(w, r, config, db, verbose)
+		api.HandleWorkerGet(w, r, config, db, verbose, debug)
 	}).Methods("GET") // get workers
 
 	workers.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerPost(w, r, config, db, verbose)
+		api.HandleWorkerPost(w, r, config, db, verbose, debug)
 	}).Methods("POST") // add worker
 
 	workers.HandleFunc("/{NAME}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerDeleteName(w, r, config, db, verbose)
+		api.HandleWorkerDeleteName(w, r, config, db, verbose, debug)
 	}).Methods("DELETE") // delete worker
 
 	workers.HandleFunc("/{NAME}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerStatus(w, r, config, db, verbose)
+		api.HandleWorkerStatus(w, r, config, db, verbose, debug)
 	}).Methods("GET") // check status 1 worker
 }
 
-func addHandleTask(task *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose bool) {
+func addHandleTask(task *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	// task
 	task.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskGet(w, r, config, db, verbose)
+		api.HandleTaskGet(w, r, config, db, verbose, debug)
 	}).Methods("GET") // check tasks
 
 	task.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskPost(w, r, config, db, verbose)
+		api.HandleTaskPost(w, r, config, db, verbose, debug)
 	}).Methods("POST") // Add task
 
 	task.HandleFunc("/{ID}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskDelete(w, r, config, db, verbose)
+		api.HandleTaskDelete(w, r, config, db, verbose, debug)
 	}).Methods("DELETE") // Delete task
 
 	task.HandleFunc("/{ID}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskStatus(w, r, config, db, verbose)
+		api.HandleTaskStatus(w, r, config, db, verbose, debug)
 	}).Methods("GET") // get status task
 
 }
 
-func startSwaggerWeb(router *mux.Router, verbose bool) {
+func startSwaggerWeb(router *mux.Router, verbose, debug bool) {
 	// Serve Swagger UI at /swagger
 	//swagger := router.PathPrefix("/swagger").Subrouter()
 	router.PathPrefix("/swagger").Handler(httpSwagger.Handler(
@@ -144,7 +150,7 @@ func startSwaggerWeb(router *mux.Router, verbose bool) {
 	}).Methods("GET")
 }
 
-func StartManager(swagger bool, configFile string, verifyAltName, verbose bool) {
+func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug bool) {
 	log.Println("Running as manager...")
 
 	// if config file empty set default
@@ -152,7 +158,7 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose bool) 
 		configFile = "manager.conf"
 	}
 
-	config, err := loadManagerConfig(configFile, verbose)
+	config, err := loadManagerConfig(configFile, verbose, debug)
 	if err != nil {
 		log.Fatal("Error loading config file: ", err)
 	}
@@ -160,9 +166,9 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose bool) 
 	// Start DB
 	var db *sql.DB
 	for {
-		db, err = database.ConnectDB(config.DBUsername, config.DBPassword, config.DBHost, config.DBPort, config.DBDatabase, verbose)
+		db, err = database.ConnectDB(config.DBUsername, config.DBPassword, config.DBHost, config.DBPort, config.DBDatabase, verbose, debug)
 		if err != nil {
-			log.Println(err)
+			log.Println("Error manager: ", err)
 			db.Close()
 			time.Sleep(time.Second * 5)
 		} else {
@@ -172,7 +178,7 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose bool) 
 
 	// Create an HTTP client with the custom TLS configuration
 	if config.CertFolder != "" {
-		clientHTTP, err := utils.CreateTLSClientWithCACert(config.CertFolder+"/ca-cert.pem", verifyAltName, verbose)
+		clientHTTP, err := utils.CreateTLSClientWithCACert(config.CertFolder+"/ca-cert.pem", verifyAltName, verbose, debug)
 		if err != nil {
 			fmt.Println("Error creating HTTP client:", err)
 			return
@@ -183,10 +189,10 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose bool) 
 	}
 
 	// verify status workers infinite
-	go utils.VerifyWorkersLoop(db, config, verbose)
+	go utils.VerifyWorkersLoop(db, config, verbose, debug)
 
 	// manage task, routine to send task to iddle workers
-	go manageTasks(config, db, verbose)
+	go manageTasks(config, db, verbose, debug)
 
 	router := mux.NewRouter()
 
@@ -195,7 +201,7 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose bool) 
 
 	if swagger {
 		// Start swagger endpoint
-		startSwaggerWeb(router, verbose)
+		startSwaggerWeb(router, verbose, debug)
 	}
 
 	// r.HandleFunc("/send/{recipient}", handleSendMessage).Methods("POST")
@@ -204,18 +210,18 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose bool) 
 	callback := router.PathPrefix("/callback").Subrouter()
 	callback.Use(amw.Middleware)
 	callback.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleCallback(w, r, config, db, verbose)
+		api.HandleCallback(w, r, config, db, verbose, debug)
 	}).Methods("POST") // get callback info from task
 
 	// Worker
 	workers := router.PathPrefix("/worker").Subrouter()
 	workers.Use(amw.Middleware)
-	addHandleWorker(workers, config, db, verbose)
+	addHandleWorker(workers, config, db, verbose, debug)
 
 	// Task
 	task := router.PathPrefix("/task").Subrouter()
 	task.Use(amw.Middleware)
-	addHandleTask(task, config, db, verbose)
+	addHandleTask(task, config, db, verbose, debug)
 
 	//router.Use(amw.Middleware)
 
@@ -230,14 +236,14 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose bool) 
 	} else {
 		err = http.ListenAndServe(addr, nil)
 		if err != nil {
-			log.Println(err)
+			log.Println("Error manager: ", err)
 		}
 	}
 
 	/*
 		err = http.ListenAndServe(":"+config.Port, allowCORS(http.DefaultServeMux))
 		if err != nil {
-			log.Println(err)
+			log.Println("Error manager: ",err)
 		}
 	*/
 
@@ -245,7 +251,7 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose bool) 
 
 /*
 // allowCORS is a middleware function that adds CORS headers to the response.
-func allowCORS(handler http.Handler, verbose bool) http.Handler {
+func allowCORS(handler http.Handler, verbose, debug bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Set CORS headers
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8000")
@@ -290,8 +296,6 @@ func (amw *authenticationMiddleware) Middleware(next http.Handler) http.Handler 
 			worker, foundWorker := amw.tokenWorkers[token]
 			if foundUser {
 				// We found the token in our map
-				log.Printf("Authenticated user %s\n", user)
-
 				// Add the username to the request context
 				ctx := context.WithValue(r.Context(), "username", user)
 
@@ -299,8 +303,6 @@ func (amw *authenticationMiddleware) Middleware(next http.Handler) http.Handler 
 				next.ServeHTTP(w, r.WithContext(ctx))
 			} else if foundWorker {
 				// We found the token in our map
-				log.Printf("Authenticated worker %s\n", user)
-
 				// Add the username to the request context
 				ctx := context.WithValue(r.Context(), "worker", worker)
 

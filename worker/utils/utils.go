@@ -12,7 +12,7 @@ import (
 )
 
 // GenerateToken Generate oauth
-func GenerateToken(length int, verbose bool) (string, error) {
+func GenerateToken(length int, verbose, debug bool) (string, error) {
 	if length%2 != 0 {
 		return "", fmt.Errorf("token length must be even")
 	}
@@ -27,7 +27,7 @@ func GenerateToken(length int, verbose bool) (string, error) {
 }
 
 // CreateTLSClientWithCACert from cert.pem
-func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose bool) (*http.Client, error) {
+func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose, debug bool) (*http.Client, error) {
 	// Load CA certificate from file
 	caCert, err := os.ReadFile(caCertPath)
 	if err != nil {
