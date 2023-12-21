@@ -245,7 +245,7 @@ func SubtractWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool)
 
 // GetWorkerIddle retrieves all workers that are iddle.
 func GetWorkerIddle(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
-	sql := "SELECT name, ip, port, oauthToken, IddleThreads, up, downCount FROM worker WHERE up = true AND IddleThreads > 0;"
+	sql := "SELECT name, ip, port, oauthToken, IddleThreads, up, downCount FROM worker WHERE up = true AND IddleThreads > 0 ORDER BY RAND();"
 	return GetWorkerSQL(sql, db, verbose, debug)
 }
 

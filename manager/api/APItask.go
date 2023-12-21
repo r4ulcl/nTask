@@ -35,7 +35,8 @@ import (
 func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, ok := r.Context().Value("username").(string)
 	if !ok {
-		http.Error(w, "{ \"error\" : \"Username not found\" }", http.StatusUnauthorized)
+		// if not username is a worker
+		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 
@@ -170,17 +171,19 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	}
 
 	worker, err := database.GetWorker(db, task.WorkerName, verbose, debug)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
-		return
+	if err == nil {
+		// Has a worker set, check if its running
+		if task.Status == "running" {
+			// If its runing send stop signal to worker
+			err = utils.SendDeleteTask(db, config, &worker, &task, verbose, debug)
+			if err != nil {
+				http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
+				return
+			}
+		}
 	}
 
-	err = utils.SendDeleteTask(db, config, &worker, &task, verbose, debug)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
-		return
-	}
-
+	// Delete task from DB
 	err = database.RmTask(db, id, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
@@ -204,7 +207,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, ok := r.Context().Value("username").(string)
 	if !ok {
-		http.Error(w, "{ \"error\" : \"Username not found\" }", http.StatusUnauthorized)
+		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 

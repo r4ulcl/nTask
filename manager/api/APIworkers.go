@@ -94,7 +94,7 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 	username, ok := r.Context().Value("username").(string)
 	if !ok {
 		log.Println(username)
-		http.Error(w, "{ \"error\" : \"Username not found\" }", http.StatusUnauthorized)
+		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 
@@ -249,7 +249,7 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, ok := r.Context().Value("username").(string)
 	if !ok {
-		http.Error(w, "{ \"error\" : \"Username not found\" }", http.StatusUnauthorized)
+		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 

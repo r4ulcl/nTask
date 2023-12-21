@@ -56,7 +56,7 @@ func UpdateTask(db *sql.DB, task globalstructs.Task, verbose, debug bool) error 
 // RmTask deletes a task from the database.
 func RmTask(db *sql.DB, id string, verbose, debug bool) error {
 	// Worker exists, proceed with deletion
-	sqlStatement := "DELETE FROM task WHERE ID = ?"
+	sqlStatement := "DELETE FROM task WHERE ID LIKE ?"
 	if debug {
 		log.Println("Delete ID: ", id)
 	}
@@ -82,23 +82,23 @@ func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug
 
 	// Add filters for each parameter if provided
 	if ID := queryParams.Get("ID"); ID != "" {
-		sql += fmt.Sprintf(" AND ID = '%s'", ID)
+		sql += fmt.Sprintf(" AND ID LIKE  '%s'", ID)
 	}
 
 	if command := queryParams.Get("command"); command != "" {
-		sql += fmt.Sprintf(" AND command = '%s'", command)
+		sql += fmt.Sprintf(" AND command LIKE '%s'", command)
 	}
 
 	if createdAt := queryParams.Get("createdAt"); createdAt != "" {
-		sql += fmt.Sprintf(" AND createdAt = '%s'", createdAt)
+		sql += fmt.Sprintf(" AND createdAt LIKE '%s'", createdAt)
 	}
 
 	if updatedAt := queryParams.Get("executedAt"); updatedAt != "" {
-		sql += fmt.Sprintf(" AND executedAt = '%s'", updatedAt)
+		sql += fmt.Sprintf(" AND executedAt LIKE '%s'", updatedAt)
 	}
 
 	if updatedAt := queryParams.Get("updatedAt"); updatedAt != "" {
-		sql += fmt.Sprintf(" AND updatedAt = '%s'", updatedAt)
+		sql += fmt.Sprintf(" AND updatedAt LIKE '%s'", updatedAt)
 	}
 
 	if status := queryParams.Get("status"); status != "" {
@@ -106,11 +106,11 @@ func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug
 	}
 
 	if workerName := queryParams.Get("workerName"); workerName != "" {
-		sql += fmt.Sprintf(" AND workerName = '%s'", workerName)
+		sql += fmt.Sprintf(" AND workerName LIKE '%s'", workerName)
 	}
 
 	if username := queryParams.Get("username"); username != "" {
-		sql += fmt.Sprintf(" AND username = '%s'", username)
+		sql += fmt.Sprintf(" AND username LIKE '%s'", username)
 	}
 
 	if priority := queryParams.Get("priority"); priority != "" {

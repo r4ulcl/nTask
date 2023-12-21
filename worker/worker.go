@@ -153,6 +153,19 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 		// Execute your function or cleanup here
 		fmt.Println("Executing cleanup function...")
 		// Your function code here
+		// wait until task ends
+		for {
+			fmt.Println("Waiting tasks to finish...")
+			// Check if the map is empty
+			if len(status.WorkingIDs) == 0 {
+				// Signal that the map is empty and break out of the loop
+				break
+			}
+
+			// Sleep for some time (adjust as needed)
+			time.Sleep(time.Second)
+		}
+		//delete worker
 		err := utils.DeleteWorker(config, verbose, debug)
 		if err != nil {
 			log.Println("Error worker: ", err)
