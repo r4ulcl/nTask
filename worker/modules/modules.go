@@ -8,10 +8,13 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 
 	"github.com/r4ulcl/nTask/globalstructs"
 	"github.com/r4ulcl/nTask/worker/utils"
 )
+
+var mutex sync.Mutex
 
 func runModule(config *utils.WorkerConfig, command string, arguments string, status *globalstructs.WorkerStatus, id string, verbose, debug bool) (string, error) {
 	// if command is empty, like in the example "exec" to exec any binary
@@ -74,7 +77,9 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 		return err.Error(), err
 	}
 
+	mutex.Lock()
 	status.WorkingIDs[id] = cmd.Process.Pid
+	mutex.Unlock()
 
 	// Wait for the command to finish
 	err = cmd.Wait()
@@ -91,7 +96,9 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 	output = strings.TrimRight(output, "\n")
 
 	//Remove the ID from the status
+	mutex.Lock()
 	delete(status.WorkingIDs, id)
+	mutex.Unlock()
 
 	return output, nil
 }
