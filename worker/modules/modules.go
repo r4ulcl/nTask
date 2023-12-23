@@ -81,6 +81,12 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 	status.WorkingIDs[id] = cmd.Process.Pid
 	mutex.Unlock()
 
+	defer func() {
+		mutex.Lock()
+		delete(status.WorkingIDs, id)
+		mutex.Unlock()
+	}()
+
 	// Wait for the command to finish
 	err = cmd.Wait()
 	if err != nil {

@@ -130,6 +130,11 @@ func validateGlobalFlags(flags *pflag.FlagSet, arguments *Arguments) error {
 		return err
 	}
 
+	// If its debug mode its also verbose mode
+	if arguments.Debug {
+		arguments.Verbose = true
+	}
+
 	arguments.VerifyAltName, err = flags.GetBool("verifyAltName")
 	return err
 }
