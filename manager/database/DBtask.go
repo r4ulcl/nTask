@@ -269,6 +269,30 @@ func SetTasksWorkerFailed(db *sql.DB, workerName string, verbose, debug bool) er
 	return nil
 }
 
+// SetTasksWorkerInvalid set to invalid all task running worker workerName
+func SetTasksWorkerInvalid(db *sql.DB, workerName string, verbose, debug bool) error {
+	_, err := db.Exec("UPDATE task SET status = 'invalid' WHERE workerName = ? AND status = 'running' ", workerName)
+	if err != nil {
+		if debug {
+			log.Println("Error DBTask: ", err)
+		}
+		return err
+	}
+	return nil
+}
+
+// SetTasksWorkerPending set all task of worker to pending because failed
+func SetTasksWorkerPending(db *sql.DB, workerName string, verbose, debug bool) error {
+	_, err := db.Exec("UPDATE task SET status = 'pending' WHERE workerName = ? AND status = 'running' ", workerName)
+	if err != nil {
+		if debug {
+			log.Println("Error DBTask: ", err)
+		}
+		return err
+	}
+	return nil
+}
+
 // SetTaskWorkerName saves the worker name of the task in the database
 func SetTaskWorkerName(db *sql.DB, id, workerName string, verbose, debug bool) error {
 	// Update the workerName column of the task table for the given ID

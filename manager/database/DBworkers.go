@@ -230,7 +230,9 @@ func AddWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool) erro
 
 // SubtractWorkerIddleThreads1
 func SubtractWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool) error {
-	log.Println("SubtractWorkerIddleThreads1")
+	if debug {
+		log.Println("SubtractWorkerIddleThreads1")
+	}
 
 	_, err := db.Exec("UPDATE worker SET IddleThreads = CASE WHEN IddleThreads > 0 THEN IddleThreads - 1 "+
 		"ELSE 0 END WHERE name = ?", worker)

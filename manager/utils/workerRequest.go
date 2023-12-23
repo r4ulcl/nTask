@@ -98,8 +98,8 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 				return err
 			}
 
-			// Set as 'failed' all workers tasks
-			err = database.SetTasksWorkerFailed(db, worker.Name, verbose, debug)
+			// Set as 'pending' all workers tasks to REDO
+			err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug)
 			if err != nil {
 				return err
 			}
