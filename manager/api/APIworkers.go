@@ -21,8 +21,8 @@ import (
 // @accept application/json
 // @produce application/json
 // @success 200 "OK"
-// @failure 400 {string} string "Invalid callback body"
-// @failure 401 {string} string "Unauthorized"
+// @failure 400 {object} globalstructs.Error
+// @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /callback [post]
 func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
@@ -88,6 +88,8 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 // @accept application/json
 // @produce application/json
 // @success 200 {array} globalstructs.Worker
+// @failure 400 {object} globalstructs.Error
+// @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /worker [get]
 func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
@@ -131,6 +133,8 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 // @produce application/json
 // @param worker body globalstructs.Worker true "Worker object to create"
 // @success 200 {array} globalstructs.Worker
+// @failure 400 {object} globalstructs.Error
+// @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /worker [post]
 func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
@@ -211,6 +215,8 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 // @produce application/json
 // @param NAME path string true "Worker NAME"
 // @success 200 {array} string
+// @failure 400 {object} globalstructs.Error
+// @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /worker/{NAME} [delete]
 func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
@@ -243,7 +249,9 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 // @accept application/json
 // @produce application/json
 // @param NAME path string true "Worker NAME"
-// @success 200 {array} globalstructs.Worker
+// @success 200 {object} globalstructs.Worker
+// @failure 400 {object} globalstructs.Error
+// @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /worker/{NAME} [get]
 func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {

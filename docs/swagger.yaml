@@ -24,6 +24,11 @@ definitions:
       remoteFilePath:
         type: string
     type: object
+  globalstructs.Error:
+    properties:
+      error:
+        type: string
+    type: object
   globalstructs.Task:
     properties:
       command:
@@ -98,13 +103,13 @@ paths:
         "200":
           description: OK
         "400":
-          description: Invalid callback body
+          description: Bad Request
           schema:
-            type: string
-        "401":
-          description: Unauthorized
+            $ref: '#/definitions/globalstructs.Error'
+        "403":
+          description: Forbidden
           schema:
-            type: string
+            $ref: '#/definitions/globalstructs.Error'
       security:
       - ApiKeyAuth: []
       summary: Handle callback from worker
@@ -167,6 +172,14 @@ paths:
             items:
               $ref: '#/definitions/globalstructs.Task'
             type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
       security:
       - ApiKeyAuth: []
       summary: Get all tasks
@@ -189,9 +202,15 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/globalstructs.Task'
-            type: array
+            $ref: '#/definitions/globalstructs.Task'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
       security:
       - ApiKeyAuth: []
       summary: Add a new tasks
@@ -214,9 +233,15 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              type: string
-            type: array
+            $ref: '#/definitions/globalstructs.Task'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
       security:
       - ApiKeyAuth: []
       summary: Delete a tasks
@@ -241,6 +266,14 @@ paths:
             items:
               $ref: '#/definitions/globalstructs.Task'
             type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
       security:
       - ApiKeyAuth: []
       summary: Get status of a task
@@ -260,6 +293,14 @@ paths:
             items:
               $ref: '#/definitions/globalstructs.Worker'
             type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
       security:
       - ApiKeyAuth: []
       summary: Get workers
@@ -285,6 +326,14 @@ paths:
             items:
               $ref: '#/definitions/globalstructs.Worker'
             type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
       security:
       - ApiKeyAuth: []
       summary: Add a worker
@@ -310,6 +359,14 @@ paths:
             items:
               type: string
             type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
       security:
       - ApiKeyAuth: []
       summary: Remove a worker
@@ -331,9 +388,15 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/globalstructs.Worker'
-            type: array
+            $ref: '#/definitions/globalstructs.Worker'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
       security:
       - ApiKeyAuth: []
       summary: Get status of worker

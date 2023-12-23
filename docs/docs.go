@@ -46,15 +46,15 @@ const docTemplate = `{
                         "description": "OK"
                     },
                     "400": {
-                        "description": "Invalid callback body",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/globalstructs.Error"
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized",
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/globalstructs.Error"
                         }
                     }
                 }
@@ -150,6 +150,18 @@ const docTemplate = `{
                                 "$ref": "#/definitions/globalstructs.Task"
                             }
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
+                        }
                     }
                 }
             },
@@ -185,10 +197,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/globalstructs.Task"
-                            }
+                            "$ref": "#/definitions/globalstructs.Task"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
                         }
                     }
                 }
@@ -230,6 +251,18 @@ const docTemplate = `{
                                 "$ref": "#/definitions/globalstructs.Task"
                             }
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
+                        }
                     }
                 }
             },
@@ -263,10 +296,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/globalstructs.Task"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
                         }
                     }
                 }
@@ -298,6 +340,18 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/globalstructs.Worker"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
                         }
                     }
                 }
@@ -339,6 +393,18 @@ const docTemplate = `{
                                 "$ref": "#/definitions/globalstructs.Worker"
                             }
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
+                        }
                     }
                 }
             }
@@ -374,10 +440,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/globalstructs.Worker"
-                            }
+                            "$ref": "#/definitions/globalstructs.Worker"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
                         }
                     }
                 }
@@ -416,6 +491,18 @@ const docTemplate = `{
                             "items": {
                                 "type": "string"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
                         }
                     }
                 }
@@ -456,6 +543,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "remoteFilePath": {
+                    "type": "string"
+                }
+            }
+        },
+        "globalstructs.Error": {
+            "type": "object",
+            "properties": {
+                "error": {
                     "type": "string"
                 }
             }

@@ -56,3 +56,7 @@ type WorkerStatus struct {
 	IddleThreads int            `json:"IddleThreads"`
 	WorkingIDs   map[string]int `json:"workingIds"`
 }
+
+type Error struct {
+	Error string `json:"error"`
+}

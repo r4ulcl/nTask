@@ -30,6 +30,8 @@ import (
 // @param output query string false "Task output"
 // @param priority query boolean false "Task priority"
 // @success 200 {array} globalstructs.Task
+// @Failure 400 {object} globalstructs.Error
+// @Failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /task [get]
 func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
@@ -47,10 +49,17 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 		return
 	}
 
-	jsonData, err := json.Marshal(tasks)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid callback body Marshal:"+err.Error()+"\"}", http.StatusBadRequest)
-		return
+	log.Println("asd")
+	var jsonData []byte
+	if len(tasks) != 0 {
+		jsonData, err = json.Marshal(tasks)
+		if err != nil {
+			http.Error(w, "{ \"error\" : \"Invalid callback body Marshal:"+err.Error()+"\"}", http.StatusBadRequest)
+			return
+		}
+	} else {
+		jsonData = []byte("[]")
+
 	}
 
 	if debug {
@@ -69,7 +78,9 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 // @accept application/json
 // @produce application/json
 // @param task body globalstructs.TaskSwagger true "Task object to create"
-// @success 200 {array} globalstructs.Task
+// @success 200 {object} globalstructs.Task
+// @Failure 400 {object} globalstructs.Error
+// @Failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /task [post]
 func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
@@ -151,7 +162,9 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 // @accept application/json
 // @produce application/json
 // @param ID path string true "task ID"
-// @success 200 {array} string
+// @success 200 {object} globalstructs.Task
+// @Failure 400 {object} globalstructs.Error
+// @Failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /task/{ID} [delete]
 func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
@@ -190,9 +203,18 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 		return
 	}
 
+	// Return task with deleted status
+	task.Status = "deleted"
+
+	jsonData, err := json.Marshal(task)
+	if err != nil {
+		http.Error(w, "{ \"error\" : \"Invalid callback body: "+err.Error()+"\"}", http.StatusBadRequest)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, "")
+	fmt.Fprintln(w, string(jsonData))
 }
 
 // @description Get status of a task
@@ -202,6 +224,8 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 // @produce application/json
 // @param ID path string true "task ID"
 // @success 200 {array} globalstructs.Task
+// @Failure 400 {object} globalstructs.Error
+// @Failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /task/{ID} [get]
 func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
