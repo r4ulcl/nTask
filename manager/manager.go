@@ -148,6 +148,10 @@ func startSwaggerWeb(router *mux.Router, verbose, debug bool) {
 	router.HandleFunc("/docs/swagger.json", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "docs/swagger.json")
 	}).Methods("GET")
+
+	if verbose {
+		log.Println("Configure swagger docs in /swagger/")
+	}
 }
 
 func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug bool) {
@@ -229,6 +233,9 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 
 	// Set string for the port
 	addr := fmt.Sprintf(":%s", config.Port)
+	if verbose {
+		log.Println("Port", config.Port)
+	}
 
 	// if there is cert is HTTPS
 	if config.CertFolder != "" {
@@ -311,7 +318,8 @@ func (amw *authenticationMiddleware) Middleware(next http.Handler) http.Handler 
 
 			} else {
 				// Write an error and stop the handler chain
-				http.Error(w, "Forbidden!", http.StatusForbidden)
+				http.Error(w, "{ \"error\" : \"Forbidden\" }", http.StatusForbidden)
+
 			}
 		}
 	})
