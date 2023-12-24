@@ -5,15 +5,17 @@ package globalstructs
 
 // Task Struct to store all Task information.
 type Task struct {
-	ID         string    `json:"id"`
-	Commands   []Command `json:"command"`
-	CreatedAt  string    `json:"createdAt"`
-	UpdatedAt  string    `json:"updatedAt"`
-	ExecutedAt string    `json:"executedAt"`
-	Status     string    `json:"status"` // pending, running, done, failed, deleted
-	WorkerName string    `json:"workerName"`
-	Username   string    `json:"username"`
-	Priority   bool      `json:"priority"`
+	ID            string    `json:"id"`
+	Commands      []Command `json:"command"`
+	CreatedAt     string    `json:"createdAt"`
+	UpdatedAt     string    `json:"updatedAt"`
+	ExecutedAt    string    `json:"executedAt"`
+	Status        string    `json:"status"` // pending, running, done, failed, deleted
+	WorkerName    string    `json:"workerName"`
+	Username      string    `json:"username"`
+	Priority      bool      `json:"priority"`
+	CallbackURL   string    `json:"callbackURL"`
+	CallbackToken string    `json:"callbackToken"`
 }
 
 // Command struct for Commands in a task

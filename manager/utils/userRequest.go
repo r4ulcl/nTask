@@ -11,7 +11,7 @@ import (
 
 // CallbackUserTaskMessage is a function that sends a task message as a callback to a specified URL
 func CallbackUserTaskMessage(config *ManagerConfig, task *globalstructs.Task, verbose, debug bool) {
-	url := config.CallbackURL
+	url := task.CallbackURL
 
 	// Convert the task to a JSON payload
 	payload, _ := json.Marshal(task)
@@ -25,8 +25,8 @@ func CallbackUserTaskMessage(config *ManagerConfig, task *globalstructs.Task, ve
 
 	// Add custom headers, including the OAuth header
 	req.Header.Set("Content-Type", "application/json")
-	if config.CallbackToken != "" {
-		req.Header.Set("Authorization", config.CallbackToken)
+	if task.CallbackToken != "" {
+		req.Header.Set("Authorization", task.CallbackToken)
 	}
 
 	// Create an HTTP client and make the request

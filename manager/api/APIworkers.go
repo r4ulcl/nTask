@@ -54,7 +54,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	}
 
 	// if callbackURL is not empty send the request to the client
-	if config.CallbackURL != "" {
+	if result.CallbackURL != "" {
 		utils.CallbackUserTaskMessage(config, &result, verbose, debug)
 	}
 
