@@ -30,9 +30,11 @@ func CallbackUserTaskMessage(config *ManagerConfig, task *globalstructs.Task, ve
 	}
 
 	// Create an HTTP client and make the request
-
 	resp, err := config.ClientHTTP.Do(req)
 	if err != nil {
+		if verbose {
+			log.Println(err)
+		}
 		return
 	}
 	defer resp.Body.Close()

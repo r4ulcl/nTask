@@ -7,6 +7,7 @@ package globalstructs
 type Task struct {
 	ID            string    `json:"id"`
 	Commands      []Command `json:"command"`
+	Name          string    `json:"name"`
 	CreatedAt     string    `json:"createdAt"`
 	UpdatedAt     string    `json:"updatedAt"`
 	ExecutedAt    string    `json:"executedAt"`
@@ -30,6 +31,7 @@ type Command struct {
 // Task Struct for swagger docs, for the POST
 type TaskSwagger struct {
 	Commands []CommandSwagger `json:"command"`
+	Name     string           `json:"name"`
 	Priority bool             `json:"priority"`
 }
 
