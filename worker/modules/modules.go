@@ -135,11 +135,14 @@ func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status 
 
 		}
 
+		log.Println("commandAux", commandAux)
+		log.Println("arguments", arguments)
+
 		// Execute the module and get the output and any error
 		outputCommand, err := runModule(config, commandAux, arguments, status, id, verbose, debug)
 		if err != nil {
 			// Return an error if there is an issue running the module
-			return fmt.Errorf("error running task: %v", err)
+			return fmt.Errorf("error running %s task: %v", commandAux, err)
 		}
 
 		// Store the output in the task struct for the current command

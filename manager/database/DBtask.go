@@ -21,7 +21,7 @@ func AddTask(db *sql.DB, task globalstructs.Task, verbose, debug bool) error {
 	commandJson := string(structJson)
 
 	// Insert the JSON data into the MySQL table
-	_, err = db.Exec("INSERT INTO task (ID, command, name, status, WorkerName, username, priority, callbackURL, callbackToken) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+	_, err = db.Exec("INSERT INTO task (ID, command, name, status, WorkerName, username, priority, callbackURL, callbackToken) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
 		task.ID, commandJson, task.Name, task.Status, task.WorkerName, task.Username, task.Priority, task.CallbackURL, task.CallbackToken)
 	if err != nil {
 		if debug {

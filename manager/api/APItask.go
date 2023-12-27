@@ -49,7 +49,6 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 		return
 	}
 
-	log.Println("asd")
 	var jsonData []byte
 	if len(tasks) != 0 {
 		jsonData, err = json.Marshal(tasks)
