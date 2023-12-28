@@ -25,7 +25,7 @@ func AddTask(db *sql.DB, task globalstructs.Task, verbose, debug bool) error {
 		task.ID, commandJson, task.Name, task.Status, task.WorkerName, task.Username, task.Priority, task.CallbackURL, task.CallbackToken)
 	if err != nil {
 		if debug {
-			log.Println("Error DBTask: ", err)
+			log.Println("Error DBTask AddTask: ", err)
 		}
 		return err
 	}
@@ -46,7 +46,7 @@ func UpdateTask(db *sql.DB, task globalstructs.Task, verbose, debug bool) error 
 		commandJson, task.Name, task.Status, task.WorkerName, task.Priority, task.CallbackURL, task.CallbackToken, task.ID)
 	if err != nil {
 		if debug {
-			log.Println("Error DBTask: ", err)
+			log.Println("Error DBTask UpdateTask: ", err)
 		}
 		return err
 	}
@@ -147,7 +147,7 @@ func GetTasksSQL(sql string, db *sql.DB, verbose, debug bool) ([]globalstructs.T
 	rows, err := db.Query(sql)
 	if err != nil {
 		if debug {
-			log.Println("Error DBTask: ", err)
+			log.Println("Error DBTask GetTasksSQL: ", sql, err)
 		}
 		return tasks, err
 	}
@@ -173,7 +173,7 @@ func GetTasksSQL(sql string, db *sql.DB, verbose, debug bool) ([]globalstructs.T
 		err := rows.Scan(&ID, &commandAux, &name, &createdAt, &updatedAt, &executedAt, &status, &workerName, &username, &priority, &callbackURL, &callbackToken)
 		if err != nil {
 			if debug {
-				log.Println("Error DBTask: ", err)
+				log.Println("Error DBTask GetTasksSQL: ", err)
 			}
 			return tasks, err
 		}
@@ -207,7 +207,7 @@ func GetTasksSQL(sql string, db *sql.DB, verbose, debug bool) ([]globalstructs.T
 	// Check for errors from iterating over rows
 	if err := rows.Err(); err != nil {
 		if debug {
-			log.Println("Error DBTask: ", err)
+			log.Println("Error DBTask GetTasksSQL: ", err)
 		}
 		return tasks, err
 	}
@@ -235,7 +235,7 @@ func GetTask(db *sql.DB, id string, verbose, debug bool) (globalstructs.Task, er
 		id).Scan(&id, &createdAt, &updatedAt, &executedAt, &commandAux, &name, &status, &workerName, &username, &priority, &callbackURL, &callbackToken)
 	if err != nil {
 		if debug {
-			log.Println("Error DBTask: ", err)
+			log.Println("Error DBTask GetTask: ", err)
 		}
 		return task, err
 	}
@@ -272,7 +272,7 @@ func GetTaskWorker(db *sql.DB, id string, verbose, debug bool) (string, error) {
 		id).Scan(&workerName)
 	if err != nil {
 		if debug {
-			log.Println("Error DBTask: ", err)
+			log.Println("Error DBTask GetTaskWorker: ", err)
 		}
 		return workerName, err
 	}
@@ -285,7 +285,7 @@ func SetTasksWorkerFailed(db *sql.DB, workerName string, verbose, debug bool) er
 	_, err := db.Exec("UPDATE task SET status = 'failed' WHERE workerName = ? AND status = 'running' ", workerName)
 	if err != nil {
 		if debug {
-			log.Println("Error DBTask: ", err)
+			log.Println("Error DBTask SetTasksWorkerFailed: ", err)
 		}
 		return err
 	}
@@ -297,7 +297,7 @@ func SetTasksWorkerInvalid(db *sql.DB, workerName string, verbose, debug bool) e
 	_, err := db.Exec("UPDATE task SET status = 'invalid' WHERE workerName = ? AND status = 'running' ", workerName)
 	if err != nil {
 		if debug {
-			log.Println("Error DBTask: ", err)
+			log.Println("Error DBTask SetTasksWorkerInvalid: ", err)
 		}
 		return err
 	}
@@ -322,7 +322,7 @@ func SetTaskWorkerName(db *sql.DB, id, workerName string, verbose, debug bool) e
 	_, err := db.Exec("UPDATE task SET workerName = ? WHERE ID = ?", workerName, id)
 	if err != nil {
 		if debug {
-			log.Println("Error DBTask: ", err)
+			log.Println("Error DBTask SetTaskWorkerName: ", err)
 		}
 		return err
 	}
@@ -335,7 +335,7 @@ func SetTaskStatus(db *sql.DB, id, status string, verbose, debug bool) error {
 	_, err := db.Exec("UPDATE task SET status = ? WHERE ID = ?", status, id)
 	if err != nil {
 		if debug {
-			log.Println("Error DBTask: ", err)
+			log.Println("Error DBTask SetTaskStatus: ", err)
 		}
 		return err
 	}
@@ -348,7 +348,7 @@ func SetTaskExecutedAt(db *sql.DB, id string, verbose, debug bool) error {
 	_, err := db.Exec("UPDATE task SET executedAt = now() WHERE ID = ?", id)
 	if err != nil {
 		if debug {
-			log.Println("Error DBTask: ", err)
+			log.Println("Error DBTask SetTaskExecutedAt: ", err)
 		}
 		return err
 	}
