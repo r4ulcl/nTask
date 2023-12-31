@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"sync"
 
 	globalstructs "github.com/r4ulcl/nTask/globalstructs"
 )
 
 // AddWorker adds a worker to the database.
-func AddWorker(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool) error {
+func AddWorker(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
+	// Add to the WaitGroup when the goroutine starts and done when exits
+	defer wg.Done()
+	wg.Add(1)
 	// Insert the JSON data into the MySQL table
 	_, err := db.Exec("INSERT INTO worker (name, ip, port, oauthToken, IddleThreads, up, downCount)"+
 		" VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -22,7 +26,10 @@ func AddWorker(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool) er
 }
 
 // RmWorkerName deletes a worker by its name.
-func RmWorkerName(db *sql.DB, name string, verbose, debug bool) error {
+func RmWorkerName(db *sql.DB, name string, verbose, debug bool, wg *sync.WaitGroup) error {
+	// Add to the WaitGroup when the goroutine starts and done when exits
+	defer wg.Done()
+	wg.Add(1)
 	// Worker exists, proceed with deletion
 	sqlStatement := "DELETE FROM worker WHERE name = ?"
 	log.Println("Delete worker Name: ", name)
@@ -41,7 +48,10 @@ func RmWorkerName(db *sql.DB, name string, verbose, debug bool) error {
 }
 
 // RmWorkerIPPort deletes a worker by its IP and Port.
-func RmWorkerIPPort(db *sql.DB, ip, port string, verbose, debug bool) error {
+func RmWorkerIPPort(db *sql.DB, ip, port string, verbose, debug bool, wg *sync.WaitGroup) error {
+	// Add to the WaitGroup when the goroutine starts and done when exits
+	defer wg.Done()
+	wg.Add(1)
 	// Worker exists, proceed with deletion
 	sqlStatement := "DELETE FROM worker WHERE IP = ? AND port = ?"
 	result, err := db.Exec(sqlStatement, ip, port)
@@ -153,7 +163,10 @@ func GetWorker(db *sql.DB, name string, verbose, debug bool) (globalstructs.Work
 }
 
 // UpdateWorker updates the information of a worker in the database.
-func UpdateWorker(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool) error {
+func UpdateWorker(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
+	// Add to the WaitGroup when the goroutine starts and done when exits
+	defer wg.Done()
+	wg.Add(1)
 	// Update the JSON data in the MySQL table based on the worker's name
 	_, err := db.Exec("UPDATE worker SET name = ?, ip = ?, port = ?, oauthToken = ?,"+
 		" IddleThreads = ?, UP = ?, downCount = ? WHERE name = ?",
@@ -168,7 +181,10 @@ func UpdateWorker(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool)
 }
 
 // SetWorkerOauthToken sets oauth token to new value.
-func SetWorkerOauthToken(oauthToken string, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool) error {
+func SetWorkerOauthToken(oauthToken string, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
+	// Add to the WaitGroup when the goroutine starts and done when exits
+	defer wg.Done()
+	wg.Add(1)
 	_, err := db.Exec("UPDATE worker SET oauthToken = ? WHERE name = ?",
 		oauthToken, worker.Name)
 	if err != nil {
@@ -182,7 +198,10 @@ func SetWorkerOauthToken(oauthToken string, db *sql.DB, worker *globalstructs.Wo
 }
 
 // SetWorkerUPto sets the status of a worker to the specified value.
-func SetWorkerUPto(up bool, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool) error {
+func SetWorkerUPto(up bool, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
+	// Add to the WaitGroup when the goroutine starts and done when exits
+	defer wg.Done()
+	wg.Add(1)
 	_, err := db.Exec("UPDATE worker SET UP = ? WHERE name = ?",
 		up, worker.Name)
 	if err != nil {
@@ -196,7 +215,10 @@ func SetWorkerUPto(up bool, db *sql.DB, worker *globalstructs.Worker, verbose, d
 }
 
 // SetWorkerworkingToString sets the status of a worker to the specified working value using the worker's name.
-func SetIddleThreadsTo(IddleThreads int, db *sql.DB, worker string, verbose, debug bool) error {
+func SetIddleThreadsTo(IddleThreads int, db *sql.DB, worker string, verbose, debug bool, wg *sync.WaitGroup) error {
+	// Add to the WaitGroup when the goroutine starts and done when exits
+	defer wg.Done()
+	wg.Add(1)
 	if debug {
 		log.Println("Set IddleThreads to", IddleThreads)
 	}
@@ -213,7 +235,10 @@ func SetIddleThreadsTo(IddleThreads int, db *sql.DB, worker string, verbose, deb
 }
 
 // SetWorkerworkingToString sets the status of a worker to the specified working value using the worker's name.
-func AddWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool) error {
+func AddWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool, wg *sync.WaitGroup) error {
+	// Add to the WaitGroup when the goroutine starts and done when exits
+	defer wg.Done()
+	wg.Add(1)
 	if debug {
 		log.Println("AddWorkerIddleThreads1")
 	}
@@ -229,7 +254,10 @@ func AddWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool) erro
 }
 
 // SubtractWorkerIddleThreads1
-func SubtractWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool) error {
+func SubtractWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool, wg *sync.WaitGroup) error {
+	// Add to the WaitGroup when the goroutine starts and done when exits
+	defer wg.Done()
+	wg.Add(1)
 	if debug {
 		log.Println("SubtractWorkerIddleThreads1")
 	}
@@ -340,7 +368,10 @@ func GetWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose, debug
 }
 
 // SetWorkerCount set worker downCount to downCount int
-func SetWorkerDownCount(count int, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool) error {
+func SetWorkerDownCount(count int, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
+	// Add to the WaitGroup when the goroutine starts and done when exits
+	defer wg.Done()
+	wg.Add(1)
 	_, err := db.Exec("UPDATE worker SET downCount = ? WHERE name = ?",
 		count, worker.Name)
 	if err != nil {
@@ -354,7 +385,10 @@ func SetWorkerDownCount(count int, db *sql.DB, worker *globalstructs.Worker, ver
 }
 
 // AddWorkerCount add 1 to worker downCount
-func AddWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool) error {
+func AddWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
+	// Add to the WaitGroup when the goroutine starts and done when exits
+	defer wg.Done()
+	wg.Add(1)
 	_, err := db.Exec("UPDATE worker SET downCount = downCount + 1 WHERE name = ?",
 		worker.Name)
 	if err != nil {
@@ -365,4 +399,32 @@ func AddWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose, debug
 	}
 
 	return nil
+}
+
+func GetUpCount(db *sql.DB, verbose, debug bool) (int, error) {
+	// Prepare the SQL query
+	query := fmt.Sprintf("SELECT COUNT(*) FROM worker where up = true")
+
+	// Execute the query
+	var count int
+	err := db.QueryRow(query).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func GetDownCount(db *sql.DB, verbose, debug bool) (int, error) {
+	// Prepare the SQL query
+	query := fmt.Sprintf("SELECT COUNT(*) FROM worker where up = false")
+
+	// Execute the query
+	var count int
+	err := db.QueryRow(query).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }

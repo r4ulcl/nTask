@@ -24,3 +24,21 @@ type MessageOLD struct {
 	CallbackURL string   `json:"callbackURL"`
 }
 */
+
+type Status struct {
+	Task   StatusTask   `json:"task"`
+	Worker StatusWorker `json:"worker"`
+}
+
+type StatusTask struct {
+	Pending int `json:"pending"`
+	Running int `json:"running"`
+	Done    int `json:"done"`
+	Failed  int `json:"failed"`
+	Deleted int `json:"deleted"`
+}
+
+type StatusWorker struct {
+	Up   int `json:"up"`
+	Down int `json:"down"`
+}

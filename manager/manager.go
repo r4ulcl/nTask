@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -48,68 +49,18 @@ func loadManagerConfig(filename string, verbose, debug bool) (*utils.ManagerConf
 	return &config, nil
 }
 
-func manageTasks(config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
-	// infinite loop eecuted with go routine
-	for {
-		// Get all tasks in order and if priority
-		tasks, err := database.GetTasksPending(db, verbose, debug)
-		if err != nil {
-			log.Println(err.Error())
-		}
-
-		// Get iddle workers
-		workers, err := database.GetWorkerIddle(db, verbose, debug)
-		if err != nil {
-			log.Println(err.Error())
-		}
-
-		//log.Println(len(tasks))
-		//log.Println(len(workers))
-
-		// if there are tasks
-		if len(tasks) > 0 && len(workers) > 0 {
-			if debug {
-				log.Println("len(tasks)", len(tasks))
-				log.Println("len(workers)", len(workers))
-			}
-			for _, task := range tasks {
-				for _, worker := range workers {
-					// if WorkerName not send or set this worker, just sendAddTask
-					if task.WorkerName == "" || task.WorkerName == worker.Name {
-						err = utils.SendAddTask(db, config, &worker, &task, verbose, debug)
-						if err != nil {
-							log.Println("Error SendAddTask", err.Error())
-							//time.Sleep(time.Second * 1)
-							break
-						}
-					}
-				}
-				// Update iddle workers after loop all
-				workers, err = database.GetWorkerIddle(db, verbose, debug)
-				if err != nil {
-					log.Println(err.Error())
-				}
-				// If no workers just start again
-				if len(workers) == 0 {
-					break
-				}
-			}
-		}
-	}
-}
-
-func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
+func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
 	// worker
 	workers.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleWorkerGet(w, r, config, db, verbose, debug)
 	}).Methods("GET") // get workers
 
 	workers.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerPost(w, r, config, db, verbose, debug)
+		api.HandleWorkerPost(w, r, config, db, verbose, debug, wg)
 	}).Methods("POST") // add worker
 
 	workers.HandleFunc("/{NAME}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerDeleteName(w, r, config, db, verbose, debug)
+		api.HandleWorkerDeleteName(w, r, config, db, verbose, debug, wg)
 	}).Methods("DELETE") // delete worker
 
 	workers.HandleFunc("/{NAME}", func(w http.ResponseWriter, r *http.Request) {
@@ -117,18 +68,18 @@ func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.D
 	}).Methods("GET") // check status 1 worker
 }
 
-func addHandleTask(task *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
+func addHandleTask(task *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
 	// task
 	task.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleTaskGet(w, r, config, db, verbose, debug)
 	}).Methods("GET") // check tasks
 
 	task.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskPost(w, r, config, db, verbose, debug)
+		api.HandleTaskPost(w, r, config, db, verbose, debug, wg)
 	}).Methods("POST") // Add task
 
 	task.HandleFunc("/{ID}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskDelete(w, r, config, db, verbose, debug)
+		api.HandleTaskDelete(w, r, config, db, verbose, debug, wg)
 	}).Methods("DELETE") // Delete task
 
 	task.HandleFunc("/{ID}", func(w http.ResponseWriter, r *http.Request) {
@@ -167,6 +118,9 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 		log.Fatal("Error loading config file: ", err)
 	}
 
+	// create waitGroups for DB
+	var wg sync.WaitGroup
+
 	// Start DB
 	var db *sql.DB
 	for {
@@ -193,10 +147,10 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 	}
 
 	// verify status workers infinite
-	go utils.VerifyWorkersLoop(db, config, verbose, debug)
+	go utils.VerifyWorkersLoop(db, config, verbose, debug, &wg)
 
 	// manage task, routine to send task to iddle workers
-	go manageTasks(config, db, verbose, debug)
+	go utils.ManageTasks(config, db, verbose, debug, &wg)
 
 	router := mux.NewRouter()
 
@@ -214,18 +168,25 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 	callback := router.PathPrefix("/callback").Subrouter()
 	callback.Use(amw.Middleware)
 	callback.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleCallback(w, r, config, db, verbose, debug)
+		api.HandleCallback(w, r, config, db, verbose, debug, &wg)
 	}).Methods("POST") // get callback info from task
+
+	// Status
+	status := router.PathPrefix("/status").Subrouter()
+	status.Use(amw.Middleware)
+	status.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
+		api.HandleStatus(w, r, config, db, verbose, debug)
+	}).Methods("GET") // get callback info from task
 
 	// Worker
 	workers := router.PathPrefix("/worker").Subrouter()
 	workers.Use(amw.Middleware)
-	addHandleWorker(workers, config, db, verbose, debug)
+	addHandleWorker(workers, config, db, verbose, debug, &wg)
 
 	// Task
 	task := router.PathPrefix("/task").Subrouter()
 	task.Use(amw.Middleware)
-	addHandleTask(task, config, db, verbose, debug)
+	addHandleTask(task, config, db, verbose, debug, &wg)
 
 	//router.Use(amw.Middleware)
 

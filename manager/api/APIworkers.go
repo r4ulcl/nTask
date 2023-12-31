@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"sync"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
@@ -14,72 +15,6 @@ import (
 	"github.com/r4ulcl/nTask/manager/database"
 	"github.com/r4ulcl/nTask/manager/utils"
 )
-
-// @description Handle callback from worker
-// @summary Handle callback from worker
-// @Tags worker
-// @accept application/json
-// @produce application/json
-// @success 200 "OK"
-// @failure 400 {object} globalstructs.Error
-// @failure 403 {object} globalstructs.Error
-// @security ApiKeyAuth
-// @router /callback [post]
-func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
-	_, okWorker := r.Context().Value("worker").(string)
-	if !okWorker {
-		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
-		return
-	}
-
-	var result globalstructs.Task
-	err := json.NewDecoder(r.Body).Decode(&result)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid callback body: "+err.Error()+"\"}", http.StatusBadRequest)
-
-		return
-	}
-
-	if debug {
-		log.Println(result)
-		log.Println("Received result (ID: ", result.ID, " from : ", result.WorkerName, " with command: ", result.Commands)
-	}
-
-	// Update task with the worker one
-	err = database.UpdateTask(db, result, verbose, debug)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Error UpdateTask: "+err.Error()+"\"}", http.StatusBadRequest)
-
-		return
-	}
-
-	// if callbackURL is not empty send the request to the client
-	if result.CallbackURL != "" {
-		utils.CallbackUserTaskMessage(config, &result, verbose, debug)
-	}
-
-	// if path not empty
-	if config.DiskPath != "" {
-		//get the task from DB to get updated
-		task, err := database.GetTask(db, result.ID, verbose, debug)
-		if err != nil {
-			log.Println("Error: ", err)
-		}
-		err = utils.SaveTaskToDisk(task, config.DiskPath, verbose, debug)
-		if err != nil {
-			log.Println("Error: ", err)
-		}
-	}
-
-	// Handle the result as needed
-
-	//Add 1 to Iddle thread in worker
-	// add 1 when finish
-	database.AddWorkerIddleThreads1(db, result.WorkerName, verbose, debug)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-}
 
 // HandleWorkerGet handles the request to get workers
 // @description Handle worker request
@@ -137,7 +72,7 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 // @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /worker [post]
-func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
+func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
 	_, okUser := r.Context().Value("username").(string)
 	_, okWorker := r.Context().Value("worker").(string)
 	if !okUser && !okWorker {
@@ -158,18 +93,18 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 		log.Println("request.Name", request.Name, "request.IP", request.IP, "request.Name", request.Name)
 	}
 
-	err = database.AddWorker(db, &request, verbose, debug)
+	err = database.AddWorker(db, &request, verbose, debug, wg)
 	if err != nil {
 		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
 			if mysqlErr.Number == 1062 { // MySQL error number for duplicate entry
 				// Set as 'pending' all workers tasks to REDO
-				err = database.SetTasksWorkerPending(db, request.Name, verbose, debug)
+				err = database.SetTasksWorkerPending(db, request.Name, verbose, debug, wg)
 				if err != nil {
 					return
 				}
 
 				//Update oauth key
-				err := database.SetWorkerOauthToken(request.OauthToken, db, &request, verbose, debug)
+				err := database.SetWorkerOauthToken(request.OauthToken, db, &request, verbose, debug, wg)
 				if err != nil {
 					http.Error(w, "{ \"error\" : \"Error SetWorkerOauthToken: "+err.Error()+"\"}", http.StatusBadRequest)
 
@@ -177,7 +112,7 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 				}
 
 				// set worker up
-				err = database.SetWorkerUPto(true, db, &request, verbose, debug)
+				err = database.SetWorkerUPto(true, db, &request, verbose, debug, wg)
 				if err != nil {
 					http.Error(w, "{ \"error\" : \"Error setWorkerUp: "+err.Error()+"\"}", http.StatusBadRequest)
 
@@ -185,7 +120,7 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 				}
 
 				// reset down count
-				err = database.SetWorkerDownCount(0, db, &request, verbose, debug)
+				err = database.SetWorkerDownCount(0, db, &request, verbose, debug, wg)
 				if err != nil {
 					http.Error(w, "{ \"error\" : \"Error SetWorkerDownCount: "+err.Error()+"\"}", http.StatusBadRequest)
 
@@ -219,7 +154,7 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 // @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /worker/{NAME} [delete]
-func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
+func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
 	_, okUser := r.Context().Value("username").(string)
 	_, okWorker := r.Context().Value("worker").(string)
 	if !okUser && !okWorker {
@@ -230,7 +165,7 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 	vars := mux.Vars(r)
 	name := vars["NAME"]
 
-	err := database.RmWorkerName(db, name, verbose, debug)
+	err := database.RmWorkerName(db, name, verbose, debug, wg)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \"RmWorkerName: "+err.Error()+"\"}", http.StatusBadRequest)
 

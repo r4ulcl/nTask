@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	globalstructs "github.com/r4ulcl/nTask/globalstructs"
@@ -18,15 +19,15 @@ import (
 )
 
 // VerifyWorkersLoop checks and sets if the workers are UP infinitely.
-func VerifyWorkersLoop(db *sql.DB, config *ManagerConfig, verbose, debug bool) {
+func VerifyWorkersLoop(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup) {
 	for {
-		go verifyWorkers(db, config, verbose, debug)
+		go verifyWorkers(db, config, verbose, debug, wg)
 		time.Sleep(5 * time.Second)
 	}
 }
 
 // verifyWorkers checks and sets if the workers are UP.
-func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool) {
+func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup) {
 	// Get all UP workers from the database
 	workers, err := database.GetWorkerUP(db, verbose, debug)
 	if err != nil {
@@ -35,7 +36,7 @@ func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool) {
 
 	// Verify each worker
 	for _, worker := range workers {
-		err := verifyWorker(db, config, &worker, verbose, debug)
+		err := verifyWorker(db, config, &worker, verbose, debug, wg)
 		if err != nil {
 			log.Print("verifyWorker ", err)
 		}
@@ -43,7 +44,7 @@ func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool) {
 }
 
 // verifyWorker checks and sets if the worker is UP.
-func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, verbose, debug bool) error {
+func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
 	var workerURL string
 	if transport, ok := config.ClientHTTP.Transport.(*http.Transport); ok {
 		if transport.TLSClientConfig != nil {
@@ -67,7 +68,7 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 		}
 
 		// If there is an error in creating the request, delete the worker from the database
-		err := database.RmWorkerName(db, worker.Name, verbose, debug)
+		err := database.RmWorkerName(db, worker.Name, verbose, debug, wg)
 		if err != nil {
 			return err
 		}
@@ -88,24 +89,24 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 		}
 		if count >= 3 {
 			// If worker has been offline for 3 or more cycles, set it as offline in database
-			err = database.SetWorkerUPto(false, db, worker, verbose, debug)
+			err = database.SetWorkerUPto(false, db, worker, verbose, debug, wg)
 			if err != nil {
 				return err
 			}
 			// Reset the count to 0
-			err = database.SetWorkerDownCount(0, db, worker, verbose, debug)
+			err = database.SetWorkerDownCount(0, db, worker, verbose, debug, wg)
 			if err != nil {
 				return err
 			}
 
 			// Set as 'pending' all workers tasks to REDO
-			err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug)
+			err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
 			if err != nil {
 				return err
 			}
 		} else {
 			// If worker has been offline for less than 3 cycles, increment the count
-			err = database.AddWorkerDownCount(db, worker, verbose, debug)
+			err = database.AddWorkerDownCount(db, worker, verbose, debug, wg)
 			if err != nil {
 				return err
 			}
@@ -119,7 +120,7 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 		return fmt.Errorf("Error: Unexpected status code:", resp.Status)
 	}
 	// If there is no error in making the request, assume worker is online
-	err = database.SetWorkerUPto(true, db, worker, verbose, debug)
+	err = database.SetWorkerUPto(true, db, worker, verbose, debug, wg)
 	if err != nil {
 		return err
 	}
@@ -139,7 +140,7 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 
 	// If worker status is not the same as stored in the DB, update the DB
 	if status.IddleThreads != worker.IddleThreads {
-		err := database.SetIddleThreadsTo(status.IddleThreads, db, worker.Name, verbose, debug)
+		err := database.SetIddleThreadsTo(status.IddleThreads, db, worker.Name, verbose, debug, wg)
 		if err != nil {
 			return err
 		}
@@ -150,9 +151,9 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 }
 
 // SendAddTask sends a request to a worker to add a task.
-func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose, debug bool) error {
+func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup) error {
 	//Sustract 1 Iddle Thread in worker
-	err := database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug)
+	err := database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug, wg)
 	if err != nil {
 		return err
 	}
@@ -190,6 +191,12 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 	// Specify the content type as JSON
 	req.Header.Set("Content-Type", "application/json")
 
+	// Set the task as running if its pending
+	err = database.SetTaskStatusIfPending(db, task.ID, "running", verbose, debug, wg)
+	if err != nil {
+		return err
+	}
+
 	// Send the request
 
 	resp, err := config.ClientHTTP.Do(req)
@@ -208,20 +215,14 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 			log.Println("Send Task", task.ID, "to worker", worker.Name)
 		}
 
-		// Set the task and worker as working
-		err := database.SetTaskStatus(db, task.ID, "running", verbose, debug)
-		if err != nil {
-			return err
-		}
-
 		// Set task as executed
-		err = database.SetTaskExecutedAt(db, task.ID, verbose, debug)
+		err = database.SetTaskExecutedAt(db, task.ID, verbose, debug, wg)
 		if err != nil {
 			return fmt.Errorf("Error SetTaskExecutedAt in request:", err)
 		}
 
 		// Set workerName in DB and in object
-		err = database.SetTaskWorkerName(db, task.ID, worker.Name, verbose, debug)
+		err = database.SetTaskWorkerName(db, task.ID, worker.Name, verbose, debug, wg)
 		if err != nil {
 			return fmt.Errorf("Error SetWorkerNameTask in request:", err)
 		}
@@ -233,16 +234,14 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 	} else {
 		if resp.StatusCode == 423 {
 
-			worker2, err := database.GetWorker(db, worker.Name, verbose, debug)
+			// Set the task as running if its pending
+			err = database.SetTaskStatus(db, task.ID, "failedddd", verbose, debug, wg)
 			if err != nil {
 				return err
 			}
 
-			if verbose {
-				log.Println("Iddle worker2", worker2.IddleThreads)
-			}
-
 			message := "POST request failed with status: 423. Worker already working"
+			log.Fatal("-----------failedddd")
 			return fmt.Errorf(message)
 		} else {
 			return fmt.Errorf("POST request failed with status:", resp.Status)
@@ -254,7 +253,7 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 }
 
 // SendDeleteTask sends a request to a worker to stop and delete a task.
-func SendDeleteTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose, debug bool) error {
+func SendDeleteTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup) error {
 	var workerURL string
 	if transport, ok := config.ClientHTTP.Transport.(*http.Transport); ok {
 		if transport.TLSClientConfig != nil {
@@ -292,11 +291,11 @@ func SendDeleteTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Wor
 			log.Println("POST request was successful")
 		}
 		// Set the task and worker as not working
-		err := database.SetTaskStatus(db, task.ID, "deleted", verbose, debug)
+		err := database.SetTaskStatus(db, task.ID, "deleted", verbose, debug, wg)
 		if err != nil {
 			return err
 		}
-		err = database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug)
+		err = database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug, wg)
 		if err != nil {
 			return err
 		}
