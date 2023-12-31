@@ -60,6 +60,43 @@ const docTemplate = `{
                 }
             }
         },
+        "/status": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Handle status from user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "status"
+                ],
+                "summary": "Handle status from user",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/globalstructs.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/task": {
             "get": {
                 "security": [
@@ -138,6 +175,12 @@ const docTemplate = `{
                         "type": "boolean",
                         "description": "Task priority",
                         "name": "priority",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "limit output DB",
+                        "name": "limit",
                         "in": "query"
                     }
                 ],
@@ -558,6 +601,12 @@ const docTemplate = `{
         "globalstructs.Task": {
             "type": "object",
             "properties": {
+                "callbackToken": {
+                    "type": "string"
+                },
+                "callbackURL": {
+                    "type": "string"
+                },
                 "command": {
                     "type": "array",
                     "items": {
@@ -573,8 +622,11 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "name": {
+                    "type": "string"
+                },
                 "priority": {
-                    "type": "boolean"
+                    "type": "integer"
                 },
                 "status": {
                     "description": "pending, running, done, failed, deleted",
@@ -599,6 +651,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/globalstructs.CommandSwagger"
                     }
+                },
+                "name": {
+                    "type": "string"
                 },
                 "priority": {
                     "type": "boolean"

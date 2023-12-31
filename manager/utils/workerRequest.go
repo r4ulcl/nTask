@@ -235,13 +235,12 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 		if resp.StatusCode == 423 {
 
 			// Set the task as running if its pending
-			err = database.SetTaskStatus(db, task.ID, "failedddd", verbose, debug, wg)
+			err = database.SetTaskStatus(db, task.ID, "failed", verbose, debug, wg)
 			if err != nil {
 				return err
 			}
 
 			message := "POST request failed with status: 423. Worker already working"
-			log.Fatal("-----------failedddd")
 			return fmt.Errorf(message)
 		} else {
 			return fmt.Errorf("POST request failed with status:", resp.Status)

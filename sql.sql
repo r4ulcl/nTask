@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS task (
     status VARCHAR(255), 
     workerName VARCHAR(255),
     username VARCHAR(255),
-    priority BOOLEAN DEFAULT false,
+    priority INT DEFAULT 0,
     callbackURL TEXT,
     callbackToken TEXT
 );

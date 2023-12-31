@@ -186,7 +186,7 @@ func GetTasksSQL(sql string, db *sql.DB, verbose, debug bool) ([]globalstructs.T
 		var status string
 		var workerName string
 		var username string
-		var priority bool
+		var priority int
 		var callbackURL string
 		var callbackToken string
 
@@ -248,7 +248,7 @@ func GetTask(db *sql.DB, id string, verbose, debug bool) (globalstructs.Task, er
 	var status string
 	var workerName string
 	var username string
-	var priority bool
+	var priority int
 	var callbackURL string
 	var callbackToken string
 

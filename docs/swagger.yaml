@@ -31,6 +31,10 @@ definitions:
     type: object
   globalstructs.Task:
     properties:
+      callbackToken:
+        type: string
+      callbackURL:
+        type: string
       command:
         items:
           $ref: '#/definitions/globalstructs.Command'
@@ -41,8 +45,10 @@ definitions:
         type: string
       id:
         type: string
+      name:
+        type: string
       priority:
-        type: boolean
+        type: integer
       status:
         description: pending, running, done, failed, deleted
         type: string
@@ -59,6 +65,8 @@ definitions:
         items:
           $ref: '#/definitions/globalstructs.CommandSwagger'
         type: array
+      name:
+        type: string
       priority:
         type: boolean
     type: object
@@ -115,6 +123,29 @@ paths:
       summary: Handle callback from worker
       tags:
       - worker
+  /status:
+    post:
+      consumes:
+      - application/json
+      description: Handle status from user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/globalstructs.Error'
+      security:
+      - ApiKeyAuth: []
+      summary: Handle status from user
+      tags:
+      - status
   /task:
     get:
       consumes:
@@ -162,6 +193,10 @@ paths:
       - description: Task priority
         in: query
         name: priority
+        type: boolean
+      - description: limit output DB
+        in: query
+        name: limit
         type: boolean
       produces:
       - application/json

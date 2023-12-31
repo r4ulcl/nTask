@@ -14,7 +14,7 @@ type Task struct {
 	Status        string    `json:"status"` // pending, running, done, failed, deleted
 	WorkerName    string    `json:"workerName"`
 	Username      string    `json:"username"`
-	Priority      bool      `json:"priority"`
+	Priority      int       `json:"priority"`
 	CallbackURL   string    `json:"callbackURL"`
 	CallbackToken string    `json:"callbackToken"`
 }
