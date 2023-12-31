@@ -61,7 +61,7 @@ const docTemplate = `{
             }
         },
         "/status": {
-            "post": {
+            "get": {
                 "security": [
                     {
                         "ApiKeyAuth": []

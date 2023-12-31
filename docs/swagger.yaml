@@ -124,7 +124,7 @@ paths:
       tags:
       - worker
   /status:
-    post:
+    get:
       consumes:
       - application/json
       description: Handle status from user

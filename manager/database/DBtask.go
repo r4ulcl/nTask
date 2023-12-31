@@ -49,7 +49,6 @@ func UpdateTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sy
 	}
 	commandJson := string(structJson)
 
-	log.Println("-------------------------------------------------START", task)
 
 	// Update all fields in the MySQL table
 	_, err = db.Exec("UPDATE task SET command=?, name=?, status=?, WorkerName=?, priority=?, callbackURL=?, callbackToken=? WHERE ID=?",
@@ -60,7 +59,6 @@ func UpdateTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sy
 		}
 		return err
 	}
-	log.Println("-------------------------------------------------DONE", task)
 
 	return nil
 }
@@ -368,7 +366,6 @@ func SetTaskStatus(db *sql.DB, id, status string, verbose, debug bool, wg *sync.
 	defer wg.Done()
 	wg.Add(1)
 	// Update the status column of the task table for the given ID
-	log.Println("----------------------- Setting status", status, "to", id)
 	_, err := db.Exec("UPDATE task SET status = ? WHERE ID = ?", status, id)
 	if err != nil {
 		if debug {
@@ -385,7 +382,6 @@ func SetTaskStatusIfPending(db *sql.DB, id, status string, verbose, debug bool, 
 	defer wg.Done()
 	wg.Add(1)
 	// Update the status column of the task table for the given ID
-	log.Println("----------------------- Setting status", status, "to", id)
 	_, err := db.Exec("UPDATE task SET status = ? WHERE ID = ? and status = 'pending'", status, id)
 	if err != nil {
 		if debug {

@@ -46,9 +46,6 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 		log.Println("Received result (ID: ", result.ID, " from : ", result.WorkerName, " with command: ", result.Commands)
 	}
 
-	log.Println("----------------------------------result.Status", result.Status)
-	log.Println("----------------------------------result", result)
-
 	// Update task with the worker one
 	err = database.UpdateTask(db, result, verbose, debug, wg)
 	if err != nil {
@@ -57,6 +54,17 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 		}
 		http.Error(w, "{ \"error\" : \"Error UpdateTask: "+err.Error()+"\"}", http.StatusBadRequest)
 
+		return
+	}
+
+	// force set task done
+	// Set the task as running if its pending
+	err = database.SetTaskStatus(db, result.ID, "done", verbose, debug, wg)
+	if err != nil {
+		if verbose {
+			log.Println("HandleCallback { \"error\" : \"Error SetTaskStatus: " + err.Error() + "\"}")
+		}
+		http.Error(w, "{ \"error\" : \"Error SetTaskStatus: "+err.Error()+"\"}", http.StatusBadRequest)
 		return
 	}
 
@@ -97,7 +105,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 // @failure 400 {object} globalstructs.Error
 // @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
-// @router /status [post]
+// @router /status [get]
 func HandleStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	_, ok := r.Context().Value("username").(string)
 	if !ok {

@@ -58,7 +58,7 @@
             }
         },
         "/status": {
-            "post": {
+            "get": {
                 "security": [
                     {
                         "ApiKeyAuth": []
