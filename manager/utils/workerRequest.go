@@ -191,6 +191,12 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 	// Specify the content type as JSON
 	req.Header.Set("Content-Type", "application/json")
 
+	// Get task current executedAt
+	oldExecutedAt, err := database.GetTaskExecutedAt(db, task.ID, verbose, debug)
+	if err != nil {
+		return fmt.Errorf("Error GetTaskExecutedAt in request:", err)
+	}
+
 	// Set the task as running if its pending
 	err = database.SetTaskStatusIfPending(db, task.ID, "running", verbose, debug, wg)
 	if err != nil {
@@ -216,7 +222,7 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 		}
 
 		// Set task as executed
-		err = database.SetTaskExecutedAt(db, task.ID, verbose, debug, wg)
+		err = database.SetTaskExecutedAtNow(db, task.ID, verbose, debug, wg)
 		if err != nil {
 			return fmt.Errorf("Error SetTaskExecutedAt in request:", err)
 		}
@@ -232,14 +238,21 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 		}
 
 	} else {
+		// if comunication error
+
+		// Set task as executed at old
+		err = database.SetTaskExecutedAt(oldExecutedAt, db, task.ID, verbose, debug, wg)
+		if err != nil {
+			return fmt.Errorf("Error SetTaskExecutedAt in request:", err)
+		}
+
+		// Set the task as pending again
+		err = database.SetTaskStatus(db, task.ID, "pending", verbose, debug, wg)
+		if err != nil {
+			return err
+		}
+
 		if resp.StatusCode == 423 {
-
-			// Set the task as running if its pending
-			err = database.SetTaskStatus(db, task.ID, "failed", verbose, debug, wg)
-			if err != nil {
-				return err
-			}
-
 			message := "POST request failed with status: 423. Worker already working"
 			return fmt.Errorf(message)
 		} else {
