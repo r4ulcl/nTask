@@ -134,6 +134,9 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 		}
 	}
 
+	// if running set to failed
+	database.SetTasksStatusIfRunning(db, "failed", verbose, debug, &wg)
+
 	// Create an HTTP client with the custom TLS configuration
 	if config.CertFolder != "" {
 		clientHTTP, err := utils.CreateTLSClientWithCACert(config.CertFolder+"/ca-cert.pem", verifyAltName, verbose, debug)
@@ -188,6 +191,16 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 	task.Use(amw.Middleware)
 	addHandleTask(task, config, db, verbose, debug, &wg)
 
+	// Middleware to modify server response headers
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Modify the server response headers here
+			w.Header().Set("Server", "Apache")
+
+			// Call the next handler
+			next.ServeHTTP(w, r)
+		})
+	})
 	//router.Use(amw.Middleware)
 
 	http.Handle("/", router)
@@ -216,27 +229,6 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 	*/
 
 }
-
-/*
-// allowCORS is a middleware function that adds CORS headers to the response.
-func allowCORS(handler http.Handler, verbose, debug bool) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Set CORS headers
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8000")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization") // Add Authorization header
-
-		// Handle preflight requests
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-
-		// Call the next handler in the chain
-		handler.ServeHTTP(w, r)
-	})
-}
-*/
 
 // Define our struct
 type authenticationMiddleware struct {

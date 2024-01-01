@@ -213,6 +213,17 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 		api.HandleTaskDelete(w, r, &status, config, verbose, debug)
 	}).Methods("DELETE") // delete task
 
+	// Middleware to modify server response headers
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Modify the server response headers here
+			w.Header().Set("Server", "Apache")
+
+			// Call the next handler
+			next.ServeHTTP(w, r)
+		})
+	})
+
 	http.Handle("/", router)
 
 	// Set string for the port

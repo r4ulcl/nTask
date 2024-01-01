@@ -49,7 +49,6 @@ func UpdateTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sy
 	}
 	commandJson := string(structJson)
 
-
 	// Update all fields in the MySQL table
 	_, err = db.Exec("UPDATE task SET command=?, name=?, status=?, WorkerName=?, priority=?, callbackURL=?, callbackToken=? WHERE ID=?",
 		commandJson, task.Name, task.Status, task.WorkerName, task.Priority, task.CallbackURL, task.CallbackToken, task.ID)
@@ -282,6 +281,22 @@ func GetTask(db *sql.DB, id string, verbose, debug bool) (globalstructs.Task, er
 	return task, nil
 }
 
+// GetTaskExecutedAt
+func GetTaskExecutedAt(db *sql.DB, id string, verbose, debug bool) (string, error) {
+	// Retrieve the workerName from the task table
+	var executedAt string
+	err := db.QueryRow("SELECT executedAt FROM task WHERE ID = ?",
+		id).Scan(&executedAt)
+	if err != nil {
+		if debug {
+			log.Println("Error DBTask GetTaskExecutedAt: ", err)
+		}
+		return executedAt, err
+	}
+
+	return executedAt, nil
+}
+
 // GetTaskWorker gets task workerName from an ID
 // This is the worker executing the task
 func GetTaskWorker(db *sql.DB, id string, verbose, debug bool) (string, error) {
@@ -385,7 +400,23 @@ func SetTaskStatusIfPending(db *sql.DB, id, status string, verbose, debug bool, 
 	_, err := db.Exec("UPDATE task SET status = ? WHERE ID = ? and status = 'pending'", status, id)
 	if err != nil {
 		if debug {
-			log.Println("Error DBTask SetTaskStatus: ", err)
+			log.Println("Error DBTask SetTaskStatusIfPending: ", err)
+		}
+		return err
+	}
+	return nil
+}
+
+// SetTaskStatusIfPending saves the status of the task in the database if current is pending
+func SetTasksStatusIfRunning(db *sql.DB, status string, verbose, debug bool, wg *sync.WaitGroup) error {
+	// Add to the WaitGroup when the goroutine starts and done when exits
+	defer wg.Done()
+	wg.Add(1)
+	// Update the status column of the task table for the given ID
+	_, err := db.Exec("UPDATE task SET status = ? WHERE status = 'running'", status)
+	if err != nil {
+		if debug {
+			log.Println("Error DBTask SetTasksStatusIfRunning: ", err)
 		}
 		return err
 	}
@@ -393,12 +424,28 @@ func SetTaskStatusIfPending(db *sql.DB, id, status string, verbose, debug bool, 
 }
 
 // SetTaskExecutedAt saves current time as executedAt
-func SetTaskExecutedAt(db *sql.DB, id string, verbose, debug bool, wg *sync.WaitGroup) error {
+func SetTaskExecutedAtNow(db *sql.DB, id string, verbose, debug bool, wg *sync.WaitGroup) error {
 	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
 	wg.Add(1)
 	// Update the status column of the task table for the given ID
 	_, err := db.Exec("UPDATE task SET executedAt = now() WHERE ID = ?", id)
+	if err != nil {
+		if debug {
+			log.Println("Error DBTask SetTaskExecutedAtNow: ", err)
+		}
+		return err
+	}
+	return nil
+}
+
+// SetTaskExecutedAt saves current time as executedAt
+func SetTaskExecutedAt(executedAt string, db *sql.DB, id string, verbose, debug bool, wg *sync.WaitGroup) error {
+	// Add to the WaitGroup when the goroutine starts and done when exits
+	defer wg.Done()
+	wg.Add(1)
+	// Update the status column of the task table for the given ID
+	_, err := db.Exec("UPDATE task SET executedAt = ? WHERE ID = ?", executedAt, id)
 	if err != nil {
 		if debug {
 			log.Println("Error DBTask SetTaskExecutedAt: ", err)
