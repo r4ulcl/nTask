@@ -52,6 +52,15 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 		if verbose {
 			log.Println("HandleCallback { \"error\" : \"Error UpdateTask: " + err.Error() + "\"}")
 		}
+		// Set the task as running if its pending
+		err = database.SetTaskStatus(db, result.ID, "failed", verbose, debug, wg)
+		if err != nil {
+			if verbose {
+				log.Println("HandleCallback { \"error\" : \"Error SetTaskStatus: " + err.Error() + "\"}")
+			}
+			http.Error(w, "{ \"error\" : \"Error SetTaskStatus: "+err.Error()+"\"}", http.StatusBadRequest)
+			return
+		}
 		http.Error(w, "{ \"error\" : \"Error UpdateTask: "+err.Error()+"\"}", http.StatusBadRequest)
 
 		return
