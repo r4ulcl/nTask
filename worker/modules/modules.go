@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/r4ulcl/nTask/globalstructs"
 	"github.com/r4ulcl/nTask/worker/utils"
@@ -176,4 +177,50 @@ func SaveStringToFile(filename string, content string) error {
 
 	fmt.Printf("String saved to file: %s\n", filename)
 	return nil
+}
+
+// processTask is a helper function that processes the given task in the background.
+// It sets the worker status to indicate that it is currently working on the task.
+// It calls the ProcessModule function to execute the task's module.
+// If an error occurs, it sets the task status to "failed".
+// Otherwise, it sets the task status to "done" and assigns the output of the module to the task.
+// Finally, it calls the CallbackTaskMessage function to send the task result to the configured callback endpoint.
+// After completing the task, it resets the worker status to indicate that it is no longer working.
+func ProcessTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *globalstructs.Task, verbose, debug bool, wgWebSocket *sync.WaitGroup) {
+	//Remove one from working threads
+	sustract1IddleThreads(status)
+
+	//Add one from working threads
+	defer add1IddleThreads(status)
+
+	if verbose {
+		log.Println("Start processing task", task.ID, " workCount: ", status.IddleThreads)
+	}
+
+	err := ProcessModule(task, config, status, task.ID, verbose, debug)
+	if err != nil {
+		log.Println("Error ProcessModule:", err)
+		task.Status = "failed"
+	} else {
+		task.Status = "done"
+	}
+
+	// While manager doesnt responds loop
+	for {
+		err = utils.CallbackTaskMessage(config, task, verbose, debug, wgWebSocket)
+		if err == nil {
+			break
+		} else {
+			time.Sleep(time.Second * 10)
+		}
+	}
+
+}
+
+func add1IddleThreads(status *globalstructs.WorkerStatus) {
+	status.IddleThreads += 1
+}
+
+func sustract1IddleThreads(status *globalstructs.WorkerStatus) {
+	status.IddleThreads -= 1
 }

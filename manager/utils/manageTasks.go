@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/r4ulcl/nTask/manager/database"
 )
@@ -23,15 +24,13 @@ func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *syn
 			log.Println(err.Error())
 		}
 
-		//log.Println(len(tasks))
-		//log.Println(len(workers))
+		if debug {
+			log.Println("tasks", len(tasks))
+			log.Println("workers", len(workers))
+		}
 
 		// if there are tasks
 		if len(tasks) > 0 && len(workers) > 0 {
-			if debug {
-				log.Println("len(tasks)", len(tasks))
-				log.Println("len(workers)", len(workers))
-			}
 			for _, task := range tasks {
 				for _, worker := range workers {
 					// if WorkerName not send or set this worker, just sendAddTask
@@ -54,6 +53,8 @@ func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *syn
 					break
 				}
 			}
+		} else {
+			time.Sleep(time.Second * 1)
 		}
 	}
 }

@@ -1,19 +1,24 @@
 package utils
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/gorilla/websocket"
+)
 
 type ManagerConfig struct {
-	Users      map[string]string `json:"users"`
-	Workers    map[string]string `json:"workers"`
-	Port       string            `json:"port"`
-	DBUsername string            `json:"dbUsername"`
-	DBPassword string            `json:"dbPassword"`
-	DBHost     string            `json:"dbHost"`
-	DBPort     string            `json:"dbPort"`
-	DBDatabase string            `json:"dbDatabase"`
-	DiskPath   string            `json:"diskPath"`
-	CertFolder string            `json:"certFolder"`
-	ClientHTTP *http.Client      `json:"clientHTTP"`
+	Users      map[string]string          `json:"users"`
+	Workers    map[string]string          `json:"workers"`
+	Port       string                     `json:"port"`
+	DBUsername string                     `json:"dbUsername"`
+	DBPassword string                     `json:"dbPassword"`
+	DBHost     string                     `json:"dbHost"`
+	DBPort     string                     `json:"dbPort"`
+	DBDatabase string                     `json:"dbDatabase"`
+	DiskPath   string                     `json:"diskPath"`
+	CertFolder string                     `json:"certFolder"`
+	ClientHTTP *http.Client               `json:"clientHTTP"`
+	WebSockets map[string]*websocket.Conn `json:"webSockets"`
 }
 
 /*

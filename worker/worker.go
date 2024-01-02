@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -90,6 +91,91 @@ func getDockerDomain(internalIP string) (string, error) {
 	return dockerDomain, nil
 }
 
+func getMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, verbose, debug bool, wgWebSocket *sync.WaitGroup) {
+	for {
+		response := globalstructs.WebsocketMessage{
+			Type: "",
+			Json: "",
+		}
+
+		messageType, p, err := config.Conn.ReadMessage()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		var msg globalstructs.WebsocketMessage
+		err = json.Unmarshal(p, &msg)
+		if err != nil {
+			log.Println("Error decoding JSON:", err)
+			continue
+		}
+
+		switch msg.Type {
+
+		case "status":
+			log.Println("msg.Type", msg.Type)
+			jsonData, err := json.Marshal(status)
+			if err != nil {
+				response.Type = "FAILED"
+			} else {
+				response.Type = "status"
+				response.Json = string(jsonData)
+			}
+
+			if debug {
+				// Print the JSON data
+				log.Println(string(jsonData))
+			}
+
+		case "addTask":
+			log.Println("msg.Type", msg.Type)
+			var requestTask globalstructs.Task
+			err = json.Unmarshal([]byte(msg.Json), &requestTask)
+			if err != nil {
+				log.Println("addWorker Unmarshal error: ", err)
+			}
+			// if executing task skip and return error
+			if status.IddleThreads <= 0 {
+				response.Type = "FAILED"
+
+				requestTask.Status = "failed"
+			} else {
+				// Process task in background
+				log.Println("ProcessTask")
+				go api.ProcessTask(status, config, &requestTask, verbose, debug, wgWebSocket)
+				response.Type = "OK"
+				requestTask.Status = "running"
+			}
+
+			//return task
+			jsonData, err := json.Marshal(requestTask)
+			if err != nil {
+				log.Println("Marshal error: ", err)
+			}
+			response.Json = string(jsonData)
+
+		}
+
+		if debug {
+			fmt.Printf("Received message type: %s\n", msg.Type)
+			fmt.Printf("Received message json: %s\n", msg.Json)
+		}
+
+		if response.Type != "" {
+
+			jsonData, err := json.Marshal(response)
+			if err != nil {
+				log.Println("Marshal error: ", err)
+			}
+			err = config.Conn.WriteMessage(messageType, jsonData)
+			if err != nil {
+				log.Println("error WriteMessage", err)
+			}
+		}
+	}
+}
+
 func checkIPMiddleware(allowedIP string, verbose, debug bool) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -135,7 +221,10 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 		log.Fatal("Error loading config file: ", err)
 	}
 
+	var wgWebSocket sync.WaitGroup
+
 	status := globalstructs.WorkerStatus{
+		Name:         config.Name,
 		IddleThreads: config.IddleThreads,
 		WorkingIDs:   make(map[string]int),
 	}
@@ -154,7 +243,7 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 		fmt.Println("Executing cleanup function...")
 
 		//delete worker
-		err := utils.DeleteWorker(config, verbose, debug)
+		err := utils.DeleteWorker(config, verbose, debug, &wgWebSocket)
 		if err != nil {
 			log.Println("Error worker: ", err)
 		}
@@ -176,19 +265,32 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 	}
 	// Loop until connects
 	for {
-		err = utils.AddWorker(config, verbose, debug)
+		conn, err := utils.CreateWebsocket(config, verbose, debug)
 		if err != nil {
 			if verbose {
 				log.Println("Error worker: ", err)
 			}
 		} else {
-			if verbose {
-				log.Println("Worker connected to manager. ")
+			config.Conn = conn
+
+			err = utils.AddWorker(config, verbose, debug, &wgWebSocket)
+			if err != nil {
+				if verbose {
+					log.Println("Error worker: ", err)
+				}
+			} else {
+				if verbose {
+					log.Println("Worker connected to manager. ")
+				}
+				break
 			}
-			break
 		}
 		time.Sleep(time.Second * 5)
 	}
+
+	go getMessage(config, &status, verbose, debug, &wgWebSocket)
+
+	go utils.RecreateConnection(config, verbose, debug, &wgWebSocket)
 
 	router := mux.NewRouter()
 
@@ -200,45 +302,55 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 		startSwaggerWeb(router, verbose, debug)
 	}
 
-	router.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleGetStatus(w, r, &status, config, verbose, debug)
-	}).Methods("GET") // check worker status
+	/*
+			router.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+				api.HandleGetStatus(w, r, &status, config, verbose, debug)
+			}).Methods("GET") // check worker status
 
-	// Task
-	router.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskPost(w, r, &status, config, verbose, debug)
-	}).Methods("POST") // Add task
+			// Task
+			router.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+				api.HandleTaskPost(w, r, &status, config, verbose, debug)
+			}).Methods("POST") // Add task
 
-	router.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskDelete(w, r, &status, config, verbose, debug)
-	}).Methods("DELETE") // delete task
+			router.HandleFunc("/task/{ID}", func(w http.ResponseWriter, r *http.Request) {
+				api.HandleTaskDelete(w, r, &status, config, verbose, debug)
+			}).Methods("DELETE") // delete task
 
-	// Middleware to modify server response headers
-	router.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Modify the server response headers here
-			w.Header().Set("Server", "Apache")
 
-			// Call the next handler
-			next.ServeHTTP(w, r)
+		// Middleware to modify server response headers
+		router.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Modify the server response headers here
+				w.Header().Set("Server", "Apache")
+
+				// Call the next handler
+				next.ServeHTTP(w, r)
+			})
 		})
-	})
 
-	http.Handle("/", router)
+		http.Handle("/", router)
 
-	// Set string for the port
-	addr := fmt.Sprintf(":%s", config.Port)
-	if debug {
-		log.Println(addr)
-	}
-
-	// if there is cert is HTTPS
-	if config.CertFolder != "" {
-		log.Fatal(http.ListenAndServeTLS(addr, config.CertFolder+"/cert.pem", config.CertFolder+"/key.pem", router))
-	} else {
-		err = http.ListenAndServe(addr, nil)
-		if err != nil {
-			log.Fatal(err)
+		// Set string for the port
+		addr := fmt.Sprintf(":%s", config.Port)
+		if debug {
+			log.Println(addr)
 		}
-	}
+
+		// if there is cert is HTTPS
+		if config.CertFolder != "" {
+			log.Fatal(http.ListenAndServeTLS(addr, config.CertFolder+"/cert.pem", config.CertFolder+"/key.pem", router))
+		} else {
+			err = http.ListenAndServe(addr, nil)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	*/
+	mainloop()
+}
+
+func mainloop() {
+	exitSignal := make(chan os.Signal)
+	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM)
+	<-exitSignal
 }

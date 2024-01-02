@@ -1,33 +1,32 @@
 package utils
 
 import (
-	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
 	"sync"
 	"time"
 
+	"github.com/gorilla/websocket"
 	globalstructs "github.com/r4ulcl/nTask/globalstructs"
 	"github.com/r4ulcl/nTask/manager/database"
 )
 
 // VerifyWorkersLoop checks and sets if the workers are UP infinitely.
-func VerifyWorkersLoop(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup) {
+func VerifyWorkersLoop(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg, wgWebSocket *sync.WaitGroup) {
 	for {
-		go verifyWorkers(db, config, verbose, debug, wg)
+		go verifyWorkers(db, config, verbose, debug, wg, wgWebSocket)
 		time.Sleep(5 * time.Second)
 	}
 }
 
 // verifyWorkers checks and sets if the workers are UP.
-func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup) {
+func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg, wgWebSocket *sync.WaitGroup) {
 	// Get all UP workers from the database
 	workers, err := database.GetWorkerUP(db, verbose, debug)
 	if err != nil {
@@ -36,7 +35,7 @@ func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *s
 
 	// Verify each worker
 	for _, worker := range workers {
-		err := verifyWorker(db, config, &worker, verbose, debug, wg)
+		err := verifyWorker(db, config, &worker, verbose, debug, wg, wgWebSocket)
 		if err != nil {
 			log.Print("verifyWorker ", err)
 		}
@@ -44,57 +43,35 @@ func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *s
 }
 
 // verifyWorker checks and sets if the worker is UP.
-func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
-	var workerURL string
-	if transport, ok := config.ClientHTTP.Transport.(*http.Transport); ok {
-		if transport.TLSClientConfig != nil {
-			workerURL = "https://" + worker.IP + ":" + worker.Port + "/status"
-		} else {
-			workerURL = "http://" + worker.IP + ":" + worker.Port + "/status"
-		}
-	} else {
-		workerURL = "http://" + worker.IP + ":" + worker.Port + "/status"
-	}
-	if debug {
-		log.Println("workerURL:", workerURL)
-	}
-	// Create an HTTP client and send a GET request to workerURL/status
+func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, verbose, debug bool, wg, wgWebSocket *sync.WaitGroup) error {
+	defer wgWebSocket.Done()
+	wgWebSocket.Add(1)
+	conn := config.WebSockets[worker.Name]
+	if conn == nil {
+		delete(config.WebSockets, worker.Name)
 
-	req, err := http.NewRequest("GET", workerURL, nil)
-	if err != nil {
-		if debug {
-			log.Println("Failed to create request to:", workerURL, " error:", err)
-			log.Println("Delete worker:", worker.Name)
+		err := database.SetWorkerUPto(false, db, worker, verbose, debug, wg)
+		if err != nil {
+			return err
 		}
 
-		// If there is an error in creating the request, delete the worker from the database
-		err := database.RmWorkerName(db, worker.Name, verbose, debug, wg)
+		// Set as 'pending' all workers tasks to REDO
+		err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
 		if err != nil {
 			return err
 		}
 		return err
 	}
 
-	req.Header.Set("Authorization", worker.OauthToken)
-
-	resp, err := config.ClientHTTP.Do(req)
-	if err != nil {
-		if debug {
-			log.Println("Error making request:", err)
-		}
-		// If there is an error in making the request, assume worker is offline
-		count, err := database.GetWorkerDownCount(db, worker, verbose, debug)
-		if err != nil {
-			return err
-		}
-		if count >= 3 {
-			// If worker has been offline for 3 or more cycles, set it as offline in database
-			err = database.SetWorkerUPto(false, db, worker, verbose, debug, wg)
-			if err != nil {
-				return err
+	/*
+		if err := conn.WriteMessage(websocket.TextMessage, []byte("Hello, WebSocket!")); err != nil {
+			if debug {
+				fmt.Println("Error writing message:", err)
 			}
-			// Reset the count to 0
-			err = database.SetWorkerDownCount(0, db, worker, verbose, debug, wg)
+
+			delete(config.WebSockets, worker.Name)
+
+			err = database.SetWorkerUPto(false, db, worker, verbose, debug, wg)
 			if err != nil {
 				return err
 			}
@@ -104,47 +81,127 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 			if err != nil {
 				return err
 			}
+			return err
+
+		}*/
+
+	msg := globalstructs.WebsocketMessage{
+		Type: "status",
+		Json: "",
+	}
+
+	jsonData, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	err = conn.WriteMessage(websocket.TextMessage, jsonData)
+	if err != nil {
+		return err
+	}
+
+	/*
+
+		var workerURL string
+		if transport, ok := config.ClientHTTP.Transport.(*http.Transport); ok {
+			if transport.TLSClientConfig != nil {
+				workerURL = "https://" + worker.IP + ":" + worker.Port + "/status"
+			} else {
+				workerURL = "http://" + worker.IP + ":" + worker.Port + "/status"
+			}
 		} else {
-			// If worker has been offline for less than 3 cycles, increment the count
-			err = database.AddWorkerDownCount(db, worker, verbose, debug, wg)
+			workerURL = "http://" + worker.IP + ":" + worker.Port + "/status"
+		}
+		if debug {
+			log.Println("workerURL:", workerURL)
+		}
+		// Create an HTTP client and send a GET request to workerURL/status
+
+		req, err := http.NewRequest("GET", workerURL, nil)
+		if err != nil {
+			if debug {
+				log.Println("Failed to create request to:", workerURL, " error:", err)
+				log.Println("Delete worker:", worker.Name)
+			}
+
+			// If there is an error in creating the request, delete the worker from the database
+			err := database.RmWorkerName(db, worker.Name, verbose, debug, wg)
 			if err != nil {
 				return err
 			}
+			return err
 		}
-		return err
-	}
-	defer resp.Body.Close()
 
-	// if response is not 200 error
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Error: Unexpected status code:", resp.Status)
-	}
-	// If there is no error in making the request, assume worker is online
-	err = database.SetWorkerUPto(true, db, worker, verbose, debug, wg)
-	if err != nil {
-		return err
-	}
+		req.Header.Set("Authorization", worker.OauthToken)
 
-	// Read the response body into a byte slice
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("Error reading response body:", err)
-	}
+		resp, err := config.ClientHTTP.Do(req)
+		if err != nil {
+			if debug {
+				log.Println("Error making request:", err)
+			}
+			// If there is an error in making the request, assume worker is offline
+			count, err := database.GetWorkerDownCount(db, worker, verbose, debug)
+			if err != nil {
+				return err
+			}
+			if count >= 3 {
+				// If worker has been offline for 3 or more cycles, set it as offline in database
+				err = database.SetWorkerUPto(false, db, worker, verbose, debug, wg)
+				if err != nil {
+					return err
+				}
+				// Reset the count to 0
+				err = database.SetWorkerDownCount(0, db, worker, verbose, debug, wg)
+				if err != nil {
+					return err
+				}
 
-	// Unmarshal the JSON into a TaskResponse struct
-	var status globalstructs.WorkerStatus
-	err = json.Unmarshal(body, &status)
-	if err != nil {
-		return fmt.Errorf("Error unmarshalling JSON:", err)
-	}
+				// Set as 'pending' all workers tasks to REDO
+				err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
+				if err != nil {
+					return err
+				}
+			} else {
+				// If worker has been offline for less than 3 cycles, increment the count
+				err = database.AddWorkerDownCount(db, worker, verbose, debug, wg)
+				if err != nil {
+					return err
+				}
+			}
+			return err
+		}
+		defer resp.Body.Close()
 
-	// If worker status is not the same as stored in the DB, update the DB
-	if status.IddleThreads != worker.IddleThreads {
-		err := database.SetIddleThreadsTo(status.IddleThreads, db, worker.Name, verbose, debug, wg)
+		// if response is not 200 error
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("Error: Unexpected status code:", resp.Status)
+		}
+		// If there is no error in making the request, assume worker is online
+		err = database.SetWorkerUPto(true, db, worker, verbose, debug, wg)
 		if err != nil {
 			return err
 		}
-	}
+
+		// Read the response body into a byte slice
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("Error reading response body:", err)
+		}
+
+		// Unmarshal the JSON into a TaskResponse struct
+		var status globalstructs.WorkerStatus
+		err = json.Unmarshal(body, &status)
+		if err != nil {
+			return fmt.Errorf("Error unmarshalling JSON:", err)
+		}
+
+		// If worker status is not the same as stored in the DB, update the DB
+		if status.IddleThreads != worker.IddleThreads {
+			err := database.SetIddleThreadsTo(status.IddleThreads, db, worker.Name, verbose, debug, wg)
+			if err != nil {
+				return err
+			}
+		}*/
 
 	return nil
 
@@ -152,12 +209,70 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 
 // SendAddTask sends a request to a worker to add a task.
 func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup) error {
+	log.Println("SendAddTask")
 	//Sustract 1 Iddle Thread in worker
 	err := database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug, wg)
 	if err != nil {
 		return err
 	}
 	// add 1 on callback
+
+	conn := config.WebSockets[worker.Name]
+	if conn == nil {
+		delete(config.WebSockets, worker.Name)
+
+		err := database.SetWorkerUPto(false, db, worker, verbose, debug, wg)
+		if err != nil {
+			return err
+		}
+
+		// Set as 'pending' all workers tasks to REDO
+		err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
+		if err != nil {
+			return err
+		}
+		return err
+	}
+
+	// Tast to json
+	// Convert the struct to JSON
+	jsonDataTask, err := json.Marshal(task)
+	if err != nil {
+		return err
+	}
+
+	msg := globalstructs.WebsocketMessage{
+		Type: "addTask",
+		Json: string(jsonDataTask),
+	}
+
+	jsonData, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	err = conn.WriteMessage(websocket.TextMessage, jsonData)
+	if err != nil {
+		return err
+	}
+
+	// Set task as executed
+	err = database.SetTaskExecutedAtNow(db, task.ID, verbose, debug, wg)
+	if err != nil {
+		return fmt.Errorf("Error SetTaskExecutedAt in request:", err)
+	}
+
+	// Set workerName in DB and in object
+	err = database.SetTaskWorkerName(db, task.ID, worker.Name, verbose, debug, wg)
+	if err != nil {
+		return fmt.Errorf("Error SetWorkerNameTask in request:", err)
+	}
+
+	if verbose {
+		log.Println("Task send successfully")
+	}
+
+	/*/ --------------------------------------------------------------------------------------------------------
 
 	var workerURL string
 	if transport, ok := config.ClientHTTP.Transport.(*http.Transport); ok {
@@ -260,7 +375,7 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 
 		}
 	}
-
+	*/
 	return nil
 }
 

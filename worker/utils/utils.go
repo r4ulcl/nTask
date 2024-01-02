@@ -9,6 +9,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
+	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 // GenerateToken Generate oauth
@@ -89,4 +93,33 @@ func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose, debug 
 	}
 
 	return client, nil
+}
+
+func RecreateConnection(config *WorkerConfig, verbose, debug bool, wgWebSocket *sync.WaitGroup) {
+	for {
+		time.Sleep(5 * time.Second) // Adjust the interval based on your requirements
+		if err := config.Conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second)); err != nil {
+			conn, err := CreateWebsocket(config, verbose, debug)
+			if err != nil {
+				if verbose {
+					log.Println("Error CreateWebsocket: ", err)
+				}
+			} else {
+				config.Conn = conn
+
+				err = AddWorker(config, verbose, debug, wgWebSocket)
+				if err != nil {
+					if verbose {
+						log.Println("Error worker: ", err)
+					}
+				} else {
+					if verbose {
+						log.Println("Worker connected to manager. ")
+					}
+					break
+				}
+
+			}
+		}
+	}
 }

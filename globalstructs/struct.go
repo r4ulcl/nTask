@@ -1,5 +1,7 @@
 package globalstructs
 
+import "github.com/gorilla/websocket"
+
 // package for structs used in manager and workers
 // in case I want to separate the project one day
 
@@ -57,10 +59,23 @@ type Worker struct {
 
 // WorkerStatus struct to process the worker status response.
 type WorkerStatus struct {
+	Name         string         `json:"name"`
 	IddleThreads int            `json:"IddleThreads"`
 	WorkingIDs   map[string]int `json:"workingIds"`
 }
 
 type Error struct {
 	Error string `json:"error"`
+}
+
+// websockets
+
+var Upgrader = websocket.Upgrader{
+	ReadBufferSize:  4096, // 4 kilobytes
+	WriteBufferSize: 4096, // 4 kilobytes
+}
+
+type WebsocketMessage struct {
+	Type string `json:"type"`
+	Json string `json:"json"`
 }

@@ -41,66 +41,11 @@ func HandleCallback(w http.ResponseWriter, r *http.Request, config *utils.Manage
 		return
 	}
 
-	if debug {
-		log.Println(result)
-		log.Println("Received result (ID: ", result.ID, " from : ", result.WorkerName, " with command: ", result.Commands)
-	}
-
-	// Update task with the worker one
-	err = database.UpdateTask(db, result, verbose, debug, wg)
+	err = callback(result, config, db, verbose, debug, wg)
 	if err != nil {
-		if verbose {
-			log.Println("HandleCallback { \"error\" : \"Error UpdateTask: " + err.Error() + "\"}")
-		}
-		// Set the task as running if its pending
-		err = database.SetTaskStatus(db, result.ID, "failed", verbose, debug, wg)
-		if err != nil {
-			if verbose {
-				log.Println("HandleCallback { \"error\" : \"Error SetTaskStatus: " + err.Error() + "\"}")
-			}
-			http.Error(w, "{ \"error\" : \"Error SetTaskStatus: "+err.Error()+"\"}", http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "{ \"error\" : \"Error UpdateTask: "+err.Error()+"\"}", http.StatusBadRequest)
-
+		http.Error(w, "{ \"error\" : \"Error HandleCallback: "+err.Error()+"\"}", http.StatusBadRequest)
 		return
 	}
-
-	// force set task done
-	// Set the task as running if its pending
-	err = database.SetTaskStatus(db, result.ID, "done", verbose, debug, wg)
-	if err != nil {
-		if verbose {
-			log.Println("HandleCallback { \"error\" : \"Error SetTaskStatus: " + err.Error() + "\"}")
-		}
-		http.Error(w, "{ \"error\" : \"Error SetTaskStatus: "+err.Error()+"\"}", http.StatusBadRequest)
-		return
-	}
-
-	// if callbackURL is not empty send the request to the client
-	if result.CallbackURL != "" {
-		utils.CallbackUserTaskMessage(config, &result, verbose, debug)
-	}
-
-	// if path not empty
-	if config.DiskPath != "" {
-		//get the task from DB to get updated
-		task, err := database.GetTask(db, result.ID, verbose, debug)
-		if err != nil {
-			log.Println("Error: ", err)
-		}
-		err = utils.SaveTaskToDisk(task, config.DiskPath, verbose, debug)
-		if err != nil {
-			log.Println("Error: ", err)
-		}
-	}
-
-	// Handle the result as needed
-
-	//Add 1 to Iddle thread in worker
-	// add 1 when finish
-	database.AddWorkerIddleThreads1(db, result.WorkerName, verbose, debug, wg)
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
@@ -150,4 +95,68 @@ func HandleStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerC
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, string(jsonData))
+}
+
+func callback(result globalstructs.Task, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) error {
+
+	if debug {
+		log.Println(result)
+		log.Println("Received result (ID: ", result.ID, " from : ", result.WorkerName, " with command: ", result.Commands)
+	}
+
+	// Update task with the worker one
+	err := database.UpdateTask(db, result, verbose, debug, wg)
+	if err != nil {
+		if verbose {
+			log.Println("HandleCallback { \"error\" : \"Error UpdateTask: " + err.Error() + "\"}")
+		}
+		// Set the task as running if its pending
+		err = database.SetTaskStatus(db, result.ID, "failed", verbose, debug, wg)
+		if err != nil {
+			if verbose {
+				log.Println("HandleCallback { \"error\" : \"Error SetTaskStatus: " + err.Error() + "\"}")
+			}
+			return err
+		}
+		return err
+	}
+
+	// force set task done
+	// Set the task as running if its pending
+	err = database.SetTaskStatus(db, result.ID, "done", verbose, debug, wg)
+	if err != nil {
+		if verbose {
+			log.Println("HandleCallback { \"error\" : \"Error SetTaskStatus: " + err.Error() + "\"}")
+		}
+		return err
+	}
+
+	// if callbackURL is not empty send the request to the client
+	if result.CallbackURL != "" {
+		utils.CallbackUserTaskMessage(config, &result, verbose, debug)
+	}
+
+	// if path not empty
+	if config.DiskPath != "" {
+		//get the task from DB to get updated
+		task, err := database.GetTask(db, result.ID, verbose, debug)
+		if err != nil {
+			return err
+		}
+		err = utils.SaveTaskToDisk(task, config.DiskPath, verbose, debug)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Handle the result as needed
+
+	//Add 1 to Iddle thread in worker
+	// add 1 when finish
+	err = database.AddWorkerIddleThreads1(db, result.WorkerName, verbose, debug, wg)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

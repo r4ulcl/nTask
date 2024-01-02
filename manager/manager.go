@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	"github.com/r4ulcl/nTask/manager/api"
 	"github.com/r4ulcl/nTask/manager/database"
 	"github.com/r4ulcl/nTask/manager/utils"
@@ -45,6 +46,9 @@ func loadManagerConfig(filename string, verbose, debug bool) (*utils.ManagerConf
 		return nil, fmt.Errorf("error unmarshaling JSON: %w", err)
 	}
 
+	// init WebSockets map
+	config.WebSockets = make(map[string]*websocket.Conn)
+
 	// Return nil instead of &config when error occurs
 	return &config, nil
 }
@@ -59,6 +63,10 @@ func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.D
 		api.HandleWorkerPost(w, r, config, db, verbose, debug, wg)
 	}).Methods("POST") // add worker
 
+	workers.HandleFunc("/websocket", func(w http.ResponseWriter, r *http.Request) {
+		api.HandleWorkerPostWebsocket(w, r, config, db, verbose, debug, wg)
+	})
+
 	workers.HandleFunc("/{NAME}", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleWorkerDeleteName(w, r, config, db, verbose, debug, wg)
 	}).Methods("DELETE") // delete worker
@@ -66,6 +74,7 @@ func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.D
 	workers.HandleFunc("/{NAME}", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleWorkerStatus(w, r, config, db, verbose, debug)
 	}).Methods("GET") // check status 1 worker
+
 }
 
 func addHandleTask(task *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
@@ -120,6 +129,7 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 
 	// create waitGroups for DB
 	var wg sync.WaitGroup
+	var wgWebSocket sync.WaitGroup
 
 	// Start DB
 	var db *sql.DB
@@ -150,7 +160,7 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 	}
 
 	// verify status workers infinite
-	go utils.VerifyWorkersLoop(db, config, verbose, debug, &wg)
+	go utils.VerifyWorkersLoop(db, config, verbose, debug, &wg, &wgWebSocket)
 
 	// manage task, routine to send task to iddle workers
 	go utils.ManageTasks(config, db, verbose, debug, &wg)
