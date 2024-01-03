@@ -122,7 +122,7 @@ func callback(result globalstructs.Task, config *utils.ManagerConfig, db *sql.DB
 	}
 
 	// force set task done
-	// Set the task as running if its pending
+	// Set the task as done
 	err = database.SetTaskStatus(db, result.ID, "done", verbose, debug, wg)
 	if err != nil {
 		if verbose {

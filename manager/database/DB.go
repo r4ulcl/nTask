@@ -15,13 +15,9 @@ import (
 var sqlInit = `
 CREATE TABLE IF NOT EXISTS worker (
     name VARCHAR(255) PRIMARY KEY,
-    ip VARCHAR(255) NOT NULL,
-    port VARCHAR(255) NOT NULL,
-    oauthToken VARCHAR(255) NOT NULL,
     IddleThreads INT,
     up BOOLEAN,
-    downCount INT,
-    UNIQUE (ip, port)
+    downCount INT
 );
 
 CREATE TABLE IF NOT EXISTS task (

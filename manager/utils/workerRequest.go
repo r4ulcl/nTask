@@ -123,9 +123,6 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 			return err
 		}
 		return err
-	} else {
-		log.Println("Everythin ok")
-
 	}
 
 	/*
@@ -411,57 +408,110 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 }
 
 // SendDeleteTask sends a request to a worker to stop and delete a task.
-func SendDeleteTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup) error {
-	var workerURL string
-	if transport, ok := config.ClientHTTP.Transport.(*http.Transport); ok {
-		if transport.TLSClientConfig != nil {
-			workerURL = "https://" + worker.IP + ":" + worker.Port + "/task/" + task.ID
+func SendDeleteTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) error {
+	conn := config.WebSockets[worker.Name]
+	if conn == nil {
+		delete(config.WebSockets, worker.Name)
+
+		err := database.SetWorkerUPto(false, db, worker, verbose, debug, wg)
+		if err != nil {
+			return err
+		}
+
+		// Set as 'pending' all workers tasks to REDO
+		err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
+		if err != nil {
+			return err
+		}
+		return err
+	}
+
+	// Tast to json
+	// Convert the struct to JSON
+	jsonDataTask, err := json.Marshal(task)
+	if err != nil {
+		return err
+	}
+
+	msg := globalstructs.WebsocketMessage{
+		Type: "addTask",
+		Json: string(jsonDataTask),
+	}
+
+	jsonData, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	err = SendMessage(conn, jsonData, verbose, debug, writeLock)
+	if err != nil {
+		log.Println("SendMessage error: ", err)
+	}
+
+	// Set the task and worker as not working
+	err = database.SetTaskStatus(db, task.ID, "deleted", verbose, debug, wg)
+	if err != nil {
+		return err
+	}
+	err = database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug, wg)
+	if err != nil {
+		return err
+	}
+
+	if verbose {
+		log.Println("Delete Task send successfully")
+	}
+	/*
+		var workerURL string
+		if transport, ok := config.ClientHTTP.Transport.(*http.Transport); ok {
+			if transport.TLSClientConfig != nil {
+				workerURL = "https://" + worker.IP + ":" + worker.Port + "/task/" + task.ID
+			} else {
+				workerURL = "http://" + worker.IP + ":" + worker.Port + "/task/" + task.ID
+			}
 		} else {
 			workerURL = "http://" + worker.IP + ":" + worker.Port + "/task/" + task.ID
 		}
-	} else {
-		workerURL = "http://" + worker.IP + ":" + worker.Port + "/task/" + task.ID
-	}
 
-	// Create a new DELETE request
-	req, err := http.NewRequest("DELETE", workerURL, nil)
-	if err != nil {
-		return err
-	}
-
-	// Add Authorization header
-	req.Header.Set("Authorization", worker.OauthToken)
-
-	// Specify the content type as JSON
-	req.Header.Set("Content-Type", "application/json")
-
-	// Send the request
-
-	resp, err := config.ClientHTTP.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Check the response status
-	if resp.StatusCode == http.StatusOK {
-		if debug {
-			log.Println("POST request was successful")
-		}
-		// Set the task and worker as not working
-		err := database.SetTaskStatus(db, task.ID, "deleted", verbose, debug, wg)
+		// Create a new DELETE request
+		req, err := http.NewRequest("DELETE", workerURL, nil)
 		if err != nil {
 			return err
 		}
-		err = database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug, wg)
+
+		// Add Authorization header
+		req.Header.Set("Authorization", worker.OauthToken)
+
+		// Specify the content type as JSON
+		req.Header.Set("Content-Type", "application/json")
+
+		// Send the request
+
+		resp, err := config.ClientHTTP.Do(req)
 		if err != nil {
 			return err
 		}
-	} else {
-		message := "POST request failed with status:" + resp.Status + ". worker problably working"
-		return fmt.Errorf(message)
-	}
+		defer resp.Body.Close()
 
+		// Check the response status
+		if resp.StatusCode == http.StatusOK {
+			if debug {
+				log.Println("POST request was successful")
+			}
+			// Set the task and worker as not working
+			err := database.SetTaskStatus(db, task.ID, "deleted", verbose, debug, wg)
+			if err != nil {
+				return err
+			}
+			err = database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug, wg)
+			if err != nil {
+				return err
+			}
+		} else {
+			message := "POST request failed with status:" + resp.Status + ". worker problably working"
+			return fmt.Errorf(message)
+		}
+	*/
 	return nil
 }
 

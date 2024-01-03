@@ -1,0 +1,19 @@
+{
+    "go.useLanguageServer": true,
+    "go.lintTool": "golangci-lint",
+    "go.lintOnSave": "package",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true,
+      "source.fixAll": true
+    },
+    "go.formatTool": "goimports",
+    "go.gopath": "${workspaceFolder}",
+    "go.goroot": "",
+    "go.toolsEnvVars": {"GO111MODULE": "on"},
+    "go.testFlags": ["-v"],
+    "go.toolsManagement.autoUpdate": true,
+    "go.autocompleteUnimportedPackages": true,
+    "go.inferGopath": true,
+    "go.buildOnSave": "workspace"
+  }
+  

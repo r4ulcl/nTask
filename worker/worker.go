@@ -55,9 +55,9 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 		os.Exit(0)
 	}(config)
 
-	if config.CertFolder != "" {
+	if config.CA != "" {
 		// Create an HTTP client with the custom TLS configuration
-		clientHTTP, err := utils.CreateTLSClientWithCACert(config.CertFolder+"/ca-cert.pem", verifyAltName, verbose, debug)
+		clientHTTP, err := utils.CreateTLSClientWithCACert(config.CA, verifyAltName, verbose, debug)
 		if err != nil {
 			fmt.Println("Error creating HTTP client:", err)
 			return

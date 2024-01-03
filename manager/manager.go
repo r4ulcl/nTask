@@ -77,7 +77,7 @@ func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.D
 
 }
 
-func addHandleTask(task *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
+func addHandleTask(task *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
 	// task
 	task.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleTaskGet(w, r, config, db, verbose, debug)
@@ -88,7 +88,7 @@ func addHandleTask(task *mux.Router, config *utils.ManagerConfig, db *sql.DB, ve
 	}).Methods("POST") // Add task
 
 	task.HandleFunc("/{ID}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskDelete(w, r, config, db, verbose, debug, wg)
+		api.HandleTaskDelete(w, r, config, db, verbose, debug, wg, writeLock)
 	}).Methods("DELETE") // Delete task
 
 	task.HandleFunc("/{ID}", func(w http.ResponseWriter, r *http.Request) {
@@ -136,8 +136,10 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 	for {
 		db, err = database.ConnectDB(config.DBUsername, config.DBPassword, config.DBHost, config.DBPort, config.DBDatabase, verbose, debug)
 		if err != nil {
-			log.Println("Error manager: ", err)
-			db.Close()
+			log.Fatal("Error manager: ", err)
+			if db != nil {
+				db.Close()
+			}
 			time.Sleep(time.Second * 5)
 		} else {
 			break
@@ -199,7 +201,7 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 	// Task
 	task := router.PathPrefix("/task").Subrouter()
 	task.Use(amw.Middleware)
-	addHandleTask(task, config, db, verbose, debug, &wg)
+	addHandleTask(task, config, db, verbose, debug, &wg, &writeLock)
 
 	// Middleware to modify server response headers
 	router.Use(func(next http.Handler) http.Handler {

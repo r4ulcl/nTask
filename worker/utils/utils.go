@@ -1,31 +1,14 @@
 package utils
 
 import (
-	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 )
-
-// GenerateToken Generate oauth
-func GenerateToken(length int, verbose, debug bool) (string, error) {
-	if length%2 != 0 {
-		return "", fmt.Errorf("token length must be even")
-	}
-
-	bytes := make([]byte, length/2)
-	_, err := rand.Read(bytes)
-	if err != nil {
-		return "", err
-	}
-
-	return hex.EncodeToString(bytes), nil
-}
 
 // CreateTLSClientWithCACert from cert.pem
 func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose, debug bool) (*http.Client, error) {
@@ -121,18 +104,6 @@ func LoadWorkerConfig(filename string, verbose, debug bool) (*WorkerConfig, erro
 			return &config, err
 		}
 		config.Name = hostname
-	}
-
-	// if OauthToken is empty create a new token
-	if config.OAuthToken == "" {
-		config.OAuthToken, err = GenerateToken(32, verbose, debug)
-		if err != nil {
-			if debug {
-				log.Println("Error generating OAuthToken:", err)
-			}
-			return &config, err
-		}
-		fmt.Println(config.OAuthToken)
 	}
 
 	// Print the values from the struct

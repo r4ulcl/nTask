@@ -49,9 +49,6 @@ type CommandSwagger struct {
 type Worker struct {
 	// Workers name (unique)
 	Name         string `json:"name"`
-	IP           string `json:"ip"`
-	Port         string `json:"port"`
-	OauthToken   string `json:"oauthToken"`
 	IddleThreads int    `json:"IddleThreads"`
 	UP           bool   `json:"up"`
 	DownCount    int    `json:"downCount"`

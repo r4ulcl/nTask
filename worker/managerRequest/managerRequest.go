@@ -62,8 +62,6 @@ func AddWorker(config *utils.WorkerConfig, verbose, debug bool, writeLock *sync.
 	// Create a Worker object with the provided configuration
 	worker := globalstructs.Worker{
 		Name:         config.Name,
-		Port:         config.Port,
-		OauthToken:   config.OAuthToken,
 		IddleThreads: config.IddleThreads,
 		UP:           true,
 	}
@@ -95,8 +93,6 @@ func DeleteWorker(config *utils.WorkerConfig, verbose, debug bool, writeLock *sy
 	// Create a Worker object with the provided configuration
 	worker := globalstructs.Worker{
 		Name:         config.Name,
-		Port:         config.Port,
-		OauthToken:   config.OAuthToken,
 		IddleThreads: config.IddleThreads,
 		UP:           true,
 	}
@@ -150,6 +146,10 @@ func CallbackTaskMessage(config *utils.WorkerConfig, task *globalstructs.Task, v
 	msg := globalstructs.WebsocketMessage{
 		Type: "callbackTask",
 		Json: string(payload),
+	}
+
+	if debug {
+		log.Println("msg callback:", msg)
 	}
 
 	jsonData, err := json.Marshal(msg)

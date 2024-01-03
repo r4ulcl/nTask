@@ -168,7 +168,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 // @Failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /task/{ID} [delete]
-func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
+func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
 	_, ok := r.Context().Value("username").(string)
 	if !ok {
 		http.Error(w, "{ \"error\" : \"Username not found\" }", http.StatusUnauthorized)
@@ -189,7 +189,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 		// Has a worker set, check if its running
 		if task.Status == "running" {
 			// If its runing send stop signal to worker
-			err = utils.SendDeleteTask(db, config, &worker, &task, verbose, debug, wg)
+			err = utils.SendDeleteTask(db, config, &worker, &task, verbose, debug, wg, writeLock)
 			if err != nil {
 				http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
 				return
