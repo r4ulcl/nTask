@@ -240,7 +240,7 @@ func AddWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool, wg *
 	defer wg.Done()
 	wg.Add(1)
 	if debug {
-		log.Println("AddWorkerIddleThreads1")
+		log.Println("AddWorkerIddleThreads1 worker name:", worker)
 	}
 	_, err := db.Exec("UPDATE worker SET IddleThreads = IddleThreads + 1 WHERE name = ?;",
 		worker)

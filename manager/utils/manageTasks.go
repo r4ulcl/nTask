@@ -54,7 +54,9 @@ func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *syn
 				}
 			}
 		} else {
-			time.Sleep(time.Second * 1)
+			if len(tasks) == 0 {
+				time.Sleep(time.Second * 1)
+			}
 		}
 	}
 }

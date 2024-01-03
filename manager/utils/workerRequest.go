@@ -35,6 +35,9 @@ func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *s
 
 	// Verify each worker
 	for _, worker := range workers {
+		if debug {
+			log.Println("verifyWorker", worker.Name)
+		}
 		err := verifyWorker(db, config, &worker, verbose, debug, wg, writeLock)
 		if err != nil {
 			log.Print("verifyWorker ", err)

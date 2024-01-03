@@ -5,14 +5,11 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"sync"
-	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 // GenerateToken Generate oauth
@@ -95,31 +92,58 @@ func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose, debug 
 	return client, nil
 }
 
-func RecreateConnection(config *WorkerConfig, verbose, debug bool, writeLock *sync.Mutex) {
-	for {
-		time.Sleep(1 * time.Second) // Adjust the interval based on your requirements
-		if err := config.Conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(1*time.Second)); err != nil {
-			conn, err := CreateWebsocket(config, verbose, debug)
-			if err != nil {
-				if verbose {
-					log.Println("Error CreateWebsocket: ", err)
-				}
-			} else {
-				config.Conn = conn
+func LoadWorkerConfig(filename string, verbose, debug bool) (*WorkerConfig, error) {
+	var config WorkerConfig
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		if debug {
+			log.Println("Error reading worker config file: ", err)
+		}
+		return &config, err
+	}
 
-				err = AddWorker(config, verbose, debug, writeLock)
-				if err != nil {
-					if verbose {
-						log.Println("Error worker: ", err)
-					}
-				} else {
-					if verbose {
-						log.Println("Worker connected to manager. ")
-					}
-					continue
-				}
+	err = json.Unmarshal(content, &config)
+	if err != nil {
+		if debug {
+			log.Println("Error unmarshalling worker config: ", err)
+		}
+		return &config, err
+	}
 
+	// if Name is empty use hostname
+	if config.Name == "" {
+		hostname := ""
+		hostname, err = os.Hostname()
+		if err != nil {
+			if debug {
+				log.Println("Error getting hostname:", err)
 			}
+			return &config, err
+		}
+		config.Name = hostname
+	}
+
+	// if OauthToken is empty create a new token
+	if config.OAuthToken == "" {
+		config.OAuthToken, err = GenerateToken(32, verbose, debug)
+		if err != nil {
+			if debug {
+				log.Println("Error generating OAuthToken:", err)
+			}
+			return &config, err
+		}
+		fmt.Println(config.OAuthToken)
+	}
+
+	// Print the values from the struct
+	if debug {
+		log.Println("Name:", config.Name)
+		log.Println("Tasks:")
+
+		for module, exec := range config.Modules {
+			log.Printf("  Module: %s, Exec: %s\n", module, exec)
 		}
 	}
+
+	return &config, nil
 }
