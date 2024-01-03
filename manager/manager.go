@@ -53,7 +53,7 @@ func loadManagerConfig(filename string, verbose, debug bool) (*utils.ManagerConf
 	return &config, nil
 }
 
-func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
+func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
 	// worker
 	workers.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleWorkerGet(w, r, config, db, verbose, debug)
@@ -64,7 +64,7 @@ func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.D
 	}).Methods("POST") // add worker
 
 	workers.HandleFunc("/websocket", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerPostWebsocket(w, r, config, db, verbose, debug, wg)
+		api.HandleWorkerPostWebsocket(w, r, config, db, verbose, debug, wg, writeLock)
 	})
 
 	workers.HandleFunc("/{NAME}", func(w http.ResponseWriter, r *http.Request) {
@@ -129,7 +129,7 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 
 	// create waitGroups for DB
 	var wg sync.WaitGroup
-	var wgWebSocket sync.WaitGroup
+	var writeLock sync.Mutex
 
 	// Start DB
 	var db *sql.DB
@@ -160,10 +160,10 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 	}
 
 	// verify status workers infinite
-	go utils.VerifyWorkersLoop(db, config, verbose, debug, &wg, &wgWebSocket)
+	go utils.VerifyWorkersLoop(db, config, verbose, debug, &wg, &writeLock)
 
 	// manage task, routine to send task to iddle workers
-	go utils.ManageTasks(config, db, verbose, debug, &wg)
+	go utils.ManageTasks(config, db, verbose, debug, &wg, &writeLock)
 
 	router := mux.NewRouter()
 
@@ -194,7 +194,7 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 	// Worker
 	workers := router.PathPrefix("/worker").Subrouter()
 	workers.Use(amw.Middleware)
-	addHandleWorker(workers, config, db, verbose, debug, &wg)
+	addHandleWorker(workers, config, db, verbose, debug, &wg, &writeLock)
 
 	// Task
 	task := router.PathPrefix("/task").Subrouter()

@@ -95,10 +95,10 @@ func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose, debug 
 	return client, nil
 }
 
-func RecreateConnection(config *WorkerConfig, verbose, debug bool, wgWebSocket *sync.WaitGroup) {
+func RecreateConnection(config *WorkerConfig, verbose, debug bool, writeLock *sync.Mutex) {
 	for {
-		time.Sleep(5 * time.Second) // Adjust the interval based on your requirements
-		if err := config.Conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second)); err != nil {
+		time.Sleep(1 * time.Second) // Adjust the interval based on your requirements
+		if err := config.Conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(1*time.Second)); err != nil {
 			conn, err := CreateWebsocket(config, verbose, debug)
 			if err != nil {
 				if verbose {
@@ -107,7 +107,7 @@ func RecreateConnection(config *WorkerConfig, verbose, debug bool, wgWebSocket *
 			} else {
 				config.Conn = conn
 
-				err = AddWorker(config, verbose, debug, wgWebSocket)
+				err = AddWorker(config, verbose, debug, writeLock)
 				if err != nil {
 					if verbose {
 						log.Println("Error worker: ", err)
@@ -116,7 +116,7 @@ func RecreateConnection(config *WorkerConfig, verbose, debug bool, wgWebSocket *
 					if verbose {
 						log.Println("Worker connected to manager. ")
 					}
-					break
+					continue
 				}
 
 			}

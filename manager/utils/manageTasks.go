@@ -9,7 +9,7 @@ import (
 	"github.com/r4ulcl/nTask/manager/database"
 )
 
-func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
+func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
 	// infinite loop eecuted with go routine
 	for {
 		// Get all tasks in order and if priority
@@ -35,7 +35,7 @@ func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *syn
 				for _, worker := range workers {
 					// if WorkerName not send or set this worker, just sendAddTask
 					if task.WorkerName == "" || task.WorkerName == worker.Name {
-						err = SendAddTask(db, config, &worker, &task, verbose, debug, wg)
+						err = SendAddTask(db, config, &worker, &task, verbose, debug, wg, writeLock)
 						if err != nil {
 							log.Println("Error SendAddTask", err.Error())
 							//time.Sleep(time.Second * 1)

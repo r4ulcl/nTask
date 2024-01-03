@@ -91,17 +91,19 @@ func getDockerDomain(internalIP string) (string, error) {
 	return dockerDomain, nil
 }
 
-func getMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, verbose, debug bool, wgWebSocket *sync.WaitGroup) {
+func getMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, verbose, debug bool, writeLock *sync.Mutex) {
 	for {
+
 		response := globalstructs.WebsocketMessage{
 			Type: "",
 			Json: "",
 		}
 
-		messageType, p, err := config.Conn.ReadMessage()
+		_, p, err := config.Conn.ReadMessage() //messageType
 		if err != nil {
 			log.Println(err)
-			return
+			time.Sleep(time.Second * 5)
+			continue
 		}
 
 		var msg globalstructs.WebsocketMessage
@@ -143,7 +145,7 @@ func getMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 			} else {
 				// Process task in background
 				log.Println("ProcessTask")
-				go api.ProcessTask(status, config, &requestTask, verbose, debug, wgWebSocket)
+				go api.ProcessTask(status, config, &requestTask, verbose, debug, writeLock)
 				response.Type = "OK"
 				requestTask.Status = "running"
 			}
@@ -163,14 +165,13 @@ func getMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 		}
 
 		if response.Type != "" {
-
 			jsonData, err := json.Marshal(response)
 			if err != nil {
 				log.Println("Marshal error: ", err)
 			}
-			err = config.Conn.WriteMessage(messageType, jsonData)
+			err = utils.SendMessage(config.Conn, jsonData, verbose, debug, writeLock)
 			if err != nil {
-				log.Println("error WriteMessage", err)
+				log.Println("SendMessage error: ", err)
 			}
 		}
 	}
@@ -221,7 +222,7 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 		log.Fatal("Error loading config file: ", err)
 	}
 
-	var wgWebSocket sync.WaitGroup
+	var writeLock sync.Mutex
 
 	status := globalstructs.WorkerStatus{
 		Name:         config.Name,
@@ -243,7 +244,7 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 		fmt.Println("Executing cleanup function...")
 
 		//delete worker
-		err := utils.DeleteWorker(config, verbose, debug, &wgWebSocket)
+		err := utils.DeleteWorker(config, verbose, debug, &writeLock)
 		if err != nil {
 			log.Println("Error worker: ", err)
 		}
@@ -273,7 +274,7 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 		} else {
 			config.Conn = conn
 
-			err = utils.AddWorker(config, verbose, debug, &wgWebSocket)
+			err = utils.AddWorker(config, verbose, debug, &writeLock)
 			if err != nil {
 				if verbose {
 					log.Println("Error worker: ", err)
@@ -288,9 +289,9 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 		time.Sleep(time.Second * 5)
 	}
 
-	go getMessage(config, &status, verbose, debug, &wgWebSocket)
+	go getMessage(config, &status, verbose, debug, &writeLock)
 
-	go utils.RecreateConnection(config, verbose, debug, &wgWebSocket)
+	go utils.RecreateConnection(config, verbose, debug, &writeLock)
 
 	router := mux.NewRouter()
 

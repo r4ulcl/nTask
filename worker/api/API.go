@@ -54,7 +54,7 @@ func HandleGetStatus(w http.ResponseWriter, r *http.Request, status *globalstruc
 // It checks if the OAuth token provided by the client matches the configured token.
 // If the token is valid, it processes the task in the background by calling the processTask function.
 // It immediately responds with the ID of the task.
-func HandleTaskPost(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig, verbose, debug bool, wgWebSocket *sync.WaitGroup) {
+func HandleTaskPost(w http.ResponseWriter, r *http.Request, status *globalstructs.WorkerStatus, config *utils.WorkerConfig, verbose, debug bool, writeLock *sync.Mutex) {
 	oauthKeyClient := r.Header.Get("Authorization")
 	if oauthKeyClient != config.OAuthToken {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
@@ -75,7 +75,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, status *globalstruct
 	}
 
 	// Process task in background
-	go ProcessTask(status, config, &requestTask, verbose, debug, wgWebSocket)
+	go ProcessTask(status, config, &requestTask, verbose, debug, writeLock)
 
 	// Respond immediately without waiting for the task to complete
 	w.Header().Set("Content-Type", "application/json")
@@ -150,7 +150,7 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, status *globalstructs
 // Otherwise, it sets the task status to "done" and assigns the output of the module to the task.
 // Finally, it calls the CallbackTaskMessage function to send the task result to the configured callback endpoint.
 // After completing the task, it resets the worker status to indicate that it is no longer working.
-func ProcessTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *globalstructs.Task, verbose, debug bool, wgWebSocket *sync.WaitGroup) {
+func ProcessTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *globalstructs.Task, verbose, debug bool, writeLock *sync.Mutex) {
 	//Remove one from working threads
 	sustract1IddleThreads(status)
 
@@ -171,7 +171,7 @@ func ProcessTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig,
 
 	// While manager doesnt responds loop
 	for {
-		err = utils.CallbackTaskMessage(config, task, verbose, debug, wgWebSocket)
+		err = utils.CallbackTaskMessage(config, task, verbose, debug, writeLock)
 		if err == nil {
 			break
 		} else {

@@ -145,7 +145,7 @@ func addWorker(worker globalstructs.Worker, ip string, db *sql.DB, verbose, debu
 	return nil
 }
 
-func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
+func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
 	_, okWorker := r.Context().Value("worker").(string)
 	if !okWorker {
 		if verbose {
@@ -168,7 +168,7 @@ func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *u
 			Json: "",
 		}
 
-		messageType, p, err := conn.ReadMessage()
+		_, p, err := conn.ReadMessage()
 		if err != nil {
 			log.Println(err)
 			return
@@ -228,10 +228,10 @@ func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *u
 
 			if err != nil {
 				log.Println("callbackTask error: ", err)
-				response.Type = "FAILED"
-			} else {
-				response.Type = "OK"
 			}
+
+			//Responses
+
 		case "addTask":
 			log.Println(msg.Type)
 
@@ -296,9 +296,9 @@ func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *u
 			if err != nil {
 				log.Println("Marshal error: ", err)
 			}
-			err = conn.WriteMessage(messageType, jsonData)
+			err = utils.SendMessage(conn, jsonData, verbose, debug, writeLock)
 			if err != nil {
-				log.Println("error WriteMessage", err)
+				log.Println("SendMessage error: ", err)
 			}
 		}
 	}

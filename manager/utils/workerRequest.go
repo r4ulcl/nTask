@@ -18,34 +18,42 @@ import (
 )
 
 // VerifyWorkersLoop checks and sets if the workers are UP infinitely.
-func VerifyWorkersLoop(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg, wgWebSocket *sync.WaitGroup) {
+func VerifyWorkersLoop(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
 	for {
-		go verifyWorkers(db, config, verbose, debug, wg, wgWebSocket)
+		go verifyWorkers(db, config, verbose, debug, wg, writeLock)
 		time.Sleep(5 * time.Second)
 	}
 }
 
 // verifyWorkers checks and sets if the workers are UP.
-func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg, wgWebSocket *sync.WaitGroup) {
+func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
 	// Get all UP workers from the database
-	workers, err := database.GetWorkerUP(db, verbose, debug)
+	workers, err := database.GetWorkers(db, verbose, debug)
 	if err != nil {
 		log.Print("GetWorkerUP", err)
 	}
 
 	// Verify each worker
 	for _, worker := range workers {
-		err := verifyWorker(db, config, &worker, verbose, debug, wg, wgWebSocket)
+		err := verifyWorker(db, config, &worker, verbose, debug, wg, writeLock)
 		if err != nil {
 			log.Print("verifyWorker ", err)
 		}
 	}
 }
 
+func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writeLock *sync.Mutex) error {
+	writeLock.Lock()
+	defer writeLock.Unlock()
+	err := conn.WriteMessage(websocket.TextMessage, message)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // verifyWorker checks and sets if the worker is UP.
-func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, verbose, debug bool, wg, wgWebSocket *sync.WaitGroup) error {
-	defer wgWebSocket.Done()
-	wgWebSocket.Add(1)
+func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) error {
 	conn := config.WebSockets[worker.Name]
 	if conn == nil {
 		delete(config.WebSockets, worker.Name)
@@ -60,7 +68,7 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 		if err != nil {
 			return err
 		}
-		return err
+		return nil
 	}
 
 	/*
@@ -95,9 +103,26 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 		return err
 	}
 
-	err = conn.WriteMessage(websocket.TextMessage, jsonData)
+	err = SendMessage(conn, jsonData, verbose, debug, writeLock)
 	if err != nil {
+		log.Println("Can't send message")
+		// if cant send message error
+		delete(config.WebSockets, worker.Name)
+
+		err = database.SetWorkerUPto(false, db, worker, verbose, debug, wg)
+		if err != nil {
+			return err
+		}
+
+		// Set as 'pending' all workers tasks to REDO
+		err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
+		if err != nil {
+			return err
+		}
 		return err
+	} else {
+		log.Println("Everythin ok")
+
 	}
 
 	/*
@@ -208,7 +233,7 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 }
 
 // SendAddTask sends a request to a worker to add a task.
-func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup) error {
+func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) error {
 	log.Println("SendAddTask")
 	//Sustract 1 Iddle Thread in worker
 	err := database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug, wg)
@@ -234,6 +259,9 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 		return err
 	}
 
+	// Set workerName in DB and in object
+	task.WorkerName = worker.Name
+
 	// Tast to json
 	// Convert the struct to JSON
 	jsonDataTask, err := json.Marshal(task)
@@ -251,9 +279,9 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 		return err
 	}
 
-	err = conn.WriteMessage(websocket.TextMessage, jsonData)
+	err = SendMessage(conn, jsonData, verbose, debug, writeLock)
 	if err != nil {
-		return err
+		log.Println("SendMessage error: ", err)
 	}
 
 	// Set task as executed

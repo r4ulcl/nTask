@@ -46,10 +46,18 @@ func CreateWebsocket(config *WorkerConfig, verbose, debug bool) (*websocket.Conn
 	return conn, nil
 }
 
+func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writeLock *sync.Mutex) error {
+	writeLock.Lock()
+	defer writeLock.Unlock()
+	err := conn.WriteMessage(websocket.TextMessage, message)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // AddWorker sends a POST request to add a worker to the manager
-func AddWorker(config *WorkerConfig, verbose, debug bool, wgWebSocket *sync.WaitGroup) error {
-	defer wgWebSocket.Done()
-	wgWebSocket.Add(1)
+func AddWorker(config *WorkerConfig, verbose, debug bool, writeLock *sync.Mutex) error {
 	// Create a Worker object with the provided configuration
 	worker := globalstructs.Worker{
 		Name:         config.Name,
@@ -73,29 +81,9 @@ func AddWorker(config *WorkerConfig, verbose, debug bool, wgWebSocket *sync.Wait
 		return err
 	}
 
-	err = config.Conn.WriteMessage(websocket.TextMessage, jsonData)
+	err = SendMessage(config.Conn, jsonData, verbose, debug, writeLock)
 	if err != nil {
-		fmt.Println("Error sending message:", err)
 		return err
-	}
-
-	// Read Response
-	_, p, err := config.Conn.ReadMessage()
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	err = json.Unmarshal(p, &msg)
-	if err != nil {
-		log.Println("Error decoding JSON:", err)
-		return err
-	}
-
-	if msg.Type == "OK" {
-		log.Println("Response AddWorker OK from manager")
-	} else {
-		log.Println("Response AddWorker not OK from manager", msg.Type)
 	}
 
 	/*
@@ -147,9 +135,7 @@ func AddWorker(config *WorkerConfig, verbose, debug bool, wgWebSocket *sync.Wait
 }
 
 // AddWorker sends a POST request to add a worker to the manager
-func DeleteWorker(config *WorkerConfig, verbose, debug bool, wgWebSocket *sync.WaitGroup) error {
-	defer wgWebSocket.Done()
-	wgWebSocket.Add(1)
+func DeleteWorker(config *WorkerConfig, verbose, debug bool, writeLock *sync.Mutex) error {
 	// Create a Worker object with the provided configuration
 	worker := globalstructs.Worker{
 		Name:         config.Name,
@@ -173,9 +159,8 @@ func DeleteWorker(config *WorkerConfig, verbose, debug bool, wgWebSocket *sync.W
 		return err
 	}
 
-	err = config.Conn.WriteMessage(websocket.TextMessage, jsonData)
+	err = SendMessage(config.Conn, jsonData, verbose, debug, writeLock)
 	if err != nil {
-		fmt.Println("Error sending message:", err)
 		return err
 	}
 
@@ -242,10 +227,7 @@ func DeleteWorker(config *WorkerConfig, verbose, debug bool, wgWebSocket *sync.W
 }
 
 // CallbackTaskMessage sends a POST request to the manager to callback with a task message
-func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task, verbose, debug bool, wgWebSocket *sync.WaitGroup) error {
-	defer wgWebSocket.Done()
-	wgWebSocket.Add(1)
-
+func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task, verbose, debug bool, writeLock *sync.Mutex) error {
 	// Marshal the task object into JSON
 	payload, _ := json.Marshal(task)
 
@@ -260,9 +242,8 @@ func CallbackTaskMessage(config *WorkerConfig, task *globalstructs.Task, verbose
 		return err
 	}
 
-	err = config.Conn.WriteMessage(websocket.TextMessage, jsonData)
+	err = SendMessage(config.Conn, jsonData, verbose, debug, writeLock)
 	if err != nil {
-		fmt.Println("Error sending message:", err)
 		return err
 	}
 
