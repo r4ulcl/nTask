@@ -23,15 +23,6 @@ type ManagerConfig struct {
 	WebSockets         map[string]*websocket.Conn `json:"webSockets"`
 }
 
-/*
-type MessageOLD struct {
-	ID          string   `json:"id"`
-	Module      string   `json:"module"`
-	Arguments   []string `json:"arguments"`
-	CallbackURL string   `json:"callbackURL"`
-}
-*/
-
 type Status struct {
 	Task   StatusTask   `json:"task"`
 	Worker StatusWorker `json:"worker"`

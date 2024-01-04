@@ -170,6 +170,9 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 
 				log.Println("Response status from worker", status.Name, msg.Json)
 				worker, err := database.GetWorker(db, status.Name, verbose, debug)
+				if err != nil {
+					log.Println("GetWorker error: ", err)
+				}
 				// If there is no error in making the request, assume worker is online
 				err = database.SetWorkerUPto(true, db, &worker, verbose, debug, wg)
 				if err != nil {

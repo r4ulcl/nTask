@@ -92,7 +92,6 @@ func GenerateTLSConfig(caCertPath string, verifyAltName, verbose, debug bool) (*
 	certPool := x509.NewCertPool()
 	certPool.AppendCertsFromPEM(caCert)
 
-	// Replace 'cert' with the expected certificate that the server should present
 	//var cert *x509.Certificate
 	// Create a TLS configuration with the custom VerifyPeerCertificate function
 	if !verifyAltName {
