@@ -83,7 +83,14 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 				response.Type = "FAILED"
 			} else {
 				response.Type = "OK"
+				config.WebSockets[worker.Name].Close()
 				delete(config.WebSockets, worker.Name)
+			}
+
+			// Set the tasks as failed
+			err := database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
+			if err != nil {
+				log.Println("SetTasksWorkerFailed error: ", err)
 			}
 		case "callbackTask":
 			if debug {
@@ -105,7 +112,7 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 
 			//Responses
 
-		case "addTask":
+		case "OK;addTask":
 			if debug {
 				log.Println("msg.Type", msg.Type)
 				log.Println("msg.Json", msg.Json)
@@ -131,11 +138,23 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 			if verbose {
 				log.Println("Task send successfully")
 			}
-		case "deleteTask":
+		case "FAILED;addTask":
 			if debug {
 				log.Println("msg.Type", msg.Type)
 				log.Println("msg.Json", msg.Json)
 			}
+			log.Println("------------------ TODO FAILED;addTask")
+		case "OK;deleteTask":
+			if debug {
+				log.Println("msg.Type", msg.Type)
+				log.Println("msg.Json", msg.Json)
+			}
+		case "FAILED;deleteTask":
+			if debug {
+				log.Println("msg.Type", msg.Type)
+				log.Println("msg.Json", msg.Json)
+			}
+			log.Println("------------------ TODO FAILED;deleteTask")
 		case "status":
 			if debug {
 				log.Println("msg.Type", msg.Type)

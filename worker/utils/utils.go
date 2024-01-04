@@ -59,6 +59,9 @@ func LoadWorkerConfig(filename string, verbose, debug bool) (*WorkerConfig, erro
 			}
 			return &config, err
 		}
+		if debug {
+			log.Println("hostname:", hostname)
+		}
 		config.Name = hostname
 	}
 

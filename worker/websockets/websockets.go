@@ -1,9 +1,11 @@
 package websockets
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
+	"os/exec"
 	"sync"
 	"time"
 
@@ -24,7 +26,7 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 
 		_, p, err := config.Conn.ReadMessage() //messageType
 		if err != nil {
-			log.Println(err)
+			log.Println("config.Conn.ReadMessage()", err)
 			time.Sleep(time.Second * 5)
 			continue
 		}
@@ -68,7 +70,8 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 			}
 			// if executing task skip and return error
 			if status.IddleThreads <= 0 {
-				response.Type = "FAILED"
+				response.Type = "FAILED;addTask"
+				response.Json = msg.Json
 
 				requestTask.Status = "failed"
 			} else {
@@ -77,7 +80,8 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 					log.Println("ProcessTask")
 				}
 				go process.ProcessTask(status, config, &requestTask, verbose, debug, writeLock)
-				response.Type = "OK"
+				response.Type = "OK;addTask"
+				response.Json = msg.Json
 				requestTask.Status = "running"
 			}
 
@@ -88,11 +92,41 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 			}
 			response.Json = string(jsonData)
 
-		}
+		case "deleteTask":
+			if debug {
+				log.Println("msg.Type", msg.Type)
+			}
 
+			var requestTask globalstructs.Task
+			err = json.Unmarshal([]byte(msg.Json), &requestTask)
+			if err != nil {
+				log.Println("deleteTask Unmarshal error: ", err)
+			}
+
+			cmdID := status.WorkingIDs[requestTask.ID]
+			// Kill the process using cmdID
+			cmd := exec.Command("kill", "-9", fmt.Sprint(cmdID))
+
+			var stderr bytes.Buffer
+			cmd.Stderr = &stderr
+
+			err := cmd.Run()
+
+			if err != nil {
+				if debug {
+					log.Println("Error killing process:", err)
+					log.Println("Error details:", stderr.String())
+				}
+				response.Type = "FAILED;deleteTask"
+				response.Json = msg.Json
+			} else {
+				response.Type = "OK;deleteTask"
+				response.Json = msg.Json
+			}
+		}
 		if debug {
-			fmt.Printf("Received message type: %s\n", msg.Type)
-			fmt.Printf("Received message json: %s\n", msg.Json)
+			log.Printf("Received message type: %s\n", msg.Type)
+			log.Printf("Received message json: %s\n", msg.Json)
 		}
 
 		if response.Type != "" {

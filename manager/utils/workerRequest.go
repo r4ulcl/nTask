@@ -17,31 +17,6 @@ import (
 	"github.com/r4ulcl/nTask/manager/database"
 )
 
-// VerifyWorkersLoop checks and sets if the workers are UP infinitely.
-func VerifyWorkersLoop(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
-	for {
-		go verifyWorkers(db, config, verbose, debug, wg, writeLock)
-		time.Sleep(5 * time.Second)
-	}
-}
-
-// verifyWorkers checks and sets if the workers are UP.
-func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
-	// Get all UP workers from the database
-	workers, err := database.GetWorkers(db, verbose, debug)
-	if err != nil {
-		log.Print("GetWorkerUP", err)
-	}
-
-	// Verify each worker
-	for _, worker := range workers {
-		err := verifyWorker(db, config, &worker, verbose, debug, wg, writeLock)
-		if err != nil {
-			log.Print("verifyWorker ", err)
-		}
-	}
-}
-
 func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writeLock *sync.Mutex) error {
 	writeLock.Lock()
 	defer writeLock.Unlock()
@@ -65,6 +40,31 @@ func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writ
 	return nil
 }
 
+// VerifyWorkersLoop checks and sets if the workers are UP infinitely.
+func VerifyWorkersLoop(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
+	for {
+		go verifyWorkers(db, config, verbose, debug, wg, writeLock)
+		time.Sleep(time.Duration(config.StatusCheckSeconds) * time.Second)
+	}
+}
+
+// verifyWorkers checks and sets if the workers are UP.
+func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
+	// Get all UP workers from the database
+	workers, err := database.GetWorkers(db, verbose, debug)
+	if err != nil {
+		log.Print("GetWorkerUP", err)
+	}
+
+	// Verify each worker
+	for _, worker := range workers {
+		err := verifyWorker(db, config, &worker, verbose, debug, wg, writeLock)
+		if err != nil {
+			log.Print("verifyWorker ", err)
+		}
+	}
+}
+
 // verifyWorker checks and sets if the worker is UP.
 func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) error {
 	if debug {
@@ -81,6 +81,23 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 		err := database.SetWorkerUPto(false, db, worker, verbose, debug, wg)
 		if err != nil {
 			return err
+		}
+
+		downCount, err := database.GetWorkerDownCount(db, worker, verbose, debug)
+		if err != nil {
+			return err
+		}
+
+		if downCount >= config.StatusCheckDown {
+			err = database.RmWorkerName(db, worker.Name, verbose, debug, wg)
+			if err != nil {
+				return err
+			}
+		} else {
+			err = database.AddWorkerDownCount(db, worker, verbose, debug, wg)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Set as 'pending' all workers tasks to REDO
@@ -113,6 +130,11 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 		if err != nil {
 			return err
 		}
+		return err
+	}
+
+	err = database.SetWorkerDownCount(0, db, worker, verbose, debug, wg)
+	if err != nil {
 		return err
 	}
 
@@ -432,7 +454,7 @@ func SendDeleteTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Wor
 	}
 
 	msg := globalstructs.WebsocketMessage{
-		Type: "addTask",
+		Type: "deleteTask",
 		Json: string(jsonDataTask),
 	}
 
@@ -596,6 +618,9 @@ func WorkerDisconnected(db *sql.DB, config *ManagerConfig, worker *globalstructs
 	if debug {
 		log.Println("Error: WriteControl cant connect", worker.Name)
 	}
+	// Close connection
+	config.WebSockets[worker.Name].Close()
+
 	delete(config.WebSockets, worker.Name)
 
 	err := database.SetWorkerUPto(false, db, worker, verbose, debug, wg)

@@ -375,6 +375,22 @@ func SetTaskWorkerName(db *sql.DB, id, workerName string, verbose, debug bool, w
 	return nil
 }
 
+// SetTasksWorkerEmpty remove the worker name of the task in the database
+func SetTasksWorkerEmpty(db *sql.DB, workerName string, verbose, debug bool, wg *sync.WaitGroup) error {
+	// Add to the WaitGroup when the goroutine starts and done when exits
+	defer wg.Done()
+	wg.Add(1)
+	// Update the workerName column of the task table for the given ID
+	_, err := db.Exec("UPDATE task SET workerName = '' WHERE  workerName = ?", workerName)
+	if err != nil {
+		if debug {
+			log.Println("Error DBTask SetTaskWorkerName: ", err)
+		}
+		return err
+	}
+	return nil
+}
+
 // SetTaskStatus saves the status of the task in the database
 func SetTaskStatus(db *sql.DB, id, status string, verbose, debug bool, wg *sync.WaitGroup) error {
 	// Add to the WaitGroup when the goroutine starts and done when exits

@@ -44,6 +44,12 @@ func RmWorkerName(db *sql.DB, name string, verbose, debug bool, wg *sync.WaitGro
 		return fmt.Errorf("{\"error\": \"worker not found\"}")
 	}
 
+	// Set workers task to any worker
+	err = SetTasksWorkerEmpty(db, name, verbose, debug, wg)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

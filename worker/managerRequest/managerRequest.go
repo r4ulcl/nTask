@@ -123,25 +123,6 @@ func DeleteWorker(config *utils.WorkerConfig, verbose, debug bool, writeLock *sy
 		return err
 	}
 
-	// Read Response
-	_, p, err := config.Conn.ReadMessage()
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	err = json.Unmarshal(p, &msg)
-	if err != nil {
-		log.Println("Error decoding JSON:", err)
-		return err
-	}
-
-	if msg.Type == "OK" {
-		log.Println("Response AddWorker OK from manager")
-	} else {
-		log.Println("Response AddWorker not OK from manager", msg.Type)
-	}
-
 	return nil
 }
 
