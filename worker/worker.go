@@ -59,7 +59,7 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 		// Create an HTTP client with the custom TLS configuration
 		clientHTTP, err := utils.CreateTLSClientWithCACert(config.CA, verifyAltName, verbose, debug)
 		if err != nil {
-			fmt.Println("Error creating HTTP client:", err)
+			fmt.Println("Error creating HTTPS client:", err)
 			return
 		}
 
@@ -70,7 +70,10 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 
 	// Loop until connects
 	for {
-		conn, err := managerRequest.CreateWebsocket(config, verbose, debug)
+		if debug {
+			log.Println("Trying to conenct to manager")
+		}
+		conn, err := managerRequest.CreateWebsocket(config, config.CA, verifyAltName, verbose, debug)
 		if err != nil {
 			if verbose {
 				log.Println("Error worker: ", err)
@@ -95,7 +98,7 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 
 	go websockets.GetMessage(config, &status, verbose, debug, &writeLock)
 
-	go websockets.RecreateConnection(config, verbose, debug, &writeLock)
+	go websockets.RecreateConnection(config, verifyAltName, verbose, debug, &writeLock)
 
 	mainloop()
 }

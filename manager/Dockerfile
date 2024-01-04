@@ -12,7 +12,6 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflag
 
 #create config folder 
 RUN mkdir /config
-RUN cp $GOPATH/src/github.com/r4ulcl/nTask/sql.sql /config/sql.sql 
 
 # STEP 2 build a small image
 # start from scratch for manager

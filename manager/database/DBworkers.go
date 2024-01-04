@@ -53,7 +53,7 @@ func GetWorkers(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error)
 	var workers []globalstructs.Worker
 
 	// Query all workers from the worker table
-	rows, err := db.Query("SELECT name, IddleThreads,  up, downCount FROM worker")
+	rows, err := db.Query("SELECT name, IddleThreads, up, downCount FROM worker")
 	if err != nil {
 		if debug {
 			log.Println("Error DBworkers: ", err)
@@ -110,7 +110,7 @@ func GetWorker(db *sql.DB, name string, verbose, debug bool) (globalstructs.Work
 	var up bool
 	var downCount int
 
-	err := db.QueryRow("SELECT name,  IddleThreads,  up, downCount FROM worker WHERE name = ?",
+	err := db.QueryRow("SELECT name,  IddleThreads, up, downCount FROM worker WHERE name = ?",
 		name).Scan(
 		&name2, &IddleThreads, &up, &downCount)
 	if err != nil {
@@ -136,7 +136,7 @@ func UpdateWorker(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool,
 	wg.Add(1)
 	// Update the JSON data in the MySQL table based on the worker's name
 	_, err := db.Exec("UPDATE worker SET"+
-		" IddleThreads = ?, UP = ?, downCount = ? WHERE name = ?",
+		" IddleThreads = ?, up = ?, downCount = ? WHERE name = ?",
 		worker.IddleThreads, worker.UP, worker.DownCount, worker.Name)
 	if err != nil {
 		if debug {
@@ -152,13 +152,17 @@ func SetWorkerUPto(up bool, db *sql.DB, worker *globalstructs.Worker, verbose, d
 	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
 	wg.Add(1)
-	_, err := db.Exec("UPDATE worker SET UP = ? WHERE name = ?",
+	_, err := db.Exec("UPDATE worker SET up = ? WHERE name = ?",
 		up, worker.Name)
 	if err != nil {
 		if debug {
 			log.Println("Error DBworkers: ", err)
 		}
 		return err
+	}
+
+	if debug {
+		log.Println("Worker set to:", up, worker.Name)
 	}
 
 	return nil

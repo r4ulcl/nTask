@@ -1,7 +1,6 @@
 package managerRequest
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,7 +12,7 @@ import (
 	"github.com/r4ulcl/nTask/worker/utils"
 )
 
-func CreateWebsocket(config *utils.WorkerConfig, verbose, debug bool) (*websocket.Conn, error) {
+func CreateWebsocket(config *utils.WorkerConfig, caCertPath string, verifyAltName, verbose, debug bool) (*websocket.Conn, error) {
 	headers := make(http.Header)
 	headers.Set("Authorization", config.ManagerOauthToken)
 
@@ -32,7 +31,15 @@ func CreateWebsocket(config *utils.WorkerConfig, verbose, debug bool) (*websocke
 		log.Println("serverAddr", serverAddr)
 	}
 
-	tlsConfig := &tls.Config{InsecureSkipVerify: true} // InsecureSkipVerify is used for testing purposes only
+	//tlsConfig := &tls.Config{InsecureSkipVerify: false} // InsecureSkipVerify is used for testing purposes only
+
+	tlsConfig, err := utils.GenerateTLSConfig(caCertPath, verifyAltName, verbose, debug)
+	if err != nil {
+		if debug {
+			log.Println("Error reading worker config file: ", err)
+		}
+		return nil, err
+	}
 
 	dialer := websocket.Dialer{
 		TLSClientConfig: tlsConfig,

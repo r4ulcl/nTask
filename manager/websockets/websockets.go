@@ -15,6 +15,7 @@ import (
 )
 
 func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
+	var worker globalstructs.Worker
 	for {
 		response := globalstructs.WebsocketMessage{
 			Type: "",
@@ -23,7 +24,21 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 
 		_, p, err := conn.ReadMessage()
 		if err != nil {
-			log.Println(err)
+			// if the clients conexion is down, this is the first error
+			if debug {
+				log.Println("client conexion down error: ", err)
+			}
+			// check if worker not init
+			if worker != (globalstructs.Worker{}) {
+				err = utils.WorkerDisconnected(db, config, &worker, verbose, debug, wg, writeLock)
+				if err != nil {
+					if debug {
+						log.Println("WorkerDisconnected error: ", err)
+					}
+				}
+			} else {
+				log.Println("Worker empty")
+			}
 			return
 		}
 
@@ -40,7 +55,7 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 				log.Println("msg.Type", msg.Type)
 				log.Println("msg.Json", msg.Json)
 			}
-			var worker globalstructs.Worker
+
 			err = json.Unmarshal([]byte(msg.Json), &worker)
 			if err != nil {
 				log.Println("addWorker Unmarshal error: ", err)
@@ -57,7 +72,6 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 
 		case "deleteWorker":
 			log.Println(msg.Type)
-			var worker globalstructs.Worker
 			err = json.Unmarshal([]byte(msg.Json), &worker)
 			if err != nil {
 				log.Println("deleteWorker Unmarshal error: ", err)
@@ -143,7 +157,7 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 					log.Println("status error: ", err)
 				}
 
-				// If worker status is not the same as stored in the DB, update the DB
+				// If worker IddleThreads is not the same as stored in the DB, update the DB
 				if status.IddleThreads != worker.IddleThreads {
 					err := database.SetIddleThreadsTo(status.IddleThreads, db, worker.Name, verbose, debug, wg)
 					if err != nil {

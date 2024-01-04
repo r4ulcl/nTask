@@ -108,11 +108,11 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 	}
 }
 
-func RecreateConnection(config *utils.WorkerConfig, verbose, debug bool, writeLock *sync.Mutex) {
+func RecreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debug bool, writeLock *sync.Mutex) {
 	for {
 		time.Sleep(1 * time.Second) // Adjust the interval based on your requirements
 		if err := config.Conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(1*time.Second)); err != nil {
-			conn, err := managerRequest.CreateWebsocket(config, verbose, debug)
+			conn, err := managerRequest.CreateWebsocket(config, config.CA, verifyAltName, verbose, debug)
 			if err != nil {
 				if verbose {
 					log.Println("Error CreateWebsocket: ", err)

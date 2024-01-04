@@ -148,7 +148,9 @@ func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *u
 
 	conn, err := globalstructs.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
+		if verbose {
+			log.Println("globalstructs.Upgrader.Upgrade connection down", err)
+		}
 		return
 	}
 

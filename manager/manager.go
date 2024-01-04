@@ -24,6 +24,9 @@ import (
 
 func loadManagerConfig(filename string, verbose, debug bool) (*utils.ManagerConfig, error) {
 	var config utils.ManagerConfig
+	if debug {
+		log.Println("Loading manager config from file", filename)
+	}
 
 	// Validate filename
 	if filename == "" {
@@ -134,6 +137,9 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 	// Start DB
 	var db *sql.DB
 	for {
+		if debug {
+			log.Println("Trying to connect to DB")
+		}
 		db, err = database.ConnectDB(config.DBUsername, config.DBPassword, config.DBHost, config.DBPort, config.DBDatabase, verbose, debug)
 		if err != nil {
 			log.Fatal("Error manager: ", err)
@@ -147,6 +153,9 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 	}
 
 	// if running set to failed
+	if debug {
+		log.Println("Set task running to failed")
+	}
 	database.SetTasksStatusIfRunning(db, "failed", verbose, debug, &wg)
 
 	// Create an HTTP client with the custom TLS configuration

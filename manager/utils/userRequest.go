@@ -33,7 +33,7 @@ func CallbackUserTaskMessage(config *ManagerConfig, task *globalstructs.Task, ve
 	resp, err := config.ClientHTTP.Do(req)
 	if err != nil {
 		if verbose {
-			log.Println(err)
+			log.Println("config.ClientHTTP.Do(req)", err)
 		}
 		return
 	}
