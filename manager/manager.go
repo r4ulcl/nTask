@@ -18,6 +18,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/r4ulcl/nTask/manager/api"
 	"github.com/r4ulcl/nTask/manager/database"
+	"github.com/r4ulcl/nTask/manager/sshTunnel"
 	"github.com/r4ulcl/nTask/manager/utils"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
@@ -54,6 +55,36 @@ func loadManagerConfig(filename string, verbose, debug bool) (*utils.ManagerConf
 
 	// Return nil instead of &config when error occurs
 	return &config, nil
+}
+
+func loadManagerSSHConfig(filename string, verbose, debug bool) (*utils.ManagerSSHConfig, error) {
+	var configSSH utils.ManagerSSHConfig
+	if debug {
+		log.Println("Loading manager config from file", filename)
+	}
+
+	// Validate filename
+	if filename == "" {
+		return nil, errors.New("filename cannot be empty")
+	}
+
+	// Check if file exists
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		return nil, fmt.Errorf("config file does not exist")
+	}
+
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use specific error message for json.Unmarshal failure
+	err = json.Unmarshal(content, &configSSH)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshaling JSON: %w", err)
+	}
+
+	return &configSSH, nil
 }
 
 func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
@@ -117,7 +148,7 @@ func startSwaggerWeb(router *mux.Router, verbose, debug bool) {
 	}
 }
 
-func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug bool) {
+func StartManager(swagger bool, configFile, configSSHFile string, verifyAltName, verbose, debug bool) {
 	log.Println("Running as manager...")
 
 	// if config file empty set default
@@ -128,6 +159,14 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 	config, err := loadManagerConfig(configFile, verbose, debug)
 	if err != nil {
 		log.Fatal("Error loading config file: ", err)
+	}
+
+	var configSSH *utils.ManagerSSHConfig
+	if configSSHFile != "" {
+		configSSH, err = loadManagerSSHConfig(configSSHFile, verbose, debug)
+		if err != nil {
+			log.Fatal("Error loading config SSH file: ", err)
+		}
 	}
 
 	// create waitGroups for DB
@@ -142,7 +181,7 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 		}
 		db, err = database.ConnectDB(config.DBUsername, config.DBPassword, config.DBHost, config.DBPort, config.DBDatabase, verbose, debug)
 		if err != nil {
-			log.Fatal("Error manager: ", err)
+			log.Fatal("Error manager ConnectDB: ", err)
 			if db != nil {
 				db.Close()
 			}
@@ -175,6 +214,10 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 
 	// manage task, routine to send task to iddle workers
 	go utils.ManageTasks(config, db, verbose, debug, &wg, &writeLock)
+
+	if configSSHFile != "" {
+		go sshTunnel.StartSSH(configSSH, verbose, debug)
+	}
 
 	router := mux.NewRouter()
 
@@ -238,7 +281,7 @@ func StartManager(swagger bool, configFile string, verifyAltName, verbose, debug
 	} else {
 		err = http.ListenAndServe(addr, nil)
 		if err != nil {
-			log.Println("Error manager: ", err)
+			log.Println("Error manager CertFolder: ", err)
 		}
 	}
 

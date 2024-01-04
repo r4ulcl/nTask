@@ -23,6 +23,13 @@ type ManagerConfig struct {
 	WebSockets         map[string]*websocket.Conn `json:"webSockets"`
 }
 
+type ManagerSSHConfig struct {
+	IpPort             map[string]string `json:"ipPort"`
+	SSHUsername        string            `json:"sshUsername"`
+	PrivateKeyPath     string            `json:"privateKeyPath"`
+	PrivateKeyPassword string            `json:"privateKeyPassword"`
+}
+
 type Status struct {
 	Task   StatusTask   `json:"task"`
 	Worker StatusWorker `json:"worker"`
