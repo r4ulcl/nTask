@@ -150,8 +150,8 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 				log.Println("addWorker Unmarshal error: ", err)
 			}
 
-			// Set the task as running if its pending
-			err = database.SetTaskStatus(db, result.ID, "failed", verbose, debug, wg)
+			// Set the task as pending because the worker return error in add, so its not been procesed
+			err = database.SetTaskStatus(db, result.ID, "pending", verbose, debug, wg)
 			if err != nil {
 				if verbose {
 					log.Println("HandleCallback { \"error\" : \"Error SetTaskStatus: " + err.Error() + "\"}")
