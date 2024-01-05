@@ -28,7 +28,7 @@ func CreateWebsocket(config *utils.WorkerConfig, caCertPath string, verifyAltNam
 	}
 
 	if debug {
-		log.Println("serverAddr", serverAddr)
+		log.Println("ManagerRequest serverAddr", serverAddr)
 	}
 
 	//tlsConfig := &tls.Config{InsecureSkipVerify: false} // InsecureSkipVerify is used for testing purposes only
@@ -36,7 +36,7 @@ func CreateWebsocket(config *utils.WorkerConfig, caCertPath string, verifyAltNam
 	tlsConfig, err := utils.GenerateTLSConfig(caCertPath, verifyAltName, verbose, debug)
 	if err != nil {
 		if debug {
-			log.Println("Error reading worker config file: ", err)
+			log.Println("ManagerRequest Error reading worker config file: ", err)
 		}
 		return nil, err
 	}
@@ -137,7 +137,7 @@ func CallbackTaskMessage(config *utils.WorkerConfig, task *globalstructs.Task, v
 	}
 
 	if debug {
-		log.Println("msg callback:", msg)
+		log.Println("ManagerRequest msg callback:", msg)
 	}
 
 	jsonData, err := json.Marshal(msg)

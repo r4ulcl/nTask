@@ -44,7 +44,7 @@ func ConnectDB(username, password, host, port, database string, verbose, debug b
 	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", username, password, host, port, database)
 
 	if debug {
-		log.Println("ConnectDB - dataSourceName", dataSourceName)
+		log.Println("DB ConnectDB - dataSourceName", dataSourceName)
 	}
 	// Open a new connection to the MySQL database.
 	db, err := sql.Open("mysql", dataSourceName)

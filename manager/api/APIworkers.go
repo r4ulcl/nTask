@@ -31,7 +31,7 @@ import (
 func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
 	username, ok := r.Context().Value("username").(string)
 	if !ok {
-		log.Println(username)
+		log.Println("API username", username)
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
@@ -53,7 +53,7 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 
 	if debug {
 		// Print the JSON data
-		log.Println(string(jsonData))
+		log.Println("API workers", string(jsonData))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -101,7 +101,7 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 func addWorker(worker globalstructs.Worker, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) error {
 
 	if debug {
-		log.Println("worker.Name", worker.Name)
+		log.Println("API worker.Name", worker.Name)
 	}
 
 	err := database.AddWorker(db, &worker, verbose, debug, wg)
@@ -140,7 +140,7 @@ func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *u
 	_, okWorker := r.Context().Value("worker").(string)
 	if !okWorker {
 		if verbose {
-			log.Println("HandleCallback: { \"error\" : \"Unauthorized\" }")
+			log.Println("API HandleCallback: { \"error\" : \"Unauthorized\" }")
 		}
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
@@ -149,7 +149,7 @@ func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *u
 	conn, err := globalstructs.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		if verbose {
-			log.Println("globalstructs.Upgrader.Upgrade connection down", err)
+			log.Println("API globalstructs.Upgrader.Upgrade connection down", err)
 		}
 		return
 	}
@@ -166,7 +166,7 @@ func (m *WebSocketManager) broadcastMessage(msg []byte) {
 	for conn := range m.connections {
 		err := conn.WriteMessage(websocket.TextMessage, msg)
 		if err != nil {
-			log.Println("Error broadcasting message:", err)
+			log.Println("API Error broadcasting message:", err)
 		}
 	}
 }*/
@@ -246,7 +246,7 @@ func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.Ma
 
 	if debug {
 		// Print the JSON data
-		log.Println("HandleWorkerStatus", string(jsonData))
+		log.Println("API HandleWorkerStatus", string(jsonData))
 	}
 
 	w.Header().Set("Content-Type", "application/json")

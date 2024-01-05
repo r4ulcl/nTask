@@ -21,12 +21,12 @@ func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writ
 	writeLock.Lock()
 	defer writeLock.Unlock()
 	if debug {
-		log.Println("SendMessage", string(message))
+		log.Println("Utils SendMessage", string(message))
 	}
 	// check if websocket alive
 	err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second))
 	if err != nil {
-		log.Println("Error in websocket", string(message))
+		log.Println("Utils Error in websocket", string(message))
 		return err
 	}
 
@@ -35,7 +35,7 @@ func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writ
 		return err
 	}
 	if debug {
-		log.Println("SendMessage OK", string(message))
+		log.Println("Utils SendMessage OK", string(message))
 	}
 	return nil
 }
@@ -68,12 +68,12 @@ func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *s
 // verifyWorker checks and sets if the worker is UP.
 func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) error {
 	if debug {
-		log.Println("verifyWorker", worker.Name)
+		log.Println("Utils verifyWorker", worker.Name)
 	}
 	conn := config.WebSockets[worker.Name]
 	if conn == nil {
 		if debug {
-			log.Println("Error: The worker doesnt have a websocket", worker.Name)
+			log.Println("Utils Error: The worker doesnt have a websocket", worker.Name)
 		}
 
 		delete(config.WebSockets, worker.Name)
@@ -90,7 +90,7 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 
 		if downCount >= config.StatusCheckDown {
 			if debug {
-				log.Println("downCount", downCount, " >= config.StatusCheckDown", config.StatusCheckDown)
+				log.Println("Utils downCount", downCount, " >= config.StatusCheckDown", config.StatusCheckDown)
 			}
 			err = database.RmWorkerName(db, worker.Name, verbose, debug, wg)
 			if err != nil {
@@ -119,7 +119,7 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 	jsonData, err := json.Marshal(msg)
 	if err != nil {
 		if debug {
-			log.Println("Error: json.Marshal(msg):", err)
+			log.Println("Utils Error: json.Marshal(msg):", err)
 		}
 		return err
 	}
@@ -127,7 +127,7 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 	err = SendMessage(conn, jsonData, verbose, debug, writeLock)
 	if err != nil {
 		if debug {
-			log.Println("Can't send message, error:", err)
+			log.Println("Utils Can't send message, error:", err)
 		}
 		err = WorkerDisconnected(db, config, worker, verbose, debug, wg, writeLock)
 		if err != nil {
@@ -147,7 +147,7 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 
 // SendAddTask sends a request to a worker to add a task.
 func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) error {
-	log.Println("SendAddTask")
+	log.Println("Utils SendAddTask")
 	//Sustract 1 Iddle Thread in worker
 	err := database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug, wg)
 	if err != nil {
@@ -183,7 +183,7 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 	err = SendMessage(conn, jsonData, verbose, debug, writeLock)
 	if err != nil {
 		if debug {
-			log.Println("Can't send message, error:", err)
+			log.Println("Utils Can't send message, error:", err)
 		}
 		err = WorkerDisconnected(db, config, worker, verbose, debug, wg, writeLock)
 		if err != nil {
@@ -198,12 +198,12 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 		return fmt.Errorf("Error SetTaskExecutedAt in request: %s", err)
 	}
 
-	log.Println("Error SetTaskStatus in request:", err)
+	log.Println("Utils Error SetTaskStatus in request:", err)
 
 	// Set task as running
 	err = database.SetTaskStatus(db, task.ID, "running", verbose, debug, wg)
 	if err != nil {
-		log.Println("Error SetTaskStatus in request:", err)
+		log.Println("Utils Error SetTaskStatus in request:", err)
 	}
 
 	// Set workerName in DB and in object
@@ -213,7 +213,7 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 	}
 
 	if verbose {
-		log.Println("Task send successfully")
+		log.Println("Utils Task send successfully")
 	}
 
 	return nil
@@ -246,7 +246,7 @@ func SendDeleteTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Wor
 	err = SendMessage(conn, jsonData, verbose, debug, writeLock)
 	if err != nil {
 		if debug {
-			log.Println("Can't send message, error:", err)
+			log.Println("Utils Can't send message, error:", err)
 		}
 		err = WorkerDisconnected(db, config, worker, verbose, debug, wg, writeLock)
 		if err != nil {
@@ -266,7 +266,7 @@ func SendDeleteTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Wor
 	}
 
 	if verbose {
-		log.Println("Delete Task send successfully")
+		log.Println("Utils Delete Task send successfully")
 	}
 
 	return nil
@@ -319,7 +319,7 @@ func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose, debug 
 			},
 		}
 	} else {
-		log.Println("verifyAltName YES", !verifyAltName)
+		log.Println("Utils verifyAltName YES", !verifyAltName)
 
 		tlsConfig = &tls.Config{
 			InsecureSkipVerify: false, // Ensure that server verification is enabled
@@ -339,7 +339,7 @@ func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose, debug 
 
 func WorkerDisconnected(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) error {
 	if debug {
-		log.Println("Error: WriteControl cant connect", worker.Name)
+		log.Println("Utils Error: WriteControl cant connect", worker.Name)
 	}
 	// Close connection
 	config.WebSockets[worker.Name].Close()

@@ -26,12 +26,12 @@ func ProcessTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig,
 	defer add1IddleThreads(status)
 
 	if verbose {
-		log.Println("Start processing task", task.ID, " workCount: ", status.IddleThreads)
+		log.Println("Process Start processing task", task.ID, " workCount: ", status.IddleThreads)
 	}
 
 	err := modules.ProcessModule(task, config, status, task.ID, verbose, debug)
 	if err != nil {
-		log.Println("Error ProcessModule:", err)
+		log.Println("Process Error ProcessModule:", err)
 		task.Status = "failed"
 	} else {
 		task.Status = "done"

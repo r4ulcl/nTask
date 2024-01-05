@@ -23,7 +23,7 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 	if config.InsecureModules {
 		cmdStr := command + " " + arguments
 		if debug {
-			log.Println("cmdStr: ", cmdStr)
+			log.Println("Modules cmdStr: ", cmdStr)
 		}
 		cmd = exec.Command("sh", "-c", cmdStr)
 
@@ -45,8 +45,8 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 		}
 
 		if debug {
-			log.Println("command: ", command)
-			log.Println("argumentsArray: ", argumentsArray)
+			log.Println("Modules command: ", command)
+			log.Println("Modules argumentsArray: ", argumentsArray)
 		}
 
 		// Command to run the module
@@ -91,7 +91,7 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 	err = cmd.Wait()
 	if err != nil {
 		if debug {
-			log.Println("Error waiting for command:", err)
+			log.Println("Modules Error waiting for command:", err)
 		}
 		return err.Error(), err
 	}
@@ -136,8 +136,8 @@ func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status 
 		}
 
 		if verbose {
-			log.Println("commandAux: ", commandAux)
-			log.Println("arguments: ", arguments)
+			log.Println("Modules commandAux: ", commandAux)
+			log.Println("Modules arguments: ", arguments)
 		}
 
 		// Execute the module and get the output and any error

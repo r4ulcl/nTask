@@ -88,20 +88,20 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	username, okUser := r.Context().Value("username").(string)
 	if !okUser {
 		if debug {
-			log.Println("{ \"error\" : \"Unauthorized\" }")
+			log.Println("API { \"error\" : \"Unauthorized\" }")
 		}
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
 	if debug {
-		log.Println("HandleTaskPost", username)
+		log.Println("API HandleTaskPost", username)
 	}
 
 	var request globalstructs.Task
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		if debug {
-			log.Println("{ \"error\" : \"Invalid callback body: " + err.Error() + "\"}")
+			log.Println("API { \"error\" : \"Invalid callback body: " + err.Error() + "\"}")
 		}
 		http.Error(w, "{ \"error\" : \"Invalid callback body: "+err.Error()+"\"}", http.StatusBadRequest)
 		return
@@ -135,7 +135,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	}
 
 	if verbose {
-		log.Println("Add Task to DB", request.ID)
+		log.Println("API Add Task to DB", request.ID)
 	}
 
 	task, err := database.GetTask(db, request.ID, verbose, debug)
@@ -256,7 +256,7 @@ func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.Mana
 
 	if debug {
 		// Print the JSON data
-		log.Println(string(jsonData))
+		log.Println("API get task: ", string(jsonData))
 	}
 
 	w.Header().Set("Content-Type", "application/json")

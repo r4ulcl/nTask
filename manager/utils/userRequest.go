@@ -19,7 +19,7 @@ func CallbackUserTaskMessage(config *ManagerConfig, task *globalstructs.Task, ve
 	// Create a new request with the POST method and the payload
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
-		log.Println("Error creating request:", err)
+		log.Println("Utils Error creating request:", err)
 		return
 	}
 
@@ -33,14 +33,14 @@ func CallbackUserTaskMessage(config *ManagerConfig, task *globalstructs.Task, ve
 	resp, err := config.ClientHTTP.Do(req)
 	if err != nil {
 		if verbose {
-			log.Println("config.ClientHTTP.Do(req)", err)
+			log.Println("Utils config.ClientHTTP.Do(req)", err)
 		}
 		return
 	}
 	defer resp.Body.Close()
 
 	if debug {
-		log.Println("Status Code:", resp.Status)
+		log.Println("Utils Status Code:", resp.Status)
 	}
 	// Handle the response body as needed
 }

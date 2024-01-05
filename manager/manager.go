@@ -26,7 +26,7 @@ import (
 func loadManagerConfig(filename string, verbose, debug bool) (*utils.ManagerConfig, error) {
 	var config utils.ManagerConfig
 	if debug {
-		log.Println("Loading manager config from file", filename)
+		log.Println("Manager Loading manager config from file", filename)
 	}
 
 	// Validate filename
@@ -60,7 +60,7 @@ func loadManagerConfig(filename string, verbose, debug bool) (*utils.ManagerConf
 func loadManagerSSHConfig(filename string, verbose, debug bool) (*utils.ManagerSSHConfig, error) {
 	var configSSH utils.ManagerSSHConfig
 	if debug {
-		log.Println("Loading manager config from file", filename)
+		log.Println("Manager Loading manager config from file", filename)
 	}
 
 	// Validate filename
@@ -144,12 +144,12 @@ func startSwaggerWeb(router *mux.Router, verbose, debug bool) {
 	}).Methods("GET")
 
 	if verbose {
-		log.Println("Configure swagger docs in /swagger/")
+		log.Println("Manager Configure swagger docs in /swagger/")
 	}
 }
 
 func StartManager(swagger bool, configFile, configSSHFile string, verifyAltName, verbose, debug bool) {
-	log.Println("Running as manager...")
+	log.Println("Manager Running as manager...")
 
 	// if config file empty set default
 	if configFile == "" {
@@ -177,7 +177,7 @@ func StartManager(swagger bool, configFile, configSSHFile string, verifyAltName,
 	var db *sql.DB
 	for {
 		if debug {
-			log.Println("Trying to connect to DB")
+			log.Println("Manager Trying to connect to DB")
 		}
 		db, err = database.ConnectDB(config.DBUsername, config.DBPassword, config.DBHost, config.DBPort, config.DBDatabase, verbose, debug)
 		if err != nil {
@@ -193,7 +193,7 @@ func StartManager(swagger bool, configFile, configSSHFile string, verifyAltName,
 
 	// if running set to failed
 	if debug {
-		log.Println("Set task running to failed")
+		log.Println("Manager Set task running to failed")
 	}
 	err = database.SetTasksStatusIfRunning(db, "failed", verbose, debug, &wg)
 	if err != nil {
@@ -268,7 +268,7 @@ func StartManager(swagger bool, configFile, configSSHFile string, verifyAltName,
 	// Set string for the port
 	addr := fmt.Sprintf(":%s", config.Port)
 	if verbose {
-		log.Println("Port", config.Port)
+		log.Println("Manager Port", config.Port)
 	}
 
 	// if there is cert is HTTPS
@@ -277,14 +277,14 @@ func StartManager(swagger bool, configFile, configSSHFile string, verifyAltName,
 	} else {
 		err = http.ListenAndServe(addr, nil)
 		if err != nil {
-			log.Println("Error manager CertFolder: ", err)
+			log.Println("Manager Error manager CertFolder: ", err)
 		}
 	}
 
 	/*
 		err = http.ListenAndServe(":"+config.Port, allowCORS(http.DefaultServeMux))
 		if err != nil {
-			log.Println("Error manager: ",err)
+			log.Println("Manager Error manager: ",err)
 		}
 	*/
 

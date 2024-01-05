@@ -16,7 +16,7 @@ func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose, debug 
 	tlsConfig, err := GenerateTLSConfig(caCertPath, verifyAltName, verbose, debug)
 	if err != nil {
 		if debug {
-			log.Println("Error reading worker config file: ", err)
+			log.Println("Utils Error reading worker config file: ", err)
 		}
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func LoadWorkerConfig(filename string, verbose, debug bool) (*WorkerConfig, erro
 	content, err := os.ReadFile(filename)
 	if err != nil {
 		if debug {
-			log.Println("Error reading worker config file: ", err)
+			log.Println("Utils Error reading worker config file: ", err)
 		}
 		return &config, err
 	}
@@ -44,7 +44,7 @@ func LoadWorkerConfig(filename string, verbose, debug bool) (*WorkerConfig, erro
 	err = json.Unmarshal(content, &config)
 	if err != nil {
 		if debug {
-			log.Println("Error unmarshalling worker config: ", err)
+			log.Println("Utils Error unmarshalling worker config: ", err)
 		}
 		return &config, err
 	}
@@ -55,20 +55,20 @@ func LoadWorkerConfig(filename string, verbose, debug bool) (*WorkerConfig, erro
 		hostname, err = os.Hostname()
 		if err != nil {
 			if debug {
-				log.Println("Error getting hostname:", err)
+				log.Println("Utils Error getting hostname:", err)
 			}
 			return &config, err
 		}
 		if debug {
-			log.Println("hostname:", hostname)
+			log.Println("Utils hostname:", hostname)
 		}
 		config.Name = hostname
 	}
 
 	// Print the values from the struct
 	if debug {
-		log.Println("Name:", config.Name)
-		log.Println("Tasks:")
+		log.Println("Utils Name:", config.Name)
+		log.Println("Utils Tasks:")
 
 		for module, exec := range config.Modules {
 			log.Printf("  Module: %s, Exec: %s\n", module, exec)
@@ -122,7 +122,7 @@ func GenerateTLSConfig(caCertPath string, verifyAltName, verbose, debug bool) (*
 			},
 		}
 	} else {
-		log.Println("verifyAltName YES", !verifyAltName)
+		log.Println("Utils verifyAltName YES", !verifyAltName)
 
 		tlsConfig = &tls.Config{
 			InsecureSkipVerify: false, // Ensure that server verification is enabled

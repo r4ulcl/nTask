@@ -1,6 +1,7 @@
 package sshTunnel
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -36,9 +37,9 @@ func publicKeyFile(file string) ssh.AuthMethod {
 
 func StartSSH(config *utils.ManagerSSHConfig, portAPI string, verbose, debug bool) {
 	//return nil
-	log.Println("StartSSH")
+	log.Println("SSH StartSSH")
 	for ip, port := range config.IpPort {
-		log.Println("--------------", ip, port)
+		log.Println("SSH --------------", ip, port)
 
 		// SSH connection configuration
 		sshConfig := &ssh.ClientConfig{
@@ -55,6 +56,10 @@ func StartSSH(config *utils.ManagerSSHConfig, portAPI string, verbose, debug boo
 			sshConfig.Auth = append(sshConfig.Auth, ssh.Password(config.PrivateKeyPassword))
 		}
 
+		if !checkFileExists(config.PrivateKeyPath) {
+			log.Fatal("File ", config.PrivateKeyPath, " not found")
+		}
+
 		// Connect to the SSH server
 		sshClient, err := ssh.Dial("tcp", ip+":"+port, sshConfig)
 		if err != nil {
@@ -67,7 +72,7 @@ func StartSSH(config *utils.ManagerSSHConfig, portAPI string, verbose, debug boo
 		localAddr := "127.0.0.1:" + portAPI
 
 		if debug {
-			log.Println("remoteAddr", remoteAddr)
+			log.Println("SSH remoteAddr", remoteAddr)
 		}
 
 		// Request remote port forwarding
@@ -102,3 +107,8 @@ func StartSSH(config *utils.ManagerSSHConfig, portAPI string, verbose, debug boo
 }
 
 // ssh-keygen -t rsa -b 2048
+func checkFileExists(filePath string) bool {
+	_, error := os.Stat(filePath)
+	//return !os.IsNotExist(err)
+	return !errors.Is(error, os.ErrNotExist)
+}

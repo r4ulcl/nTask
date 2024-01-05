@@ -26,7 +26,7 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 
 		_, p, err := config.Conn.ReadMessage() //messageType
 		if err != nil {
-			log.Println("config.Conn.ReadMessage()", err)
+			log.Println("WebSockets config.Conn.ReadMessage()", err)
 			time.Sleep(time.Second * 5)
 			continue
 		}
@@ -34,7 +34,7 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 		var msg globalstructs.WebsocketMessage
 		err = json.Unmarshal(p, &msg)
 		if err != nil {
-			log.Println("Error decoding JSON:", err)
+			log.Println("WebSockets Error decoding JSON:", err)
 			continue
 		}
 
@@ -43,7 +43,7 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 		case "status":
 			if debug {
 				if debug {
-					log.Println("msg.Type", msg.Type)
+					log.Println("WebSockets msg.Type", msg.Type)
 				}
 			}
 			jsonData, err := json.Marshal(status)
@@ -61,12 +61,12 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 
 		case "addTask":
 			if debug {
-				log.Println("msg.Type", msg.Type)
+				log.Println("WebSockets msg.Type", msg.Type)
 			}
 			var requestTask globalstructs.Task
 			err = json.Unmarshal([]byte(msg.Json), &requestTask)
 			if err != nil {
-				log.Println("addWorker Unmarshal error: ", err)
+				log.Println("WebSockets addWorker Unmarshal error: ", err)
 			}
 			// if executing task skip and return error
 			if status.IddleThreads <= 0 {
@@ -77,7 +77,7 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 			} else {
 				// Process task in background
 				if debug {
-					log.Println("ProcessTask")
+					log.Println("WebSockets ProcessTask")
 				}
 				go process.ProcessTask(status, config, &requestTask, verbose, debug, writeLock)
 				response.Type = "OK;addTask"
@@ -88,19 +88,19 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 			//return task
 			jsonData, err := json.Marshal(requestTask)
 			if err != nil {
-				log.Println("Marshal error: ", err)
+				log.Println("WebSockets Marshal error: ", err)
 			}
 			response.Json = string(jsonData)
 
 		case "deleteTask":
 			if debug {
-				log.Println("msg.Type", msg.Type)
+				log.Println("WebSockets msg.Type", msg.Type)
 			}
 
 			var requestTask globalstructs.Task
 			err = json.Unmarshal([]byte(msg.Json), &requestTask)
 			if err != nil {
-				log.Println("deleteTask Unmarshal error: ", err)
+				log.Println("WebSockets deleteTask Unmarshal error: ", err)
 			}
 
 			cmdID := status.WorkingIDs[requestTask.ID]
@@ -114,8 +114,8 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 
 			if err != nil {
 				if debug {
-					log.Println("Error killing process:", err)
-					log.Println("Error details:", stderr.String())
+					log.Println("WebSockets Error killing process:", err)
+					log.Println("WebSockets Error details:", stderr.String())
 				}
 				response.Type = "FAILED;deleteTask"
 				response.Json = msg.Json
@@ -132,11 +132,11 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 		if response.Type != "" {
 			jsonData, err := json.Marshal(response)
 			if err != nil {
-				log.Println("Marshal error: ", err)
+				log.Println("WebSockets Marshal error: ", err)
 			}
 			err = managerRequest.SendMessage(config.Conn, jsonData, verbose, debug, writeLock)
 			if err != nil {
-				log.Println("SendMessage error: ", err)
+				log.Println("WebSockets SendMessage error: ", err)
 			}
 		}
 	}
@@ -149,7 +149,7 @@ func RecreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debu
 			conn, err := managerRequest.CreateWebsocket(config, config.CA, verifyAltName, verbose, debug)
 			if err != nil {
 				if verbose {
-					log.Println("Error CreateWebsocket: ", err)
+					log.Println("WebSockets Error CreateWebsocket: ", err)
 				}
 			} else {
 				config.Conn = conn
@@ -157,11 +157,11 @@ func RecreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debu
 				err = managerRequest.AddWorker(config, verbose, debug, writeLock)
 				if err != nil {
 					if verbose {
-						log.Println("Error worker RecreateConnection AddWorker: ", err)
+						log.Println("WebSockets Error worker RecreateConnection AddWorker: ", err)
 					}
 				} else {
 					if verbose {
-						log.Println("Worker connected to manager. ")
+						log.Println("WebSockets Worker connected to manager. ")
 					}
 					continue
 				}

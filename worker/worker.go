@@ -18,7 +18,7 @@ import (
 )
 
 func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug bool) {
-	log.Println("Running as worker router...")
+	log.Println("Worker Running as worker router...")
 
 	config, err := utils.LoadWorkerConfig(configFile, verbose, debug)
 	if err != nil {
@@ -50,7 +50,7 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 		if config.Conn != nil {
 			err := managerRequest.DeleteWorker(config, verbose, debug, &writeLock)
 			if err != nil {
-				log.Println("Error worker DeleteWorker: ", err)
+				log.Println("Worker Error worker DeleteWorker: ", err)
 			}
 		}
 		// Exit the program gracefully
@@ -73,12 +73,12 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 	// Loop until connects
 	for {
 		if debug {
-			log.Println("Trying to conenct to manager")
+			log.Println("Worker Trying to conenct to manager")
 		}
 		conn, err := managerRequest.CreateWebsocket(config, config.CA, verifyAltName, verbose, debug)
 		if err != nil {
 			if verbose {
-				log.Println("Error worker CreateWebsocket: ", err)
+				log.Println("Worker Error worker CreateWebsocket: ", err)
 			}
 		} else {
 			config.Conn = conn
@@ -86,11 +86,11 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 			err = managerRequest.AddWorker(config, verbose, debug, &writeLock)
 			if err != nil {
 				if verbose {
-					log.Println("Error worker AddWorker: ", err)
+					log.Println("Worker Error worker AddWorker: ", err)
 				}
 			} else {
 				if verbose {
-					log.Println("Worker connected to manager. ")
+					log.Println("Worker Worker connected to manager. ")
 				}
 				break
 			}

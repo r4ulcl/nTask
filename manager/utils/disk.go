@@ -15,7 +15,7 @@ func SaveTaskToDisk(task globalstructs.Task, path string, verbose, debug bool) e
 	jsonData, err := json.MarshalIndent(task, "", "    ")
 	if err != nil {
 		if verbose {
-			log.Println("Error marshaling JSON:", err)
+			log.Println("Utils Error marshaling JSON:", err)
 		}
 		return err
 	}

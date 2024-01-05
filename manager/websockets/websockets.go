@@ -26,18 +26,20 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 		if err != nil {
 			// if the clients conexion is down, this is the first error
 			if debug {
-				log.Println("client conexion down error: ", err)
+				log.Println("WebSockets client conexion down error: ", err)
 			}
 			// check if worker not init
 			if worker != (globalstructs.Worker{}) {
 				err = utils.WorkerDisconnected(db, config, &worker, verbose, debug, wg, writeLock)
 				if err != nil {
 					if debug {
-						log.Println("WorkerDisconnected error: ", err)
+						log.Println("WebSockets WorkerDisconnected error: ", err)
 					}
 				}
 			} else {
-				log.Println("Worker empty")
+				if debug {
+					log.Println("WebSockets Worker empty")
+				}
 			}
 			return
 		}
@@ -45,25 +47,27 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 		var msg globalstructs.WebsocketMessage
 		err = json.Unmarshal(p, &msg)
 		if err != nil {
-			log.Println("Error decoding JSON:", err)
+			if debug {
+				log.Println("WebSockets Error decoding JSON:", err)
+			}
 			continue
 		}
 
 		switch msg.Type {
 		case "addWorker":
 			if debug {
-				log.Println("msg.Type", msg.Type)
-				log.Println("msg.Json", msg.Json)
+				log.Println("WebSockets msg.Type", msg.Type)
+				log.Println("WebSockets msg.Json", msg.Json)
 			}
 
 			err = json.Unmarshal([]byte(msg.Json), &worker)
 			if err != nil {
-				log.Println("addWorker Unmarshal error: ", err)
+				log.Println("WebSockets addWorker Unmarshal error: ", err)
 			}
 			// add con to worker
 			err = addWorker(worker, db, verbose, debug, wg)
 			if err != nil {
-				log.Println("addWorker error: ", err)
+				log.Println("WebSockets addWorker error: ", err)
 				response.Type = "FAILED"
 			} else {
 				response.Type = "OK"
@@ -71,15 +75,17 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 			}
 
 		case "deleteWorker":
-			log.Println(msg.Type)
+			if debug {
+				log.Println(msg.Type)
+			}
 			err = json.Unmarshal([]byte(msg.Json), &worker)
 			if err != nil {
-				log.Println("deleteWorker Unmarshal error: ", err)
+				log.Println("WebSockets deleteWorker Unmarshal error: ", err)
 			}
 
 			err = database.RmWorkerName(db, worker.Name, verbose, debug, wg)
 			if err != nil {
-				log.Println("RmWorkerName error: ", err)
+				log.Println("WebSockets RmWorkerName error: ", err)
 				response.Type = "FAILED"
 			} else {
 				response.Type = "OK"
@@ -90,114 +96,114 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 			// Set the tasks as failed
 			err := database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
 			if err != nil {
-				log.Println("SetTasksWorkerFailed error: ", err)
+				log.Println("WebSockets SetTasksWorkerFailed error: ", err)
 			}
 		case "callbackTask":
 			if debug {
-				log.Println("msg.Type", msg.Type)
-				log.Println("msg.Json", msg.Json)
+				log.Println("WebSockets msg.Type", msg.Type)
+				log.Println("WebSockets msg.Json", msg.Json)
 			}
 
 			var result globalstructs.Task
 			err = json.Unmarshal([]byte(msg.Json), &result)
 			if err != nil {
-				log.Println("addWorker Unmarshal error: ", err)
+				log.Println("WebSockets addWorker Unmarshal error: ", err)
 			}
 
 			err = callback(result, config, db, verbose, debug, wg)
 
 			if err != nil {
-				log.Println("callbackTask error: ", err)
+				log.Println("WebSockets callbackTask error: ", err)
 			}
 
 			//Responses
 
 		case "OK;addTask":
 			if debug {
-				log.Println("msg.Type", msg.Type)
-				log.Println("msg.Json", msg.Json)
+				log.Println("WebSockets msg.Type", msg.Type)
+				log.Println("WebSockets msg.Json", msg.Json)
 			}
 			var result globalstructs.Task
 			err = json.Unmarshal([]byte(msg.Json), &result)
 			if err != nil {
-				log.Println("addWorker Unmarshal error: ", err)
+				log.Println("WebSockets addWorker Unmarshal error: ", err)
 			}
 
 			// Set task as executed
 			err = database.SetTaskExecutedAtNow(db, result.ID, verbose, debug, wg)
 			if err != nil {
-				log.Println("Error SetTaskExecutedAt in request:", err)
+				log.Println("WebSockets Error SetTaskExecutedAt in request:", err)
 			}
 
 			// Set workerName in DB and in object
 			err = database.SetTaskWorkerName(db, result.ID, result.WorkerName, verbose, debug, wg)
 			if err != nil {
-				log.Println("Error SetWorkerNameTask in request:", err)
+				log.Println("WebSockets Error SetWorkerNameTask in request:", err)
 			}
 
 			if verbose {
-				log.Println("Task send successfully")
+				log.Println("WebSockets Task send successfully")
 			}
 		case "FAILED;addTask":
 			if debug {
-				log.Println("msg.Type", msg.Type)
-				log.Println("msg.Json", msg.Json)
+				log.Println("WebSockets msg.Type", msg.Type)
+				log.Println("WebSockets msg.Json", msg.Json)
 			}
 
 			var result globalstructs.Task
 			err = json.Unmarshal([]byte(msg.Json), &result)
 			if err != nil {
-				log.Println("addWorker Unmarshal error: ", err)
+				log.Println("WebSockets addWorker Unmarshal error: ", err)
 			}
 
 			// Set the task as pending because the worker return error in add, so its not been procesed
 			err = database.SetTaskStatus(db, result.ID, "pending", verbose, debug, wg)
 			if err != nil {
 				if verbose {
-					log.Println("HandleCallback { \"error\" : \"Error SetTaskStatus: " + err.Error() + "\"}")
+					log.Println("WebSockets HandleCallback { \"error\" : \"Error SetTaskStatus: " + err.Error() + "\"}")
 				}
-				log.Println("Error SetTaskStatus in request:", err)
+				log.Println("WebSockets Error SetTaskStatus in request:", err)
 			}
 		case "OK;deleteTask":
 			if debug {
-				log.Println("msg.Type", msg.Type)
-				log.Println("msg.Json", msg.Json)
+				log.Println("WebSockets msg.Type", msg.Type)
+				log.Println("WebSockets msg.Json", msg.Json)
 			}
 		case "FAILED;deleteTask":
 			if debug {
-				log.Println("msg.Type", msg.Type)
-				log.Println("msg.Json", msg.Json)
+				log.Println("WebSockets msg.Type", msg.Type)
+				log.Println("WebSockets msg.Json", msg.Json)
 			}
-			log.Println("------------------ TODO FAILED;deleteTask")
+			log.Println("WebSockets ------------------ TODO FAILED;deleteTask")
 		case "status":
 			if debug {
-				log.Println("msg.Type", msg.Type)
-				log.Println("msg.Json", msg.Json)
+				log.Println("WebSockets msg.Type", msg.Type)
+				log.Println("WebSockets msg.Json", msg.Json)
 			}
 			if msg.Type == "status" {
 				// Unmarshal the JSON into a WorkerStatus struct
 				var status globalstructs.WorkerStatus
 				err = json.Unmarshal([]byte(msg.Json), &status)
 				if err != nil {
-					log.Println("status Unmarshal error: ", err)
+					log.Println("WebSockets status Unmarshal error: ", err)
 				}
 
-				log.Println("Response status from worker", status.Name, msg.Json)
+				log.Println("WebSockets Response status from worker", status.Name, msg.Json)
 				worker, err := database.GetWorker(db, status.Name, verbose, debug)
 				if err != nil {
-					log.Println("GetWorker error: ", err)
+					log.Println("WebSockets GetWorker error: ", err)
 				}
 				// If there is no error in making the request, assume worker is online
 				err = database.SetWorkerUPto(true, db, &worker, verbose, debug, wg)
 				if err != nil {
-					log.Println("status error: ", err)
+					log.Println("WebSockets status error: ", err)
 				}
 
 				// If worker IddleThreads is not the same as stored in the DB, update the DB
 				if status.IddleThreads != worker.IddleThreads {
 					err := database.SetIddleThreadsTo(status.IddleThreads, db, worker.Name, verbose, debug, wg)
 					if err != nil {
-						log.Println("status SetIddleThreadsTo error: ", err)
+						log.Println("WebSockets status SetIddleThreadsTo error: ", err)
 					}
 				}
 			}
@@ -211,11 +217,11 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 		if response.Type != "" {
 			jsonData, err := json.Marshal(response)
 			if err != nil {
-				log.Println("Marshal error: ", err)
+				log.Println("WebSockets Marshal error: ", err)
 			}
 			err = utils.SendMessage(conn, jsonData, verbose, debug, writeLock)
 			if err != nil {
-				log.Println("SendMessage error: ", err)
+				log.Println("WebSockets SendMessage error: ", err)
 			}
 		}
 	}
@@ -224,7 +230,7 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 func addWorker(worker globalstructs.Worker, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) error {
 
 	if debug {
-		log.Println("worker.Name", worker.Name)
+		log.Println("WebSockets worker.Name", worker.Name)
 	}
 
 	err := database.AddWorker(db, &worker, verbose, debug, wg)
@@ -262,26 +268,26 @@ func addWorker(worker globalstructs.Worker, db *sql.DB, verbose, debug bool, wg 
 func callback(result globalstructs.Task, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) error {
 
 	if debug {
-		log.Println(result)
-		log.Println("Received result (ID: ", result.ID, " from : ", result.WorkerName, " with command: ", result.Commands)
+		log.Println("WebSockets result: ", result)
+		log.Println("WebSockets Received result (ID: ", result.ID, " from : ", result.WorkerName, " with command: ", result.Commands)
 	}
 
 	// Update task with the worker one
 	err := database.UpdateTask(db, result, verbose, debug, wg)
 	if err != nil {
 		if verbose {
-			log.Println("HandleCallback { \"error\" : \"Error UpdateTask: " + err.Error() + "\"}")
+			log.Println("WebSockets HandleCallback { \"error\" : \"Error UpdateTask: " + err.Error() + "\"}")
 		}
 
 		return err
 	}
 
-	// force set task done
+	// force set task to status receive
 	// Set the task as done
-	err = database.SetTaskStatus(db, result.ID, "done", verbose, debug, wg)
+	err = database.SetTaskStatus(db, result.ID, result.Status, verbose, debug, wg)
 	if err != nil {
 		if verbose {
-			log.Println("HandleCallback { \"error\" : \"Error SetTaskStatus: " + err.Error() + "\"}")
+			log.Println("WebSockets HandleCallback { \"error\" : \"Error SetTaskStatus: " + err.Error() + "\"}")
 		}
 		return err
 	}

@@ -32,7 +32,7 @@ func RmWorkerName(db *sql.DB, name string, verbose, debug bool, wg *sync.WaitGro
 	wg.Add(1)
 	// Worker exists, proceed with deletion
 	sqlStatement := "DELETE FROM worker WHERE name = ?"
-	log.Println("Delete worker Name: ", name)
+	log.Println("DB Delete worker Name: ", name)
 	result, err := db.Exec(sqlStatement, name)
 	if err != nil {
 		return err
@@ -62,7 +62,7 @@ func GetWorkers(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error)
 	rows, err := db.Query("SELECT name, IddleThreads, up, downCount FROM worker")
 	if err != nil {
 		if debug {
-			log.Println("Error DBworkers: ", err)
+			log.Println("DB Error DBworkers: ", err)
 		}
 		return workers, err
 	}
@@ -80,7 +80,7 @@ func GetWorkers(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error)
 		err := rows.Scan(&name, &IddleThreads, &up, &downCount)
 		if err != nil {
 			if debug {
-				log.Println("Error DBworkers: ", err)
+				log.Println("DB Error DBworkers: ", err)
 			}
 			return workers, err
 		}
@@ -99,7 +99,7 @@ func GetWorkers(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error)
 	// Check for errors from iterating over rows
 	if err := rows.Err(); err != nil {
 		if debug {
-			log.Println("Error DBworkers: ", err)
+			log.Println("DB Error DBworkers: ", err)
 		}
 		return workers, err
 	}
@@ -121,7 +121,7 @@ func GetWorker(db *sql.DB, name string, verbose, debug bool) (globalstructs.Work
 		&name2, &IddleThreads, &up, &downCount)
 	if err != nil {
 		if debug {
-			log.Println("Error DBworkers: ", err)
+			log.Println("DB Error DBworkers: ", err)
 		}
 		return worker, err
 	}
@@ -146,7 +146,7 @@ func UpdateWorker(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool,
 		worker.IddleThreads, worker.UP, worker.DownCount, worker.Name)
 	if err != nil {
 		if debug {
-			log.Println("Error DBworkers: ", err)
+			log.Println("DB Error DBworkers: ", err)
 		}
 		return err
 	}
@@ -162,13 +162,13 @@ func SetWorkerUPto(up bool, db *sql.DB, worker *globalstructs.Worker, verbose, d
 		up, worker.Name)
 	if err != nil {
 		if debug {
-			log.Println("Error DBworkers: ", err)
+			log.Println("DB Error DBworkers: ", err)
 		}
 		return err
 	}
 
 	if debug {
-		log.Println("Worker set to:", up, worker.Name)
+		log.Println("DB Worker set to:", up, worker.Name)
 	}
 
 	return nil
@@ -180,13 +180,13 @@ func SetIddleThreadsTo(IddleThreads int, db *sql.DB, worker string, verbose, deb
 	defer wg.Done()
 	wg.Add(1)
 	if debug {
-		log.Println("Set IddleThreads to", IddleThreads)
+		log.Println("DB Set IddleThreads to", IddleThreads)
 	}
 	_, err := db.Exec("UPDATE worker SET IddleThreads = ? WHERE name = ?",
 		IddleThreads, worker)
 	if err != nil {
 		if debug {
-			log.Println("Error DBworkers: ", err)
+			log.Println("DB Error DBworkers: ", err)
 		}
 		return err
 	}
@@ -200,13 +200,13 @@ func AddWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool, wg *
 	defer wg.Done()
 	wg.Add(1)
 	if debug {
-		log.Println("AddWorkerIddleThreads1 worker name:", worker)
+		log.Println("DB AddWorkerIddleThreads1 worker name:", worker)
 	}
 	_, err := db.Exec("UPDATE worker SET IddleThreads = IddleThreads + 1 WHERE name = ?;",
 		worker)
 	if err != nil {
 		if debug {
-			log.Println("Error DBworkers: ", err)
+			log.Println("DB Error DBworkers: ", err)
 		}
 		return err
 	}
@@ -219,14 +219,14 @@ func SubtractWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool,
 	defer wg.Done()
 	wg.Add(1)
 	if debug {
-		log.Println("SubtractWorkerIddleThreads1")
+		log.Println("DB SubtractWorkerIddleThreads1")
 	}
 
 	_, err := db.Exec("UPDATE worker SET IddleThreads = CASE WHEN IddleThreads > 0 THEN IddleThreads - 1 "+
 		"ELSE 0 END WHERE name = ?", worker)
 	if err != nil {
 		if debug {
-			log.Println("Error DBworkers: ", err)
+			log.Println("DB Error DBworkers: ", err)
 		}
 		return err
 	}
@@ -254,7 +254,7 @@ func GetWorkerSQL(sql string, db *sql.DB, verbose, debug bool) ([]globalstructs.
 	rows, err := db.Query(sql)
 	if err != nil {
 		if debug {
-			log.Println("Error DBworkers: ", err)
+			log.Println("DB Error DBworkers: ", err)
 		}
 		return workers, err
 	}
@@ -272,7 +272,7 @@ func GetWorkerSQL(sql string, db *sql.DB, verbose, debug bool) ([]globalstructs.
 		err := rows.Scan(&name, &IddleThreads, &up, &downCount)
 		if err != nil {
 			if debug {
-				log.Println("Error DBworkers: ", err)
+				log.Println("DB Error DBworkers: ", err)
 			}
 			return workers, err
 		}
@@ -292,7 +292,7 @@ func GetWorkerSQL(sql string, db *sql.DB, verbose, debug bool) ([]globalstructs.
 	// Check for errors from iterating over rows
 	if err := rows.Err(); err != nil {
 		if debug {
-			log.Println("Error DBworkers: ", err)
+			log.Println("DB Error DBworkers: ", err)
 		}
 		return workers, err
 	}
@@ -307,7 +307,7 @@ func GetWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose, debug
 		worker.Name).Scan(&countS)
 	if err != nil {
 		if debug {
-			log.Println("Error DBworkers: ", err)
+			log.Println("DB Error DBworkers: ", err)
 		}
 		return -1, err
 	}
@@ -317,7 +317,7 @@ func GetWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose, debug
 	}
 
 	if debug {
-		log.Println("count worker:", worker.Name, "downCount:", downCount)
+		log.Println("DB count worker:", worker.Name, "downCount:", downCount)
 	}
 	return downCount, nil
 }
@@ -331,7 +331,7 @@ func SetWorkerDownCount(count int, db *sql.DB, worker *globalstructs.Worker, ver
 		count, worker.Name)
 	if err != nil {
 		if debug {
-			log.Println("Error DBworkers: ", err)
+			log.Println("DB Error DBworkers: ", err)
 		}
 		return err
 	}
@@ -348,7 +348,7 @@ func AddWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose, debug
 		worker.Name)
 	if err != nil {
 		if debug {
-			log.Println("Error DBworkers: ", err)
+			log.Println("DB Error DBworkers: ", err)
 		}
 		return err
 	}

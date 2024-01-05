@@ -25,8 +25,8 @@ func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *syn
 		}
 
 		if debug {
-			log.Println("tasks", len(tasks))
-			log.Println("workers", len(workers))
+			log.Println("Utils tasks", len(tasks))
+			log.Println("Utils workers", len(workers))
 		}
 
 		// if there are tasks
@@ -37,7 +37,7 @@ func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *syn
 					if task.WorkerName == "" || task.WorkerName == worker.Name {
 						err = SendAddTask(db, config, &worker, &task, verbose, debug, wg, writeLock)
 						if err != nil {
-							log.Println("Error SendAddTask", err.Error())
+							log.Println("Utils Error SendAddTask", err.Error())
 							//time.Sleep(time.Second * 1)
 							break
 						}

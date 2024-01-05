@@ -49,7 +49,7 @@ func HandleStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerC
 
 	if debug {
 		// Print the JSON data
-		log.Println(string(jsonData))
+		log.Println("API status:", string(jsonData))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
