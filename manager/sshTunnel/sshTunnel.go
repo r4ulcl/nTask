@@ -42,7 +42,7 @@ func StartSSH(config *utils.ManagerSSHConfig, portAPI string, verbose, debug boo
 
 		// SSH connection configuration
 		sshConfig := &ssh.ClientConfig{
-			User: "root",
+			User: config.SSHUsername,
 			Auth: []ssh.AuthMethod{
 				// Use the private key for authentication if provided
 				publicKeyFile(config.PrivateKeyPath),
