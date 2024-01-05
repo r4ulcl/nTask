@@ -23,43 +23,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/callback": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Handle callback from worker",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "worker"
-                ],
-                "summary": "Handle callback from worker",
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/globalstructs.Error"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/globalstructs.Error"
-                        }
-                    }
-                }
-            }
-        },
         "/status": {
             "get": {
                 "security": [
@@ -669,17 +632,8 @@ const docTemplate = `{
                 "downCount": {
                     "type": "integer"
                 },
-                "ip": {
-                    "type": "string"
-                },
                 "name": {
                     "description": "Workers name (unique)",
-                    "type": "string"
-                },
-                "oauthToken": {
-                    "type": "string"
-                },
-                "port": {
                     "type": "string"
                 },
                 "up": {

@@ -234,13 +234,6 @@ func StartManager(swagger bool, configFile, configSSHFile string, verifyAltName,
 
 	// r.HandleFunc("/send/{recipient}", handleSendMessage).Methods("POST")
 
-	// CallBack
-	callback := router.PathPrefix("/callback").Subrouter()
-	callback.Use(amw.Middleware)
-	callback.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleCallback(w, r, config, db, verbose, debug, &wg)
-	}).Methods("POST") // get callback info from task
-
 	// Status
 	status := router.PathPrefix("/status").Subrouter()
 	status.Use(amw.Middleware)

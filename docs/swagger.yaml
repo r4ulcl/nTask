@@ -76,14 +76,8 @@ definitions:
         type: integer
       downCount:
         type: integer
-      ip:
-        type: string
       name:
         description: Workers name (unique)
-        type: string
-      oauthToken:
-        type: string
-      port:
         type: string
       up:
         type: boolean
@@ -100,29 +94,6 @@ info:
   title: nTask API
   version: "1.0"
 paths:
-  /callback:
-    post:
-      consumes:
-      - application/json
-      description: Handle callback from worker
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/globalstructs.Error'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/globalstructs.Error'
-      security:
-      - ApiKeyAuth: []
-      summary: Handle callback from worker
-      tags:
-      - worker
   /status:
     get:
       consumes:
