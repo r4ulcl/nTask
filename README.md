@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="resources/nTask.png">
+  <img src="resources/nTask.png" style="width: 70%; height: 70%"/>>
 </p>
 
 <p align="center">
@@ -37,32 +37,34 @@
 
 # nTask
 
-nTask is a program for distributing tasks (any command or program) among different computers using API communications, both for managing the Manager and for the workers. The main idea is to be able to launch task requests from any client to the manager for it to handle them. The manager sends these tasks in order to the different available workers, receiving a request from the worker with the execution result. Once this is done, it is stored in the database and optionally can be sent to a URL/API to manage the output in another program or API.
+nTask is a program that allows you to distribute tasks (any command or program) among different computers using API communications and WebSockets. The main idea is to be able to launch task requests from any client to the manager for it to handle them. The manager sends these tasks in order to the different available workers, receiving a request from the worker with the execution result. Once this is done, it is stored in the database and optionally can be sent to a URL/API to manage the output in another program or API.
 
 The manager uses a MySQL database to store all the information, storing both the information of each worker and all the task information. The manager also has a public API that is accessed with an authentication token.
 
-The idea is to connect another API, a Telegram bot or a simple bash script to this API to process task. 
+The idea is to connect another API, a Telegram bot or a simple bash script to this API to process tasks. 
 
 ## Features
 
-- Manager API to send tasks.
-- Multiples workers.
-- MySQL database for save all tasks information.
-- Task modules configured in worker.conf JSON. 
+- Worker connects to Manager using WebSockets.
+- Workers connects Manager using WebSockets.
+- Support for multiple workers.
+- MySQL database to store task information.
+- Configuration of task modules in worker.conf JSON.
 - Same binary for manager and worker.
-- Multiple commands in a task, to execute sequential in a worker.
-- Send file in a task and save in a custom path.
-- Whitelist in workers to only access from manager.
-- Docker and docker compose.
-- Multiples users in manager (using oauth token).
-- Each worker with a different token.
-- TLS in manager and between Manager and Workers, verifying the CA. 
-- Ability to configure one VPS and clone it using the different hostnames as ids. 
-- Compatible with dynamic IPs in workers.
-- Callback option after task executed.
-- Output to file.
+- Support for multiple commands in a task, allowing sequential execution in a worker.
+- Ability to send files as part of a task and save them to a custom path.
+- Optional SSH tunneling to securely send the manager API port to clients without exposing it.
+- Docker and Docker Compose support.
+- Support for multiple users in the manager using OAuth tokens.
+- Each worker can have a unique token for authentication.
+- Each worker can execute a configurable number of tasks in parallel.
+- TLS support for secure communication between manager and workers, with certificate verification.
+- Ability to configure one VPS and clone it using different hostnames as IDs.
+- Compatible with dynamic IPs in workers (and manager if SSH tunneling is used).
+- Callback option after task execution.
+- Output logging to file.
 - Swagger documentation.
-- Swagger web (optional).
+- Optional Swagger web interface.
 
 ## Installation
 
@@ -70,21 +72,29 @@ The idea is to connect another API, a Telegram bot or a simple bash script to th
 
 Both images use the same binary, but the manager uses a scratch image just to run the binary and the worker uses a kali-linux image to install tools and dependencies easier. 
 
+You can pull these images from Docker Hub:
+
 ``` bash
 docker pull r4ulcl/nTask-manager
 docker pull r4ulcl/nTask-worker
 ```
 
-### Manual install
+### Manual Installation
 
-To use the nTask manager, you will need Go installed on your machine. You can download and install Go from the official website: [https://golang.org](https://golang.org).
+To install nTask manually, you need to have Go installed on your machine. You can download and install Go from the official website: [https://golang.org](https://golang.org).
 
 Once Go is installed, you can clone the repository and build the manager:
 
+```bash
+go install github.com/r4ulcl/nTask
 ```
-$ git clone https://github.com/r4ulcl/nTask.git
-$ cd nTask
-$ go build
+
+Or, you can clone the repository and build the manager using the following commands:
+
+```bash
+git clone https://github.com/r4ulcl/nTask.git
+cd nTask
+go build
 ```
 
 ## Configuration
@@ -97,6 +107,8 @@ You can use any certificate for the manager and the worker. If you want to use a
 bash generateCert.sh
 ```
 
+Set the certificate folder in the `certFolder` variable in the `manager.conf` config file. 
+
 ### Manager
 
 The manager requires a configuration file named `manager.conf` to be present in the same directory as the executable. The configuration file should be in JSON format and contain the following fields:
@@ -104,75 +116,82 @@ The manager requires a configuration file named `manager.conf` to be present in 
   ```json
   {
   "users": {
-    "user1" : "WLJ2xVQZ5TXVw4qEznZDnmEEV",
-    "user2" : "WLJ2xVQZ5TXVw4qEznZDnmEE2",
-    "user3" : "WLJ2xVQZ5TXVw4qEznZDnmEE3"
+    "user1": "WLJ2xVQZ5TXVw4qEznZDnmEEV",
+    "user2": "WLJ2xVQZ5TXVw4qEznZDnmEE2",
+    "user3": "WLJ2xVQZ5TXVw4qEznZDnmEE3"
   },
-    "workers": {
-      "workers" : "IeH0vpYFz2Yol6RdLvYZz62TFMv5FF"
+  "workers": {
+      "workers": "IeH0vpYFz2Yol6RdLvYZz62TFMv5FF"
   },
+  "statusCheckSeconds": 10,
+  "StatusCheckDown": 360,
   "port": "8080",
-  "dbUsername" : "your_username",
-  "dbPassword" : "your_password",
-  "dbHost" : "db",
-  "dbPort" : "3306",
-  "dbDatabase" : "manager",
-  "callbackURL" : "",
-  "callbackToken" : "",
-  "diskPath": "./output"
+  "dbUsername": "your_username",
+  "dbPassword": "your_password",
+  "dbHost": "db",
+  "dbPort": "3306",
+  "dbDatabase": "manager",
+  "diskPath": "",
+  "certFolder": "./certs/manager/"
 }
-  ```
+```
 
-- `oauthToken`: OauthToken for user in the manager API.
-- `oauthTokenWorkers`: OauthToken for the workers. this way the worker token only can do worker related requests. 
-- `Port`: The port on which the manager should listen for incoming connections.
-- `DBUsername`: The username for the database connection.
-- `DBPassword`: The password for the database connection.
-- `DBHost`: The hostname of the database server.
-- `DBPort`: The port number of the database server.
-- `DBDatabase`: The name of the database to use.
-- `callbackURL`: (optional) CallbackURL to send a POST request with the Task when done.
-- `callbackToken`: (optional) CallbackToken for the OauthToken in the Callback request. 
-- `diskPath`: (optional) Folder to save the tasks output
+- `users`: A map of user names and their corresponding OAuth tokens for authentication.
+- `workers`: A map of worker names and their corresponding tokens for authentication.
+- `statusCheckSeconds`: The interval in seconds between status check requests from the manager to the workers.
+- `StatusCheckDown`: The number of seconds after which a worker is marked as down if the status check request fails.
+- `port`: The port on which the manager should listen for incoming connections.
+- `dbUsername`: The username for the database connection.
+- `dbPassword`: The password for the database connection.
+- `dbHost`: The hostname of the database server.
+- `dbPort`: The port number of the database server.
+- `dbDatabase`: The name of the database to use.
+- `diskPath`: (optional) The folder path where task outputs should be saved.
+- `certFolder`: The folder path where SSL certificates for the manager should be stored.
 
 ### Worker
 
-Create a configuration file `workerouter.conf` with the following structure:
+The worker requires a configuration file named `workerouter.conf` to be present in the same directory as the executable. The configuration file should be in JSON format and contain the following fields:
 
-  ```json
+```json
 {
   "name": "",
-  "iddleThreads": 1,
-  "managerIP" : "nTask_manager",
-  "managerPort" : "8080",
+  "iddleThreads": 2,
+  "managerIP": "127.0.0.1",
+  "managerPort": "8080",
   "managerOauthToken": "IeH0vpYFz2Yol6RdLvYZz62TFMv5FF",
-  "oauthToken": "",
-  "port": "8081",
+  "CA": "./certs/ca-cert.pem",
   "insecureModules": true,
   "modules": {
     "sleep": "/usr/bin/sleep",
     "curl": "/usr/bin/curl",
-    "module1": "python3 ./worker/modules/module1.py",
+    "echo": "/usr/bin/echo",
+    "cat": "/usr/bin/cat",
+    "grep": "/usr/bin/grep",
+    "nmap": "nmap",
+    "nmapIPs": "bash ./worker/modules/nmapIPs.sh",
     "exec": ""
   }
 }
+```
 
-   ```
-   - `name`: (optional) The name of the worker. If not provided, the hostname will be used.
-   - `iddleThreads`: Number of threads in the worker (default 1)
-   - `managerIP`: Manager IP or domain
-   - `managerPort`: manager port
-   - `managerOauthToken`: Manager configured OauthToken for workers
-   - `oauthToken`: (optional) OauthToken for the worker. If not provided, the worker will set a random one on start. 
-   - `port`: The port number on which the worker should listen for incoming requests.
-   - `insecureModules`: This flag set the modules execution to allow any string like `;` or `|` to use onliners. 
-   - `modules`: A map of module names to executable commands.
+- `name`: (optional) The name of the worker. If not provided, the hostname will be used.
+- `iddleThreads`: The number of idle threads in the worker (default: 5).
+- `managerIP`: The IP address or domain name of the manager.
+- `managerPort`: The port on which the manager is listening.
+- `managerOauthToken`: The OAuth token for authentication with the manager.
+- `port`: The port number on which the worker should listen for incoming requests.
+- `CA`: The path to the CA certificate used for TLS communication with the manager.
+- `insecureModules`: This flag determines whether the worker allows the execution of insecure modules with special characters like `;` or `|`.
+- `modules`: A map of module names to executable commands.
 
-IMPORTANT: The `exec` moduel and the `insecureModules` flag allow any user/attacker remote execution in the workers. Be carefull. 
+Note: The `exec` module and the `insecureModules` flag allow remote execution of arbitrary commands on the worker. Use them with caution.
    
-Each worker uses to identify itself as unique to the manager the name and the ip:port, so if the name is left blank and the IP and port of each client is different, the same VPS can be cloned indefinitely if each VPS has a different hostname. 
+Each worker uses a unique name and IP:port combination to identify itself to the manager. If the name is left blank and the IP and port are different for each client, the same VPS can be cloned indefinitely as long as each VPS has a different hostname.
 
 ## Usage manager
+
+An usage example can be found here: https://r4ulcl.com/posts
 
 I recommend the following configuration:
 - Manager:
@@ -181,6 +200,13 @@ I recommend the following configuration:
   - Create a new Dockerfile installing the needed tools in the docker for the workers.
   - Create a VPS, install all the tools and nTask and execute it there.
   - If you want to execute external tools in docker you cant share the docker.sock with this docker and execute any docker from the nTask docker. 
+
+### Manager flags 
+
+  - `-c`, `--configFile` string      Path to the config file (default: manager.conf)
+  - `-f`, `--configSSHFile` string   Path to the config SSH file (default empty)
+  - `-h`, `--help`                   help for manager
+
 
 ### Docker compose
 
@@ -194,13 +220,18 @@ docker compose up manager -d
 
 To start the manager, run the executable:
 
-```
+``` bash
 $ ./nTask manager
 ```
 
 The manager will read the configuration file, connect to the database, and start listening for incoming connections on the specified port.
 
 ## Usage worker
+
+### Worker flags 
+
+  - `-c`, `--configFile` string      Path to the config file (default: worker.conf)
+  - `-h`, `--help`                   help for manager
 
 ### Docker compose
 
@@ -212,7 +243,7 @@ docker compose up worker -d
 
 ### Binary 
 
-```
+``` bash
 $ ./nTask worker
 ```
 
@@ -221,51 +252,109 @@ $ ./nTask worker
 Edit the `./worker/Dockerfile` file adding the needed tools for the modules. You can also modify the docker image, the default one is Kali. 
 
 
-## Flags
+## Secure
 
- - `--manager`: Run nTask as manager
- - `--worker`: Run nTask as worker
- - `--swagger`: Start the swager endpoint (/swagger)
- - `--verbose`: Set verbose mode
- - `--configFile`: Path to the config file for manager and worker
+To ensure the security of the nTask Manager, we recommend implementing the following measures:
+- Use a legitimate TLS certificate to secure communication between the manager and the workers.
+- Change the default port to a high port.
+- Filter with `iptables` the input to allow only the IPs of the workers.
+- Create an SSH tunnel to prevent the API port from being exposed on the internet.
 
+### Use SSH tunnels
 
-## API Endpoints manager
+Using SSH tunnels is a recommended method to enhance the security of the nTask Manager. By configuring SSH tunnels, the manager can send the port to each worker without exposing the API to the internet.
 
-The nTask manager exposes the following API endpoints for the user/manager:
+#### SSH config file
 
-- `GET /task`: Get information about all tasks.
-- `POST /task`: Add a new task.
-- `DELETE /task/{ID}`: Delete a task with the specified ID.
-- `GET /task/{ID}`: Get the status of a task with the specified ID.
+To connect a SSH server automatcally from nTask you need a private certificate with access to the server and to confiure a configSSHFile:
 
-API endpoint for workers:
-- `GET /worker`: Get information about all workers.
-- `POST /worker`: Add a new worker.
-- `DELETE /worker/{NAME}`: Delete a worker with the specified name.
-- `GET /worker/{NAME}`: Get the status of a worker with the specified name.
-- `POST /callback`: Receive callback information from a task.
+``` bash
+{
+  "ipPort": {
+    "<IP1>" : "22",
+    "<IP2>" : "22",
+    "<IP3>" : "22"
+  },
+  "username": "root",
+  "privateKeyPath": "~/.ssh/ssh_key",
+  "privateKeyPassword": ""
+}
+```
 
-The API endpoints can be accessed using a REST client such as cURL or Postman.
+- `ipPort`: List of ip and port combination to connect to with SSH. 
+- `username`: User to access via SSH.
+- `privateKeyPath`: Path to the SSH private key.
+- `privateKeyPassword`: (Optional) Password for the private key.
+
+#### Manually
+
+Alternatively, you can establish an SSH tunnel manually by following these steps:
+
+```bash
+ssh -L local_port:remote_server:remote_port -R remote_port:localhost:local_port user@remote_server
+```
+
+ Replace `local_port` with the port number on the manager machine, `remote_server` with the IP address or hostname of the worker machine, `remote_port` with the port number on the worker machine, and `user` with the SSH user.
+
+   This command establishes a tunnel between the manager and the worker, allowing secure communication without exposing the API to the internet.
+
+## Global flags
+
+The nTask Manager supports the following global flags:
+
+- `--swagger`: Enables the Swagger endpoint (/swagger) to access API documentation and interact with the API using its UI.
+- `--debug`: Sets the manager in debug mode, providing additional logging and diagnostics information.
+
+## API Endpoints
+
+The nTask Manager exposes the following API endpoints:
+
+### Manager Endpoints
+
+- `GET /task`: Retrieves information about all tasks.
+- `POST /task`: Adds a new task.
+- `DELETE /task/{ID}`: Deletes a task with the specified ID.
+- `GET /task/{ID}`: Retrieves the status of a task with the specified ID.
+
+### Worker Endpoints
+
+- `GET /worker`: Retrieves information about all workers.
+- `POST /worker`: Adds a new worker.
+- `DELETE /worker/{NAME}`: Deletes a worker with the specified name.
+- `GET /worker/{NAME}`: Retrieves the status of a worker with the specified name.
+
+You can access these API endpoints using a REST client such as cURL or Postman.
 
 ## Swagger Documentation
 
+The nTask Manager provides Swagger documentation for its API, which allows for easier understanding and testing of the available endpoints.
+
 ### Generating Swagger docs
-``` bash
-go install github.com/swaggo/swag/cmd/swag@latest
-swag init
-```
 
-The nTask manager also provides Swagger documentation for its API. You can access the Swagger UI at `/swagger/` and the Swagger JSON at `/docs/swagger.json`.
+To generate the Swagger documentation, follow these steps:
 
+1. Install the latest version of the `swag` command-line tool by running the following command:
+
+   ``` bash
+   go install github.com/swaggo/swag/cmd/swag@latest
+   ```
+
+2. Initialize the Swagger docs by running the following command:
+
+   ``` bash
+   swag init
+   ```
+
+   This command generates the Swagger JSON and the necessary files for the Swagger UI.
 ## Diagram
 
-![Diagram](./resources/nTask-diagram.png)
+![nTask Diagram](./resources/nTask-diagram.png)
 
+The diagram above illustrates the architecture of the nTask Manager and its interactions with the workers.
 
 ## TODO
-- Add cloud instances
-    - DigitalOcean
+- Code tests
+- DigitalOcean API
 
 ## Author
 
