@@ -195,8 +195,11 @@ func StartManager(swagger bool, configFile, configSSHFile string, verifyAltName,
 	if debug {
 		log.Println("Set task running to failed")
 	}
-	database.SetTasksStatusIfRunning(db, "failed", verbose, debug, &wg)
-
+	err = database.SetTasksStatusIfRunning(db, "failed", verbose, debug, &wg)
+	if err != nil {
+		fmt.Println("Error SetTasksStatusIfRunning:", err)
+		return
+	}
 	// Create an HTTP client with the custom TLS configuration
 	if config.CertFolder != "" {
 		clientHTTP, err := utils.CreateTLSClientWithCACert(config.CertFolder+"/ca-cert.pem", verifyAltName, verbose, debug)
@@ -216,7 +219,7 @@ func StartManager(swagger bool, configFile, configSSHFile string, verifyAltName,
 	go utils.ManageTasks(config, db, verbose, debug, &wg, &writeLock)
 
 	if configSSHFile != "" {
-		go sshTunnel.StartSSH(configSSH, verbose, debug)
+		go sshTunnel.StartSSH(configSSH, config.Port, verbose, debug)
 	}
 
 	router := mux.NewRouter()

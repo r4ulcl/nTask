@@ -157,7 +157,7 @@ func RecreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debu
 				err = managerRequest.AddWorker(config, verbose, debug, writeLock)
 				if err != nil {
 					if verbose {
-						log.Println("Error worker: ", err)
+						log.Println("Error worker RecreateConnection AddWorker: ", err)
 					}
 				} else {
 					if verbose {

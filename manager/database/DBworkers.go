@@ -317,7 +317,7 @@ func GetWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose, debug
 	}
 
 	if debug {
-		log.Println("count", downCount)
+		log.Println("count worker:", worker.Name, "downCount:", downCount)
 	}
 	return downCount, nil
 }
@@ -358,7 +358,7 @@ func AddWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose, debug
 
 func GetUpCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
-	query := fmt.Sprintf("SELECT COUNT(*) FROM worker where up = true")
+	query := "SELECT COUNT(*) FROM worker where up = true"
 
 	// Execute the query
 	var count int
@@ -372,7 +372,7 @@ func GetUpCount(db *sql.DB, verbose, debug bool) (int, error) {
 
 func GetDownCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
-	query := fmt.Sprintf("SELECT COUNT(*) FROM worker where up = false")
+	query := "SELECT COUNT(*) FROM worker where up = false"
 
 	// Execute the query
 	var count int

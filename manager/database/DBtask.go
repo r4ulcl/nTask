@@ -475,7 +475,7 @@ func SetTaskExecutedAt(executedAt string, db *sql.DB, id string, verbose, debug 
 
 func GetPendingCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
-	query := fmt.Sprintf("SELECT COUNT(*) FROM task where status = 'pending'")
+	query := "SELECT COUNT(*) FROM task where status = 'pending'"
 
 	// Execute the query
 	var count int
@@ -489,7 +489,7 @@ func GetPendingCount(db *sql.DB, verbose, debug bool) (int, error) {
 
 func GetRunningCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
-	query := fmt.Sprintf("SELECT COUNT(*) FROM task where status = 'running'")
+	query := "SELECT COUNT(*) FROM task where status = 'running'"
 
 	// Execute the query
 	var count int
@@ -503,7 +503,7 @@ func GetRunningCount(db *sql.DB, verbose, debug bool) (int, error) {
 
 func GetDoneCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
-	query := fmt.Sprintf("SELECT COUNT(*) FROM task where status = 'done'")
+	query := "SELECT COUNT(*) FROM task where status = 'done'"
 
 	// Execute the query
 	var count int
@@ -517,7 +517,7 @@ func GetDoneCount(db *sql.DB, verbose, debug bool) (int, error) {
 
 func GetFailedCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
-	query := fmt.Sprintf("SELECT COUNT(*) FROM task where status = 'failed'")
+	query := "SELECT COUNT(*) FROM task where status = 'failed'"
 
 	// Execute the query
 	var count int
@@ -531,7 +531,7 @@ func GetFailedCount(db *sql.DB, verbose, debug bool) (int, error) {
 
 func GetDeletedCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
-	query := fmt.Sprintf("SELECT COUNT(*) FROM task where status = 'deleted'")
+	query := "SELECT COUNT(*) FROM task where status = 'deleted'"
 
 	// Execute the query
 	var count int

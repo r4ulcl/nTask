@@ -89,6 +89,9 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 		}
 
 		if downCount >= config.StatusCheckDown {
+			if debug {
+				log.Println("downCount", downCount, " >= config.StatusCheckDown", config.StatusCheckDown)
+			}
 			err = database.RmWorkerName(db, worker.Name, verbose, debug, wg)
 			if err != nil {
 				return err
@@ -192,13 +195,21 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 	// Set task as executed
 	err = database.SetTaskExecutedAtNow(db, task.ID, verbose, debug, wg)
 	if err != nil {
-		return fmt.Errorf("Error SetTaskExecutedAt in request:", err)
+		return fmt.Errorf("Error SetTaskExecutedAt in request: %s", err)
+	}
+
+	log.Println("Error SetTaskStatus in request:", err)
+
+	// Set task as running
+	err = database.SetTaskStatus(db, task.ID, "running", verbose, debug, wg)
+	if err != nil {
+		log.Println("Error SetTaskStatus in request:", err)
 	}
 
 	// Set workerName in DB and in object
 	err = database.SetTaskWorkerName(db, task.ID, worker.Name, verbose, debug, wg)
 	if err != nil {
-		return fmt.Errorf("Error SetWorkerNameTask in request:", err)
+		return fmt.Errorf("Error SetWorkerNameTask in request: %s", err)
 	}
 
 	if verbose {

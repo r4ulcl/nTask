@@ -47,9 +47,11 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 		fmt.Println("Executing cleanup function...")
 
 		//delete worker
-		err := managerRequest.DeleteWorker(config, verbose, debug, &writeLock)
-		if err != nil {
-			log.Println("Error worker: ", err)
+		if config.Conn != nil {
+			err := managerRequest.DeleteWorker(config, verbose, debug, &writeLock)
+			if err != nil {
+				log.Println("Error worker DeleteWorker: ", err)
+			}
 		}
 		// Exit the program gracefully
 		os.Exit(0)
@@ -76,7 +78,7 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 		conn, err := managerRequest.CreateWebsocket(config, config.CA, verifyAltName, verbose, debug)
 		if err != nil {
 			if verbose {
-				log.Println("Error worker: ", err)
+				log.Println("Error worker CreateWebsocket: ", err)
 			}
 		} else {
 			config.Conn = conn
@@ -84,7 +86,7 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 			err = managerRequest.AddWorker(config, verbose, debug, &writeLock)
 			if err != nil {
 				if verbose {
-					log.Println("Error worker: ", err)
+					log.Println("Error worker AddWorker: ", err)
 				}
 			} else {
 				if verbose {

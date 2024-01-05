@@ -3,9 +3,9 @@ package sshTunnel
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
+	"os"
 
 	"github.com/r4ulcl/nTask/manager/utils"
 	"golang.org/x/crypto/ssh"
@@ -22,7 +22,7 @@ func forwardData(src, dest net.Conn) {
 }
 
 func publicKeyFile(file string) ssh.AuthMethod {
-	buffer, err := ioutil.ReadFile(file)
+	buffer, err := os.ReadFile(file)
 	if err != nil {
 		return nil
 	}
@@ -34,7 +34,7 @@ func publicKeyFile(file string) ssh.AuthMethod {
 	return ssh.PublicKeys(key)
 }
 
-func StartSSH(config *utils.ManagerSSHConfig, verbose, debug bool) {
+func StartSSH(config *utils.ManagerSSHConfig, portAPI string, verbose, debug bool) {
 	//return nil
 	log.Println("StartSSH")
 	for ip, port := range config.IpPort {
@@ -57,9 +57,13 @@ func StartSSH(config *utils.ManagerSSHConfig, verbose, debug bool) {
 		}
 
 		// Remote port to forward
-		remoteAddr := "127.0.0.1:8180"
+		remoteAddr := "127.0.0.1:" + portAPI
 		// Local address to forward to
-		localAddr := "127.0.0.1:8180"
+		localAddr := "127.0.0.1:" + portAPI
+
+		if debug {
+			log.Println("remoteAddr", remoteAddr)
+		}
 
 		// Request remote port forwarding
 		remoteListener, err := sshClient.Listen("tcp", remoteAddr)

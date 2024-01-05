@@ -143,7 +143,21 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 				log.Println("msg.Type", msg.Type)
 				log.Println("msg.Json", msg.Json)
 			}
-			log.Println("------------------ TODO FAILED;addTask")
+
+			var result globalstructs.Task
+			err = json.Unmarshal([]byte(msg.Json), &result)
+			if err != nil {
+				log.Println("addWorker Unmarshal error: ", err)
+			}
+
+			// Set the task as running if its pending
+			err = database.SetTaskStatus(db, result.ID, "failed", verbose, debug, wg)
+			if err != nil {
+				if verbose {
+					log.Println("HandleCallback { \"error\" : \"Error SetTaskStatus: " + err.Error() + "\"}")
+				}
+				log.Println("Error SetTaskStatus in request:", err)
+			}
 		case "OK;deleteTask":
 			if debug {
 				log.Println("msg.Type", msg.Type)
