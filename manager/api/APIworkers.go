@@ -17,7 +17,7 @@ import (
 	"github.com/r4ulcl/nTask/manager/websockets"
 )
 
-// HandleWorkerGet handles the request to get workers
+// HandleWorker Get handles the request to get workers
 // @description Handle worker request
 // @summary Get workers
 // @Tags worker
@@ -158,18 +158,6 @@ func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *u
 	websockets.GetWorkerMessage(conn, config, db, verbose, debug, wg, writeLock)
 
 }
-
-/*
-func (m *WebSocketManager) broadcastMessage(msg []byte) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	for conn := range m.connections {
-		err := conn.WriteMessage(websocket.TextMessage, msg)
-		if err != nil {
-			log.Println("API Error broadcasting message:", err)
-		}
-	}
-}*/
 
 // HandleWorkerDeleteName handles the request to remove a worker
 // @description Remove a worker from the system

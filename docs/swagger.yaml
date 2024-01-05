@@ -98,7 +98,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Handle status from user
+      description: Get status summary from Manager
       produces:
       - application/json
       responses:
@@ -114,7 +114,7 @@ paths:
             $ref: '#/definitions/globalstructs.Error'
       security:
       - ApiKeyAuth: []
-      summary: Handle status from user
+      summary: Get status summary from Manager
       tags:
       - status
   /task:
@@ -127,13 +127,13 @@ paths:
         in: query
         name: ID
         type: string
-      - description: Task module
+      - description: Task command
         in: query
-        name: module
+        name: command
         type: string
-      - description: Task args
+      - description: Task name
         in: query
-        name: args
+        name: name
         type: string
       - description: Task createdAt
         in: query
@@ -142,6 +142,10 @@ paths:
       - description: Task updatedAt
         in: query
         name: updatedAt
+        type: string
+      - description: Task executedAt
+        in: query
+        name: executedAt
         type: string
       - description: Task status
         enum:
@@ -157,18 +161,26 @@ paths:
         in: query
         name: workerName
         type: string
-      - description: Task output
+      - description: Task username
         in: query
-        name: output
+        name: username
         type: string
       - description: Task priority
         in: query
         name: priority
-        type: boolean
+        type: string
+      - description: Task callbackURL
+        in: query
+        name: callbackURL
+        type: string
+      - description: Task callbackToken
+        in: query
+        name: callbackToken
+        type: string
       - description: limit output DB
         in: query
         name: limit
-        type: boolean
+        type: string
       produces:
       - application/json
       responses:

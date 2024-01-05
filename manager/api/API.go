@@ -10,8 +10,8 @@ import (
 	"github.com/r4ulcl/nTask/manager/utils"
 )
 
-// @description Handle status from user
-// @summary Handle status from user
+// @description Get status summary from Manager
+// @summary Get status summary from Manager
 // @Tags status
 // @accept application/json
 // @produce application/json

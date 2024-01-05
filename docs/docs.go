@@ -30,7 +30,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Handle status from user",
+                "description": "Get status summary from Manager",
                 "consumes": [
                     "application/json"
                 ],
@@ -40,7 +40,7 @@ const docTemplate = `{
                 "tags": [
                     "status"
                 ],
-                "summary": "Handle status from user",
+                "summary": "Get status summary from Manager",
                 "responses": {
                     "200": {
                         "description": "OK"
@@ -87,14 +87,14 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Task module",
-                        "name": "module",
+                        "description": "Task command",
+                        "name": "command",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Task args",
-                        "name": "args",
+                        "description": "Task name",
+                        "name": "name",
                         "in": "query"
                     },
                     {
@@ -107,6 +107,12 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Task updatedAt",
                         "name": "updatedAt",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Task executedAt",
+                        "name": "executedAt",
                         "in": "query"
                     },
                     {
@@ -130,18 +136,30 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Task output",
-                        "name": "output",
+                        "description": "Task username",
+                        "name": "username",
                         "in": "query"
                     },
                     {
-                        "type": "boolean",
+                        "type": "string",
                         "description": "Task priority",
                         "name": "priority",
                         "in": "query"
                     },
                     {
-                        "type": "boolean",
+                        "type": "string",
+                        "description": "Task callbackURL",
+                        "name": "callbackURL",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Task callbackToken",
+                        "name": "callbackToken",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "description": "limit output DB",
                         "name": "limit",
                         "in": "query"

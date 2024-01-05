@@ -22,15 +22,18 @@ import (
 // @accept application/json
 // @produce application/json
 // @param ID query string false "Task ID"
-// @param module query string false "Task module"
-// @param args query string false "Task args"
+// @param command query string false "Task command"
+// @param name query string false "Task name"
 // @param createdAt query string false "Task createdAt"
 // @param updatedAt query string false "Task updatedAt"
+// @param executedAt query string false "Task executedAt"
 // @param status query string false "Task status" Enums(pending, running, done, failed, deleted)
 // @param workerName query string false "Task workerName"
-// @param output query string false "Task output"
-// @param priority query boolean false "Task priority"
-// @param limit query boolean false "limit output DB"
+// @param username query string false "Task username"
+// @param priority query string false "Task priority"
+// @param callbackURL query string false "Task callbackURL"
+// @param callbackToken query string false "Task callbackToken"
+// @param limit query string false "limit output DB"
 // @success 200 {array} globalstructs.Task
 // @Failure 400 {object} globalstructs.Error
 // @Failure 403 {object} globalstructs.Error

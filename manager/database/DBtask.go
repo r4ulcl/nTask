@@ -117,6 +117,10 @@ func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug
 		sql += fmt.Sprintf(" AND updatedAt LIKE '%s'", updatedAt)
 	}
 
+	if executedAt := queryParams.Get("executedAt"); executedAt != "" {
+		sql += fmt.Sprintf(" AND executedAt LIKE '%s'", executedAt)
+	}
+
 	if status := queryParams.Get("status"); status != "" {
 		sql += fmt.Sprintf(" AND status = '%s'", status)
 	}
