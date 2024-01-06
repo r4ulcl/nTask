@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -25,7 +26,14 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 		if debug {
 			log.Println("Modules cmdStr: ", cmdStr)
 		}
-		cmd = exec.Command("sh", "-c", cmdStr)
+
+		if runtime.GOOS == "windows" {
+			cmd = exec.Command("cmd", "/c", cmdStr)
+		} else if runtime.GOOS == "linux" {
+			cmd = exec.Command("sh", "-c", cmdStr)
+		} else {
+			log.Fatal("Unsupported operating system")
+		}
 
 	} else {
 		// Convert arguments to array

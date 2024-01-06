@@ -284,12 +284,22 @@ func callback(result globalstructs.Task, config *utils.ManagerConfig, db *sql.DB
 
 	// force set task to status receive
 	// Set the task as done
-	err = database.SetTaskStatus(db, result.ID, result.Status, verbose, debug, wg)
-	if err != nil {
-		if verbose {
-			log.Println("WebSockets HandleCallback { \"error\" : \"Error SetTaskStatus: " + err.Error() + "\"}")
+	if result.Status == "failed" {
+		err = database.SetTaskStatus(db, result.ID, result.Status, verbose, debug, wg)
+		if err != nil {
+			if verbose {
+				log.Println("WebSockets HandleCallback { \"error\" : \"Error SetTaskStatus: " + err.Error() + "\"}")
+			}
+			return err
 		}
-		return err
+	} else {
+		err = database.SetTaskStatus(db, result.ID, "done", verbose, debug, wg)
+		if err != nil {
+			if verbose {
+				log.Println("WebSockets HandleCallback { \"error\" : \"Error SetTaskStatus: " + err.Error() + "\"}")
+			}
+			return err
+		}
 	}
 
 	// if callbackURL is not empty send the request to the client

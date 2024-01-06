@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="resources/nTask.png" style="width: 70%; height: 70%"/>>
+  <img src="resources/nTask_small.png" style="width: 70%; height: 70%"/>>
 </p>
 
 <p align="center">
@@ -56,6 +56,7 @@ The idea is to connect another API, a Telegram bot or a simple bash script to th
 - Optional SSH tunneling to securely send the manager API port to clients without exposing it.
 - Docker and Docker Compose support.
 - Support for multiple users in the manager using OAuth tokens.
+- Works on Linux and Windows. 
 - Each worker can have a unique token for authentication.
 - Each worker can execute a configurable number of tasks in parallel.
 - TLS support for secure communication between manager and workers, with certificate verification.
