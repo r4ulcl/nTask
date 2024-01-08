@@ -34,7 +34,7 @@
   </a>
   
   </p>
-  
+
 # nTask
 
 nTask is a distributed task management program that allows you to distribute tasks, commands, or programs across multiple computers. It utilizes API communications and WebSockets to facilitate seamless communication between the manager and workers. The program consists of a manager component that handles task requests from clients and distributes them to available workers. The workers execute the tasks and send the execution results back to the manager, which then stores the results in a database. Additionally, the results can be sent to a specified URL/API for further processing.
@@ -108,7 +108,7 @@ cd nTask
 go build
 ```
 
-## Configuration
+## Configuration Manager
 
 ### SSL (optional)
 
@@ -120,7 +120,7 @@ bash generateCert.sh
 
 Set the certificate folder in the `certFolder` variable in the `manager.conf` config file. 
 
-### Manager
+### nTask manager
 
 The manager requires a configuration file named `manager.conf` to be present in the same directory as the executable. The configuration file should be in JSON format and contain the following fields:
 
@@ -160,7 +160,7 @@ The manager requires a configuration file named `manager.conf` to be present in 
 - `diskPath`: (optional) The folder path where task outputs should be saved.
 - `certFolder`: The folder path where SSL certificates for the manager should be stored.
 
-### Worker
+## Configuration Worker
 
 The worker requires a configuration file named `workerouter.conf` to be present in the same directory as the executable. The configuration file should be in JSON format and contain the following fields:
 
@@ -238,6 +238,8 @@ $ ./nTask manager
 The manager will read the configuration file, connect to the database, and start listening for incoming connections on the specified port.
 
 ## Usage worker
+
+The best way to deploy workers is to close a base image and duplicate it as needed. The easiest option to modify later is to install nTask and the tools directly on the VPS. 
 
 ### Worker flags 
 
@@ -366,10 +368,12 @@ The diagram above illustrates the architecture of the nTask Manager and its inte
 ## TODO
 - Code tests
 - DigitalOcean API
+  - Get list of droplets to SSH connect
+  - Dinamic number of droplets between min and max
 
 ## Author
 
-- Raúl Calvo Laorden (@r4ulcl)
+- [Raúl Calvo Laorden (@r4ulcl)](https://r4ulcl.com/)
 
 ## Support this project
 
