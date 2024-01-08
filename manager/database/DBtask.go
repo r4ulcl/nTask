@@ -145,14 +145,18 @@ func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug
 		sql += fmt.Sprintf(" AND callbackToken = '%s'", callbackToken)
 	}
 
-	sql += " ORDER BY priority DESC, createdAt ASC"
+	sql += " ORDER BY priority DESC, createdAt ASC "
 
 	if limit := queryParams.Get("limit"); limit != "" {
-		sql += fmt.Sprintf(" limit '%s'", limit)
+		sql += fmt.Sprintf(" limit %s", limit)
 	} else {
 		sql += " limit 1000"
 	}
 	sql += ";"
+
+	if debug {
+		log.Println("GetTasks sql", sql)
+	}
 
 	return GetTasksSQL(sql, db, verbose, debug)
 }

@@ -180,7 +180,7 @@ paths:
       - description: limit output DB
         in: query
         name: limit
-        type: string
+        type: integer
       produces:
       - application/json
       responses:

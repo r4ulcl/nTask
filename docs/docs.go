@@ -159,7 +159,7 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "limit output DB",
                         "name": "limit",
                         "in": "query"
