@@ -33,7 +33,7 @@ import (
 // @param priority query string false "Task priority"
 // @param callbackURL query string false "Task callbackURL"
 // @param callbackToken query string false "Task callbackToken"
-// @param limit query string false "limit output DB"
+// @param limit query int false "limit output DB"
 // @success 200 {array} globalstructs.Task
 // @Failure 400 {object} globalstructs.Error
 // @Failure 403 {object} globalstructs.Error

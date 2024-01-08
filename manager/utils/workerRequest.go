@@ -192,6 +192,12 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 		return err
 	}
 
+	// Set task as running
+	err = database.SetTaskStatus(db, task.ID, "running", verbose, debug, wg)
+	if err != nil {
+		log.Println("Utils Error SetTaskStatus in request:", err)
+	}
+
 	// Set task as executed
 	err = database.SetTaskExecutedAtNow(db, task.ID, verbose, debug, wg)
 	if err != nil {
@@ -199,12 +205,6 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 	}
 
 	log.Println("Utils Error SetTaskStatus in request:", err)
-
-	// Set task as running
-	err = database.SetTaskStatus(db, task.ID, "running", verbose, debug, wg)
-	if err != nil {
-		log.Println("Utils Error SetTaskStatus in request:", err)
-	}
 
 	// Set workerName in DB and in object
 	err = database.SetTaskWorkerName(db, task.ID, worker.Name, verbose, debug, wg)
