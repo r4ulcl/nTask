@@ -34,38 +34,47 @@
   </a>
   
   </p>
-
 # nTask
 
-nTask is a program that allows you to distribute tasks (any command or program) among different computers using API communications and WebSockets. The main idea is to be able to launch task requests from any client to the manager for it to handle them. The manager sends these tasks in order to the different available workers, receiving a request from the worker with the execution result. Once this is done, it is stored in the database and optionally can be sent to a URL/API to manage the output in another program or API.
+nTask is a distributed task management program that allows you to distribute tasks, commands, or programs across multiple computers. It utilizes API communications and WebSockets to facilitate seamless communication between the manager and workers. The program consists of a manager component that handles task requests from clients and distributes them to available workers. The workers execute the tasks and send the execution results back to the manager, which then stores the results in a database. Additionally, the results can be sent to a specified URL/API for further processing.
 
-The manager uses a MySQL database to store all the information, storing both the information of each worker and all the task information. The manager also has a public API that is accessed with an authentication token.
-
-The idea is to connect another API, a Telegram bot or a simple bash script to this API to process tasks. 
+You can connect another API, Telegram bot ot a simple bash script to the manager API to process tasks. 
 
 ## Features
 
-- Worker connects to Manager using WebSockets.
-- Workers connects Manager using WebSockets.
-- Support for multiple workers.
-- MySQL database to store task information.
-- Configuration of task modules in worker.conf JSON.
-- Same binary for manager and worker.
-- Support for multiple commands in a task, allowing sequential execution in a worker.
-- Ability to send files as part of a task and save them to a custom path.
-- Optional SSH tunneling to securely send the manager API port to clients without exposing it.
-- Docker and Docker Compose support.
-- Support for multiple users in the manager using OAuth tokens.
-- Works on Linux and Windows. 
-- Each worker can have a unique token for authentication.
-- Each worker can execute a configurable number of tasks in parallel.
-- TLS support for secure communication between manager and workers, with certificate verification.
-- Ability to configure one VPS and clone it using different hostnames as IDs.
-- Compatible with dynamic IPs in workers (and manager if SSH tunneling is used).
-- Callback option after task execution.
-- Output logging to file.
-- Swagger documentation.
-- Optional Swagger web interface.
+- **API-based Task Management**: nTask provides an API that allows users to manage tasks, enabling integration with other systems and services.
+
+- **WebSockets**: The manager and workers establish communication channels using WebSockets, ensuring real-time and efficient task distribution.
+
+- **Scalability**: nTask supports multiple workers, allowing parallel execution of tasks across a distributed network.
+
+- **Database Integration**: The program utilizes a MySQL database to store task information, ensuring data persistence and easy retrieval.
+
+- **Configuration Flexibility**: Task modules can be easily configured using a JSON file, providing flexibility in defining task behavior.
+
+- **Secure Task Execution**: Each worker can authenticate using a unique token, ensuring secure task execution.
+
+- **Parallel Task Execution**: Each worker can be configured to execute a configurable number of tasks simultaneously, improving overall performance.
+
+- **File Support**: nTask supports sending files as part of a task and allows users to specify a custom path for saving the files.
+
+- **Secure Communication**: TLS support enables secure communication between the manager and workers, with certificate verification for added security.
+
+- **Optional SSH Tunneling**: nTask provides the option to use SSH tunneling to securely send the manager API port to clients without exposing it.
+
+- **Multi-Platform Support**: nTask is compatible with both Linux and Windows operating systems, ensuring broad platform compatibility.
+
+- **Docker Support**: The program is Docker and Docker Compose ready, simplifying deployment and management.
+
+- **OAuth Support**: Multiple users can be managed in the manager using OAuth tokens, enhancing security and access control.
+
+- **Dynamic IP Compatibility**: nTask is compatible with dynamic IPs, both for workers and the manager (when using SSH tunneling).
+
+- **Callback Option**: Users can configure callback options for task execution, enabling further processing or notifications.
+
+- **Logging**: Output logging to file is supported, facilitating easy tracking and analysis of task execution.
+
+- **Documentation and Web Interface**: nTask provides Swagger documentation for easy integration and interaction with the API, along with an optional web interface for a more user-friendly experience.
 
 ## Installation
 
@@ -138,7 +147,7 @@ The manager requires a configuration file named `manager.conf` to be present in 
 ```
 
 - `users`: A map of user names and their corresponding OAuth tokens for authentication.
-- `workers`: A map of worker names and their corresponding tokens for authentication.
+- `workers`: A map of worker names and their corresponding tokens for authentication. (In this case all workers use the same token called workers)
 - `statusCheckSeconds`: The interval in seconds between status check requests from the manager to the workers.
 - `StatusCheckDown`: The number of seconds after which a worker is marked as down if the status check request fails.
 - `port`: The port on which the manager should listen for incoming connections.
