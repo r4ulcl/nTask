@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="resources/nTask_small.png" style="width: 70%; height: 70%"/>>
+  <img src="resources/nTask_small.png" style="width: 70%; height: 70%"/>
 </p>
 
 <p align="center">
@@ -34,6 +34,7 @@
   </a>
   
   </p>
+  
 # nTask
 
 nTask is a distributed task management program that allows you to distribute tasks, commands, or programs across multiple computers. It utilizes API communications and WebSockets to facilitate seamless communication between the manager and workers. The program consists of a manager component that handles task requests from clients and distributes them to available workers. The workers execute the tasks and send the execution results back to the manager, which then stores the results in a database. Additionally, the results can be sent to a specified URL/API for further processing.
