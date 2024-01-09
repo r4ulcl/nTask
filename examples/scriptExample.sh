@@ -88,7 +88,7 @@ task_ids=()
 
 # Connect to Manager
 ## Send nmap ping only range
-command="{\"module\": \"curl\", \"args\": \"-s ipinfo.io/city\"}"
+command="{\"module\": \"nmapIPs\", \"args\": \"$scanRange\"}"
 task_data="{\"command\": [$command],\"priority\": 0}"
 task_id=$(send_post_request "$url/task" "$oauthToken" "$task_data")
 # add task_id to array

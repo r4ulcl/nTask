@@ -163,6 +163,12 @@ const docTemplate = `{
                         "description": "limit output DB",
                         "name": "limit",
                         "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page output DB",
+                        "name": "page",
+                        "in": "query"
                     }
                 ],
                 "responses": {

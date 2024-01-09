@@ -181,6 +181,10 @@ paths:
         in: query
         name: limit
         type: integer
+      - description: page output DB
+        in: query
+        name: page
+        type: integer
       produces:
       - application/json
       responses:

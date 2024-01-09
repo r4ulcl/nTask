@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -147,11 +148,25 @@ func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug
 
 	sql += " ORDER BY priority DESC, createdAt ASC "
 
-	if limit := queryParams.Get("limit"); limit != "" {
-		sql += fmt.Sprintf(" limit %s", limit)
-	} else {
-		sql += " limit 1000"
+	// set limit and page
+	page := 1 // Default page number
+	if pageStr := queryParams.Get("page"); pageStr != "" {
+		page, _ = strconv.Atoi(pageStr)
+		if page < 1 {
+			page = 1
+		}
 	}
+
+	limit := 1000 // Default limit
+
+	if limitStr := queryParams.Get("limit"); limitStr != "" {
+		limit, _ = strconv.Atoi(limitStr)
+	}
+
+	offset := (page - 1) * limit
+
+	sql += fmt.Sprintf(" LIMIT %d OFFSET %d;", limit, offset)
+
 	sql += ";"
 
 	if debug {
