@@ -643,7 +643,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "priority": {
-                    "type": "boolean"
+                    "type": "integer"
                 }
             }
         },

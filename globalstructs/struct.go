@@ -34,7 +34,7 @@ type Command struct {
 type TaskSwagger struct {
 	Commands []CommandSwagger `json:"command"`
 	Name     string           `json:"name"`
-	Priority bool             `json:"priority"`
+	Priority int              `json:"priority"`
 }
 
 // Command struct for swagger documentation

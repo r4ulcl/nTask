@@ -640,7 +640,7 @@
                     "type": "string"
                 },
                 "priority": {
-                    "type": "boolean"
+                    "type": "integer"
                 }
             }
         },

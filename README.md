@@ -39,14 +39,10 @@
 
 nTask is a distributed task management program that allows you to distribute tasks, commands, or programs across multiple computers. It utilizes API communications and WebSockets to facilitate seamless communication between the manager and workers. The program consists of a manager component that handles task requests from clients and distributes them to available workers. The workers execute the tasks and send the execution results back to the manager, which then stores the results in a database. Additionally, the results can be sent to a specified URL/API for further processing.
 
-You can connect another API, Telegram bot ot a simple bash script to the manager API to process tasks. 
+You can connect another API, Telegram bot ot a simple bash script to the manager API to process tasks. To test and see how to make API requests you can use the swagger flag to access the web server with the documentation:
 
 <p align="center">
-  <img src="resources/nTask-swagger-functions.png" style="width: 70%; height: 70%"/>
-</p>
-
-<p align="center">
-  <img src="resources/nTask-swagger-status.png" style="width: 70%; height: 70%"/>
+  <img src="resources/nTask-swagger-functions.png" style="width: 90%; height: 90%"/>
 </p>
 
 ## Features
@@ -224,7 +220,7 @@ I recommend the following configuration:
 
   - `-c`, `--configFile` string      Path to the config file (default: manager.conf)
   - `-f`, `--configSSHFile` string   Path to the config SSH file (default empty)
-  - `-h`, `--help`                   help for manager
+  - `-s`, `--swagger`: Enables the Swagger endpoint (/swagger) to access API documentation and interact with the API using its UI.
 
 
 ### Docker compose
@@ -252,7 +248,6 @@ The best way to deploy workers is to close a base image and duplicate it as need
 ### Worker flags 
 
   - `-c`, `--configFile` string      Path to the config file (default: worker.conf)
-  - `-h`, `--help`                   help for manager
 
 ### Docker compose
 
@@ -272,6 +267,73 @@ $ ./nTask worker
 
 Edit the `./worker/Dockerfile` file adding the needed tools for the modules. You can also modify the docker image, the default one is Kali. 
 
+## Usage API
+
+To use the API, you can access the Swagger web interface by using the `--swagger` flag on the manager. This allows you to manually perform queries and interact with the API.
+
+### Status Endpoint
+The `Status` endpoint provides general information about the nTask status. This includes the number of pending, running, completed, and deleted tasks, as well as the number of workers that are up and down.
+
+To retrieve the status, you can use the following `curl` command:
+
+``` bash
+curl -X 'GET' \
+  'https://$IP:$PORT/status' \
+  -H 'accept: application/json' \
+  -H 'Authorization: $AUTH'
+```
+
+<p align="center">
+  <img src="resources/nTask-swagger-status.png" style="width: 90%; height: 90%"/>
+</p>
+
+
+### Add Task Endpoint
+To add a task, you need to make a POST request to the `/task` endpoint. The request should include the necessary fields, such as the command, name, and priority.
+
+Here is an example `curl` command for adding a task:
+
+``` bash
+curl -X 'POST' \
+  'https://$IP:$PORT/task' \
+  -H 'accept: application/json' \
+  -H 'Authorization: $AUTH' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "command": [
+    {
+      "args": "Hello world",
+      "module": "echo"
+    }
+  ],
+  "name": "example Task",
+  "priority": 0
+}'
+```
+
+You should receive a response confirming that the task has been successfully added.
+
+<p align="center">
+  <img src="resources/nTask-swagger-addTask.png" style="width: 90%; height: 90%"/>
+</p>
+
+### Get Tasks Endpoint
+To retrieve a list of tasks based on certain criteria, you can use the `Get Tasks` endpoint. The endpoint allows you to filter tasks by name, status, and limit the number of results.
+
+Here is an example `curl` command for retrieving tasks filtering any tasks which contains `example` and status is `done`:
+
+```bash
+curl -X 'GET' \
+  'https://$IP:$PORT/task?name=%25example%25&status=done&limit=10' \
+  -H 'accept: application/json' \
+  -H 'Authorization: $AUTH'
+```
+
+You will receive a response containing the tasks that match the specified criteria.
+
+<p align="center">
+  <img src="resources/nTask-swagger-getTasks.png" style="width: 90%; height: 90%"/>
+</p>
 
 ## Secure
 
@@ -323,8 +385,9 @@ ssh -L local_port:remote_server:remote_port -R remote_port:localhost:local_port 
 
 The nTask Manager supports the following global flags:
 
-- `--swagger`: Enables the Swagger endpoint (/swagger) to access API documentation and interact with the API using its UI.
-- `--debug`: Sets the manager in debug mode, providing additional logging and diagnostics information.
+- `-v`, `--verbose`: Sets the manager/worker in verbose mode, providing additional logging.
+- `-d`, `--debug`: Sets the manager/worker in debug mode, providing additional logging and diagnostics information.
+  - `-h`, `--help`: Help for the GUI usage. 
 
 ## API Endpoints
 

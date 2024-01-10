@@ -68,7 +68,7 @@ definitions:
       name:
         type: string
       priority:
-        type: boolean
+        type: integer
     type: object
   globalstructs.Worker:
     properties:
