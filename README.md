@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="resources/nTask_small.png" style="width: 70%; height: 70%"/>
+  <img src="resources/nTask-small.png" style="width: 70%; height: 70%"/>
 </p>
 
 <p align="center">
@@ -40,6 +40,14 @@
 nTask is a distributed task management program that allows you to distribute tasks, commands, or programs across multiple computers. It utilizes API communications and WebSockets to facilitate seamless communication between the manager and workers. The program consists of a manager component that handles task requests from clients and distributes them to available workers. The workers execute the tasks and send the execution results back to the manager, which then stores the results in a database. Additionally, the results can be sent to a specified URL/API for further processing.
 
 You can connect another API, Telegram bot ot a simple bash script to the manager API to process tasks. 
+
+<p align="center">
+  <img src="resources/nTask-swagger-functions.png" style="width: 70%; height: 70%"/>
+</p>
+
+<p align="center">
+  <img src="resources/nTask-swagger-status.png" style="width: 70%; height: 70%"/>
+</p>
 
 ## Features
 
@@ -370,6 +378,7 @@ The diagram above illustrates the architecture of the nTask Manager and its inte
 - DigitalOcean API
   - Get list of droplets to SSH connect
   - Dinamic number of droplets between min and max
+- Optimize small tasks
 
 ## Author
 

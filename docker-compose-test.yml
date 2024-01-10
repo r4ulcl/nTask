@@ -26,7 +26,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -41,7 +41,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -56,7 +56,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -71,7 +71,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -86,7 +86,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -101,7 +101,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -116,7 +116,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -131,7 +131,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -146,7 +146,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -161,7 +161,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -176,7 +176,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -191,7 +191,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -206,7 +206,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -221,7 +221,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -236,7 +236,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -251,7 +251,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -266,7 +266,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -281,7 +281,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -296,7 +296,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
@@ -311,7 +311,7 @@ services:
     depends_on:
       - manager
     env_file: .env
-    command: worker --verbose -debug
+    command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/

@@ -202,10 +202,15 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	}
 
 	// Delete task from DB
-	err = database.RmTask(db, id, verbose, debug, wg)
+	/*err = database.RmTask(db, id, verbose, debug, wg)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
 		return
+	}*/
+	// Set task as running
+	err = database.SetTaskStatus(db, id, "deleted", verbose, debug, wg)
+	if err != nil {
+		log.Println("Utils Error SetTaskStatus in request:", err)
 	}
 
 	// Return task with deleted status

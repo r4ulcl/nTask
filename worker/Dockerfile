@@ -1,14 +1,22 @@
 
 # STEP 1 build executable binary
 FROM golang:alpine as builder
-COPY . $GOPATH/src/github.com/r4ulcl/nTask
+
+# copy files for compile
+COPY ./certs $GOPATH/src/github.com/r4ulcl/nTask/certs
+COPY ./docs $GOPATH/src/github.com/r4ulcl/nTask/docs
+COPY ./globalstructs $GOPATH/src/github.com/r4ulcl/nTask/globalstructs
+COPY ./go.mod $GOPATH/src/github.com/r4ulcl/nTask/go.mod
+COPY ./go.sum $GOPATH/src/github.com/r4ulcl/nTask/go.sum
+COPY ./main.go $GOPATH/src/github.com/r4ulcl/nTask/main.go
+COPY ./manager $GOPATH/src/github.com/r4ulcl/nTask/manager
+COPY ./worker $GOPATH/src/github.com/r4ulcl/nTask/worker
 
 WORKDIR $GOPATH/src/github.com/r4ulcl/nTask
 #get dependancies
 #RUN apk -U add alpine-sdk
 #RUN go get -d -v
 #build the binary
-RUN go mod tidy
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags '-w -s' -o /go/bin/nTask
 
 #create config folder 
@@ -25,8 +33,6 @@ RUN apt-get install -y kali-tools-fuzzing
 
 # Copy our static executable
 COPY --from=builder /$GOPATH/bin/nTask /$GOPATH/bin/nTask
-#Copy SQL file
-COPY --from=builder /config/ /config/
 # Copy modules
 COPY --from=builder $GOPATH/src/github.com/r4ulcl/nTask/worker/modules/ /config/modules/
 

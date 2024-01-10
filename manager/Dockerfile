@@ -9,6 +9,7 @@ COPY ./go.mod $GOPATH/src/github.com/r4ulcl/nTask/go.mod
 COPY ./go.sum $GOPATH/src/github.com/r4ulcl/nTask/go.sum
 COPY ./main.go $GOPATH/src/github.com/r4ulcl/nTask/main.go
 COPY ./manager $GOPATH/src/github.com/r4ulcl/nTask/manager
+COPY ./worker $GOPATH/src/github.com/r4ulcl/nTask/worker
 
 WORKDIR $GOPATH/src/github.com/r4ulcl/nTask
 #get dependancies
