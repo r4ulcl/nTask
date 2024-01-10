@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - 'master'
-    tags:
-      - 'v*'
+#    tags:
+#      - 'v*'
 
 jobs:
   docker:
@@ -25,7 +25,6 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          #images: ${{ github.repository_NAME }}/${{ github.repository_name }}
           images: ${{ github.actor }}/ntask-manager
 
       - name: Login to DockerHub
