@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - 'main'
-#    tags:
-#      - 'v*'
+    tags:
+      - 'v*'
 
 jobs:
   docker:
@@ -42,7 +42,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-
 
       - name: Login to GitHub Container Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin

@@ -3,7 +3,7 @@ name: Docker Build and Publish Worker
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
     tags:
       - 'v*'
 
@@ -25,25 +25,23 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          #images: ${{ github.repository_NAME }}/${{ github.repository_name }}
           images: ${{ github.actor }}/ntask-worker
 
-#      - name: Login to DockerHub
-#        uses: docker/login-action@v1 
-#        with:
-#          username: ${{ github.actor }}
-#          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-#      - name: Build and push docker
-#        id: docker_build
-#        uses: docker/build-push-action@v2
-#        with:
-#          context: .
-#          file: ./worker/Dockerfile
-#          platforms: linux/amd64
-#          push: true
-#          tags: ${{ steps.meta.outputs.tags }}
-#          labels: ${{ steps.meta.outputs.labels }}
+      - name: Login to DockerHub
+        uses: docker/login-action@v1 
+        with:
+          username: ${{ github.actor }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push docker
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./worker/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
       - name: Login to GitHub Container Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
