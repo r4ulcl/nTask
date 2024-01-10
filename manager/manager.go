@@ -18,7 +18,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/r4ulcl/nTask/manager/api"
 	"github.com/r4ulcl/nTask/manager/database"
-	"github.com/r4ulcl/nTask/manager/sshTunnel"
+	sshtunnel "github.com/r4ulcl/nTask/manager/sshTunnel"
 	"github.com/r4ulcl/nTask/manager/utils"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
@@ -181,9 +181,9 @@ func StartManager(swagger bool, configFile, configSSHFile string, verifyAltName,
 		}
 		db, err = database.ConnectDB(config.DBUsername, config.DBPassword, config.DBHost, config.DBPort, config.DBDatabase, verbose, debug)
 		if err != nil {
-			log.Fatal("Error manager ConnectDB: ", err)
+			log.Println("Error manager ConnectDB: ", err)
 			if db != nil {
-				db.Close()
+				defer db.Close()
 			}
 			time.Sleep(time.Second * 5)
 		} else {
@@ -197,20 +197,22 @@ func StartManager(swagger bool, configFile, configSSHFile string, verifyAltName,
 	}
 	err = database.SetTasksStatusIfRunning(db, "failed", verbose, debug, &wg)
 	if err != nil {
-		fmt.Println("Error SetTasksStatusIfRunning:", err)
+		log.Println("Error SetTasksStatusIfRunning:", err)
 		return
 	}
 	// Create an HTTP client with the custom TLS configuration
 	if config.CertFolder != "" {
 		clientHTTP, err := utils.CreateTLSClientWithCACert(config.CertFolder+"/ca-cert.pem", verifyAltName, verbose, debug)
 		if err != nil {
-			fmt.Println("Error creating HTTP client:", err)
+			log.Println("Error creating HTTP client:", err)
 			return
 		}
 		config.ClientHTTP = clientHTTP
+
 	} else {
 		config.ClientHTTP = &http.Client{}
 	}
+	config.ClientHTTP.Timeout = 5 * time.Second
 
 	// verify status workers infinite
 	go utils.VerifyWorkersLoop(db, config, verbose, debug, &wg, &writeLock)
@@ -219,7 +221,7 @@ func StartManager(swagger bool, configFile, configSSHFile string, verifyAltName,
 	go utils.ManageTasks(config, db, verbose, debug, &wg, &writeLock)
 
 	if configSSHFile != "" {
-		go sshTunnel.StartSSH(configSSH, config.Port, verbose, debug)
+		go sshtunnel.StartSSH(configSSH, config.Port, verbose, debug)
 	}
 
 	router := mux.NewRouter()
@@ -274,11 +276,11 @@ func StartManager(swagger bool, configFile, configSSHFile string, verifyAltName,
 	// if there is cert is HTTPS
 	if config.CertFolder != "" {
 		log.Fatal(http.ListenAndServeTLS(addr, config.CertFolder+"/cert.pem", config.CertFolder+"/key.pem", router))
-	} else {
-		err = http.ListenAndServe(addr, nil)
-		if err != nil {
-			log.Println("Manager Error manager CertFolder: ", err)
-		}
+	}
+
+	err = http.ListenAndServe(addr, nil)
+	if err != nil {
+		log.Println("Manager Error manager CertFolder: ", err)
 	}
 
 	/*

@@ -113,7 +113,7 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 
 	msg := globalstructs.WebsocketMessage{
 		Type: "status",
-		Json: "{}",
+		JSON: "{}",
 	}
 
 	jsonData, err := json.Marshal(msg)
@@ -129,7 +129,7 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 		if debug {
 			log.Println("Utils Can't send message, error:", err)
 		}
-		err = WorkerDisconnected(db, config, worker, verbose, debug, wg, writeLock)
+		err = WorkerDisconnected(db, config, worker, verbose, debug, wg)
 		if err != nil {
 			return err
 		}
@@ -172,7 +172,7 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 
 	msg := globalstructs.WebsocketMessage{
 		Type: "addTask",
-		Json: string(jsonDataTask),
+		JSON: string(jsonDataTask),
 	}
 
 	jsonData, err := json.Marshal(msg)
@@ -185,7 +185,7 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 		if debug {
 			log.Println("Utils Can't send message, error:", err)
 		}
-		err = WorkerDisconnected(db, config, worker, verbose, debug, wg, writeLock)
+		err = WorkerDisconnected(db, config, worker, verbose, debug, wg)
 		if err != nil {
 			return err
 		}
@@ -235,7 +235,7 @@ func SendDeleteTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Wor
 
 	msg := globalstructs.WebsocketMessage{
 		Type: "deleteTask",
-		Json: string(jsonDataTask),
+		JSON: string(jsonDataTask),
 	}
 
 	jsonData, err := json.Marshal(msg)
@@ -248,7 +248,7 @@ func SendDeleteTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Wor
 		if debug {
 			log.Println("Utils Can't send message, error:", err)
 		}
-		err = WorkerDisconnected(db, config, worker, verbose, debug, wg, writeLock)
+		err = WorkerDisconnected(db, config, worker, verbose, debug, wg)
 		if err != nil {
 			return err
 		}
@@ -324,6 +324,7 @@ func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose, debug 
 		tlsConfig = &tls.Config{
 			InsecureSkipVerify: false, // Ensure that server verification is enabled
 			RootCAs:            certPool,
+			MinVersion:         tls.VersionTLS12, // Set the desired minimum TLS version
 		}
 	}
 
@@ -337,7 +338,7 @@ func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose, debug 
 	return client, nil
 }
 
-func WorkerDisconnected(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) error {
+func WorkerDisconnected(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
 	if debug {
 		log.Println("Utils Error: WriteControl cant connect", worker.Name)
 	}

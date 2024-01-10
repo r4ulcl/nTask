@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/r4ulcl/nTask/globalstructs"
-	"github.com/r4ulcl/nTask/worker/managerRequest"
+	"github.com/r4ulcl/nTask/worker/managerrequest"
 	"github.com/r4ulcl/nTask/worker/modules"
 	"github.com/r4ulcl/nTask/worker/utils"
 )
@@ -18,7 +18,7 @@ import (
 // Otherwise, it sets the task status to "done" and assigns the output of the module to the task.
 // Finally, it calls the CallbackTaskMessage function to send the task result to the configured callback endpoint.
 // After completing the task, it resets the worker status to indicate that it is no longer working.
-func ProcessTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *globalstructs.Task, verbose, debug bool, writeLock *sync.Mutex) {
+func Task(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *globalstructs.Task, verbose, debug bool, writeLock *sync.Mutex) {
 	//Remove one from working threads
 	sustract1IddleThreads(status)
 
@@ -39,20 +39,19 @@ func ProcessTask(status *globalstructs.WorkerStatus, config *utils.WorkerConfig,
 
 	// While manager doesnt responds loop
 	for {
-		err = managerRequest.CallbackTaskMessage(config, task, verbose, debug, writeLock)
+		err = managerrequest.CallbackTaskMessage(config, task, verbose, debug, writeLock)
 		if err == nil {
 			break
-		} else {
-			time.Sleep(time.Second * 10)
 		}
+		time.Sleep(time.Second * 10)
 	}
 
 }
 
 func add1IddleThreads(status *globalstructs.WorkerStatus) {
-	status.IddleThreads += 1
+	status.IddleThreads++
 }
 
 func sustract1IddleThreads(status *globalstructs.WorkerStatus) {
-	status.IddleThreads -= 1
+	status.IddleThreads--
 }

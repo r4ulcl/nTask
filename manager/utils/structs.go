@@ -24,7 +24,7 @@ type ManagerConfig struct {
 }
 
 type ManagerSSHConfig struct {
-	IpPort             map[string]string `json:"ipPort"`
+	IPPort             map[string]string `json:"ipPort"`
 	SSHUsername        string            `json:"sshUsername"`
 	PrivateKeyPath     string            `json:"privateKeyPath"`
 	PrivateKeyPassword string            `json:"privateKeyPassword"`

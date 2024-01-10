@@ -2,10 +2,8 @@ package utils
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"github.com/r4ulcl/nTask/globalstructs"
 )
@@ -21,16 +19,17 @@ func SaveTaskToDisk(task globalstructs.Task, path string, verbose, debug bool) e
 	}
 
 	// Get date and time
-	currentTime := time.Now()
+	//currentTime := time.Now()
 	// Specify the file path
 	//	filePath := path + "/" + task.ID + ".json"
-	filePath := fmt.Sprintf("%s/%s_%s.json", path, currentTime.Format("2006-01-02_15-04-05"), task.ID)
+	//filePath := fmt.Sprintf("%s/%s_%s.json", path, currentTime.Format("2006-01-02_15-04-05"), task.ID)
+	filePath := path
 
 	// Open the file for writing
-	file, err := os.Create(filePath)
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	if err != nil {
 		if verbose {
-			fmt.Println("Error creating file:", err)
+			log.Println("Error creating file:", err)
 		}
 		return err
 	}
@@ -40,7 +39,7 @@ func SaveTaskToDisk(task globalstructs.Task, path string, verbose, debug bool) e
 	_, err = file.Write(jsonData)
 	if err != nil {
 		if verbose {
-			fmt.Println("Error writing to file:", err)
+			log.Println("Error writing to file:", err)
 		}
 		return err
 	}

@@ -125,10 +125,8 @@ func addWorker(worker globalstructs.Worker, db *sql.DB, verbose, debug bool, wg 
 				if err != nil {
 					return err
 				}
-				return err
-			} else {
-				return err
 			}
+			return err
 		}
 
 	}

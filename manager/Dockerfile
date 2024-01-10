@@ -1,7 +1,14 @@
 
 # STEP 1 build executable binary
 FROM golang:alpine as builder
-COPY . $GOPATH/src/github.com/r4ulcl/nTask
+# copy files for compile
+COPY ./certs $GOPATH/src/github.com/r4ulcl/nTask/certs
+COPY ./docs $GOPATH/src/github.com/r4ulcl/nTask/docs
+COPY ./globalstructs $GOPATH/src/github.com/r4ulcl/nTask/globalstructs
+COPY ./go.mod $GOPATH/src/github.com/r4ulcl/nTask/go.mod
+COPY ./go.sum $GOPATH/src/github.com/r4ulcl/nTask/go.sum
+COPY ./main.go $GOPATH/src/github.com/r4ulcl/nTask/main.go
+COPY ./manager $GOPATH/src/github.com/r4ulcl/nTask/manager
 
 WORKDIR $GOPATH/src/github.com/r4ulcl/nTask
 #get dependancies

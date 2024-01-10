@@ -2,7 +2,6 @@
 package worker
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -12,7 +11,7 @@ import (
 	"time"
 
 	globalstructs "github.com/r4ulcl/nTask/globalstructs"
-	"github.com/r4ulcl/nTask/worker/managerRequest"
+	"github.com/r4ulcl/nTask/worker/managerrequest"
 	"github.com/r4ulcl/nTask/worker/utils"
 	"github.com/r4ulcl/nTask/worker/websockets"
 )
@@ -41,14 +40,14 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 	go func(config *utils.WorkerConfig) {
 		// Wait for a signal
 		sig := <-sigChan
-		fmt.Println("\nReceived signal:", sig)
+		log.Println("\nReceived signal:", sig)
 
 		// Execute your function or cleanup here
-		fmt.Println("Executing cleanup function...")
+		log.Println("Executing cleanup function...")
 
 		//delete worker
 		if config.Conn != nil {
-			err := managerRequest.DeleteWorker(config, verbose, debug, &writeLock)
+			err := managerrequest.DeleteWorker(config, verbose, debug, &writeLock)
 			if err != nil {
 				log.Println("Worker Error worker DeleteWorker: ", err)
 			}
@@ -61,7 +60,7 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 		// Create an HTTP client with the custom TLS configuration
 		clientHTTP, err := utils.CreateTLSClientWithCACert(config.CA, verifyAltName, verbose, debug)
 		if err != nil {
-			fmt.Println("Error creating HTTPS client:", err)
+			log.Println("Error creating HTTPS client:", err)
 			return
 		}
 
@@ -75,22 +74,20 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 		if debug {
 			log.Println("Worker Trying to conenct to manager")
 		}
-		conn, err := managerRequest.CreateWebsocket(config, config.CA, verifyAltName, verbose, debug)
+		conn, err := managerrequest.CreateWebsocket(config, config.CA, verifyAltName, verbose, debug)
 		if err != nil {
-			if verbose {
-				log.Println("Worker Error worker CreateWebsocket: ", err)
-			}
+			log.Println("Worker Error worker CreateWebsocket: ", err)
 		} else {
 			config.Conn = conn
 
-			err = managerRequest.AddWorker(config, verbose, debug, &writeLock)
+			err = managerrequest.AddWorker(config, verbose, debug, &writeLock)
 			if err != nil {
 				if verbose {
 					log.Println("Worker Error worker AddWorker: ", err)
 				}
 			} else {
 				if verbose {
-					log.Println("Worker Worker connected to manager. ")
+					log.Println("Worker connected to manager. ")
 				}
 				break
 			}
@@ -106,7 +103,7 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 }
 
 func mainloop() {
-	exitSignal := make(chan os.Signal)
+	exitSignal := make(chan os.Signal, 1) // Use a buffered channel with capacity 1
 	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM)
 	<-exitSignal
 }

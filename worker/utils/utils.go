@@ -51,8 +51,7 @@ func LoadWorkerConfig(filename string, verbose, debug bool) (*WorkerConfig, erro
 
 	// if Name is empty use hostname
 	if config.Name == "" {
-		hostname := ""
-		hostname, err = os.Hostname()
+		hostname, err := os.Hostname()
 		if err != nil {
 			if debug {
 				log.Println("Utils Error getting hostname:", err)
@@ -73,6 +72,10 @@ func LoadWorkerConfig(filename string, verbose, debug bool) (*WorkerConfig, erro
 		for module, exec := range config.Modules {
 			log.Printf("  Module: %s, Exec: %s\n", module, exec)
 		}
+	}
+
+	if verbose {
+		log.Println("Config loaded:", config)
 	}
 
 	return &config, nil
@@ -127,6 +130,7 @@ func GenerateTLSConfig(caCertPath string, verifyAltName, verbose, debug bool) (*
 		tlsConfig = &tls.Config{
 			InsecureSkipVerify: false, // Ensure that server verification is enabled
 			RootCAs:            certPool,
+			MinVersion:         tls.VersionTLS12, // Set the desired minimum TLS version
 		}
 	}
 

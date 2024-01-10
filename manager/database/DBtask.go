@@ -19,15 +19,15 @@ func AddTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sync.
 	defer wg.Done()
 	wg.Add(1)
 	// Convert []command to string and insert
-	structJson, err := json.Marshal(task.Commands)
+	structJSON, err := json.Marshal(task.Commands)
 	if err != nil {
 		return err
 	}
-	commandJson := string(structJson)
+	commandJSON := string(structJSON)
 
 	// Insert the JSON data into the MySQL table
 	_, err = db.Exec("INSERT INTO task (ID, command, name, status, WorkerName, username, priority, callbackURL, callbackToken) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		task.ID, commandJson, task.Name, task.Status, task.WorkerName, task.Username, task.Priority, task.CallbackURL, task.CallbackToken)
+		task.ID, commandJSON, task.Name, task.Status, task.WorkerName, task.Username, task.Priority, task.CallbackURL, task.CallbackToken)
 	if err != nil {
 		if debug {
 			log.Println("DB Error DBTask AddTask: ", err)
@@ -44,15 +44,15 @@ func UpdateTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sy
 	wg.Add(1)
 
 	// Convert []command to string and insert
-	structJson, err := json.Marshal(task.Commands)
+	structJSON, err := json.Marshal(task.Commands)
 	if err != nil {
 		return err
 	}
-	commandJson := string(structJson)
+	commandJSON := string(structJSON)
 
 	// Update all fields in the MySQL table
 	_, err = db.Exec("UPDATE task SET command=?, name=?, status=?, WorkerName=?, priority=?, callbackURL=?, callbackToken=? WHERE ID=?",
-		commandJson, task.Name, task.Status, task.WorkerName, task.Priority, task.CallbackURL, task.CallbackToken, task.ID)
+		commandJSON, task.Name, task.Status, task.WorkerName, task.Priority, task.CallbackURL, task.CallbackToken, task.ID)
 	if err != nil {
 		if debug {
 			log.Println("DB Error DBTask UpdateTask: ", err)
@@ -88,7 +88,7 @@ func RmTask(db *sql.DB, id string, verbose, debug bool, wg *sync.WaitGroup) erro
 }
 
 // GetTasks gets tasks with URL params as filter.
-func GetTasks(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) ([]globalstructs.Task, error) {
+func GetTasks(r *http.Request, db *sql.DB, verbose, debug bool) ([]globalstructs.Task, error) {
 	queryParams := r.URL.Query()
 
 	sql := "SELECT ID, command, name, createdAt, updatedAt, executedAt, status, workerName, username, priority, callbackURL, callbackToken FROM task WHERE 1=1 "

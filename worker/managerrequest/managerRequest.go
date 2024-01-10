@@ -1,8 +1,7 @@
-package managerRequest
+package managerrequest
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -12,7 +11,9 @@ import (
 	"github.com/r4ulcl/nTask/worker/utils"
 )
 
-func CreateWebsocket(config *utils.WorkerConfig, caCertPath string, verifyAltName, verbose, debug bool) (*websocket.Conn, error) {
+func CreateWebsocket(config *utils.WorkerConfig, caCertPath string,
+	verifyAltName, verbose, debug bool) (*websocket.Conn, error) {
+
 	headers := make(http.Header)
 	headers.Set("Authorization", config.ManagerOauthToken)
 
@@ -57,6 +58,9 @@ func CreateWebsocket(config *utils.WorkerConfig, caCertPath string, verifyAltNam
 func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writeLock *sync.Mutex) error {
 	writeLock.Lock()
 	defer writeLock.Unlock()
+	if debug {
+		log.Println("sendMessage", string(message))
+	}
 	err := conn.WriteMessage(websocket.TextMessage, message)
 	if err != nil {
 		return err
@@ -71,6 +75,7 @@ func AddWorker(config *utils.WorkerConfig, verbose, debug bool, writeLock *sync.
 		Name:         config.Name,
 		IddleThreads: config.IddleThreads,
 		UP:           true,
+		DownCount:    0,
 	}
 
 	// Marshal the worker object into JSON
@@ -78,12 +83,12 @@ func AddWorker(config *utils.WorkerConfig, verbose, debug bool, writeLock *sync.
 
 	msg := globalstructs.WebsocketMessage{
 		Type: "addWorker",
-		Json: string(payload),
+		JSON: string(payload),
 	}
 
 	jsonData, err := json.Marshal(msg)
 	if err != nil {
-		fmt.Println("Error encoding JSON:", err)
+		log.Println("Error encoding JSON:", err)
 		return err
 	}
 
@@ -102,6 +107,7 @@ func DeleteWorker(config *utils.WorkerConfig, verbose, debug bool, writeLock *sy
 		Name:         config.Name,
 		IddleThreads: config.IddleThreads,
 		UP:           true,
+		DownCount:    0,
 	}
 
 	// Marshal the worker object into JSON
@@ -109,12 +115,12 @@ func DeleteWorker(config *utils.WorkerConfig, verbose, debug bool, writeLock *sy
 
 	msg := globalstructs.WebsocketMessage{
 		Type: "deleteWorker",
-		Json: string(payload),
+		JSON: string(payload),
 	}
 
 	jsonData, err := json.Marshal(msg)
 	if err != nil {
-		fmt.Println("Error encoding JSON:", err)
+		log.Println("Error encoding JSON:", err)
 		return err
 	}
 
@@ -133,7 +139,7 @@ func CallbackTaskMessage(config *utils.WorkerConfig, task *globalstructs.Task, v
 
 	msg := globalstructs.WebsocketMessage{
 		Type: "callbackTask",
-		Json: string(payload),
+		JSON: string(payload),
 	}
 
 	if debug {
@@ -142,7 +148,7 @@ func CallbackTaskMessage(config *utils.WorkerConfig, task *globalstructs.Task, v
 
 	jsonData, err := json.Marshal(msg)
 	if err != nil {
-		fmt.Println("Error encoding JSON:", err)
+		log.Println("Error encoding JSON:", err)
 		return err
 	}
 

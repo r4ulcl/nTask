@@ -49,7 +49,7 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 	}
 
 	// get tasks
-	tasks, err := database.GetTasks(w, r, db, verbose, debug)
+	tasks, err := database.GetTasks(r, db, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \"Invalid callback body GetTasks: "+err.Error()+"\"}", http.StatusBadRequest)
 		return

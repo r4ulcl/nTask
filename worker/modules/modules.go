@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"os/exec"
 	"runtime"
@@ -76,7 +75,7 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 			fmt.Printf("Command exited with error: %v\n", exitError)
 
 			// Print the captured standard error
-			fmt.Println("Standard Error:")
+			log.Println("Standard Error:")
 			fmt.Print(stderr.String())
 		} else {
 			// Some other error occurred
@@ -165,11 +164,7 @@ func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status 
 	return nil
 }
 
-func GetRandomDuration(base, random int, verbose, debug bool) int {
-	return rand.Intn(random) + base
-}
-
-func StringList(list []string, verbose, debug bool) string {
+func stringList(list []string, verbose, debug bool) string {
 	stringList := ""
 	for _, item := range list {
 		stringList += item + "\n"
@@ -181,7 +176,7 @@ func StringList(list []string, verbose, debug bool) string {
 // SaveStringToFile saves a string to a file.
 func SaveStringToFile(filename string, content string) error {
 	// Write the string content to the file
-	err := os.WriteFile(filename, []byte(content), 0644)
+	err := os.WriteFile(filename, []byte(content), 0600)
 	if err != nil {
 		return fmt.Errorf("error saving string to file: %v", err)
 	}

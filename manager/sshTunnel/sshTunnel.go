@@ -1,4 +1,4 @@
-package sshTunnel
+package sshtunnel
 
 import (
 	"errors"
@@ -38,8 +38,8 @@ func publicKeyFile(file string) ssh.AuthMethod {
 func StartSSH(config *utils.ManagerSSHConfig, portAPI string, verbose, debug bool) {
 	//return nil
 	log.Println("SSH StartSSH")
-	for ip, port := range config.IpPort {
-		log.Println("SSH --------------", ip, port)
+	for ip, port := range config.IPPort {
+		log.Println("SSH connecction", ip, port)
 
 		// SSH connection configuration
 		sshConfig := &ssh.ClientConfig{

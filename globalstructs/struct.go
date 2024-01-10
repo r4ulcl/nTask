@@ -74,5 +74,5 @@ var Upgrader = websocket.Upgrader{
 
 type WebsocketMessage struct {
 	Type string `json:"type"`
-	Json string `json:"json"`
+	JSON string `json:"json"`
 }
