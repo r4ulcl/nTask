@@ -393,6 +393,10 @@ The nTask Manager supports the following global flags:
 
 The nTask Manager exposes the following API endpoints:
 
+### Status Endpoint
+
+- `GET /status`:Get status of all tasks.
+
 ### Manager Endpoints
 
 - `GET /task`: Retrieves information about all tasks.
