@@ -11,7 +11,7 @@ import (
 )
 
 // @title nTask API
-// @version 1.0
+// @version v0.1
 // @description nTask API documentation
 // @contact.name r4ulcl
 // @contact.url https://r4ulcl.com
@@ -40,7 +40,7 @@ type Arguments struct {
 
 func main() {
 	var arguments Arguments
-	version := "v0.1.0"
+	version := "v0.1"
 	var rootCmd = &cobra.Command{
 		Use:     "nTask",
 		Short:   "Your program description",
@@ -53,6 +53,7 @@ func main() {
 	// Add global flags to the root command
 	rootCmd.PersistentFlags().BoolP("swagger", "s", false, "Start the swagger endpoint (/swagger)")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Set verbose mode")
+	rootCmd.Flags().BoolP("version", "V", false, "Version for nTask")
 	rootCmd.PersistentFlags().BoolP("debug", "d", false, "Set debug mode")
 	rootCmd.PersistentFlags().BoolP("verifyAltName", "a", false, "Set verifyAltName to true")
 

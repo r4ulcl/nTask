@@ -456,7 +456,11 @@ The diagram above illustrates the architecture of the nTask Manager and its inte
 
 ### Buymeacoffee
 
-[<img src="https://cdn.buymeacoffee.com/buttons/v2/default-green.png">](https://www.buymeacoffee.com/r4ulcl)
+<p align="center">
+  <a href="https://www.buymeacoffee.com/r4ulcl">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-green.png" />
+  </a>
+</p>
 
 ## License
 
