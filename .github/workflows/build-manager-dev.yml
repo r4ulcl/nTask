@@ -1,11 +1,9 @@
-name: Docker Build and Publish Worker
+name: Docker Build and Publish manager
 
 on:
   push:
     branches:
-      - 'main'
-    tags:
-      - 'v*'
+      - 'dev'
 
 jobs:
   docker:
@@ -20,12 +18,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3   
 
-      # worker docker
+      # manager docker
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ github.actor }}/ntask-worker
+          images: ${{ github.actor }}/ntask-manager
 
       - name: Login to DockerHub
         uses: docker/login-action@v1 
@@ -37,11 +35,10 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: ./worker/Dockerfile
+          file: ./manager/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/ntask-manager:dev
 
       - name: Login to GitHub Container Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -51,8 +48,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./worker/Dockerfile
+          file: ./manager/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/${{ github.actor }}/ntask-worker:latest, ghcr.io/${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ghcr.io/${{ github.actor }}/ntask-manager:dev
+
