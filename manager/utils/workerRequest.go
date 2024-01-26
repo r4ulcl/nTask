@@ -147,7 +147,9 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 
 // SendAddTask sends a request to a worker to add a task.
 func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) error {
-	log.Println("Utils SendAddTask")
+	if debug {
+		log.Println("Utils SendAddTask")
+	}
 	//Sustract 1 Iddle Thread in worker
 	err := database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug, wg)
 	if err != nil {
@@ -203,8 +205,6 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 	if err != nil {
 		return fmt.Errorf("Error SetTaskExecutedAt in request: %s", err)
 	}
-
-	log.Println("Utils Error SetTaskStatus in request:", err)
 
 	// Set workerName in DB and in object
 	err = database.SetTaskWorkerName(db, task.ID, worker.Name, verbose, debug, wg)

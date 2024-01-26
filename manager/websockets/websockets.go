@@ -188,7 +188,9 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 					log.Println("WebSockets status Unmarshal error: ", err)
 				}
 
-				log.Println("WebSockets Response status from worker", status.Name, msg.JSON)
+				if verbose {
+					log.Println("WebSockets Response status from worker", status.Name, msg.JSON)
+				}
 				worker, err := database.GetWorker(db, status.Name, verbose, debug)
 				if err != nil {
 					log.Println("WebSockets GetWorker error: ", err)
