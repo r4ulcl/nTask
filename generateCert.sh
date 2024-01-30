@@ -11,8 +11,11 @@ MANAGER_CERT_NAME="Manager"
 MANAGER_FOLDER="manager"
 
 # Set IP and hostname information
-MANAGER_IP="192.168.1.10"
+MANAGER_IP="127.0.0.1"
 MANAGER_HOSTNAME="manager.local"
+
+# Set certificate expiration time in days
+CERT_EXPIRATION_DAYS=365
 
 # Create directories to store the CA and certificate files
 mkdir -p certs/${MANAGER_FOLDER}
@@ -33,7 +36,7 @@ openssl genpkey -algorithm RSA -out certs/${MANAGER_FOLDER}/key.pem
 openssl req -new -key certs/${MANAGER_FOLDER}/key.pem -out certs/${MANAGER_FOLDER}/csr.pem -subj "/CN=${MANAGER_CERT_NAME}/O=${O_NAME}" -addext "subjectAltName = IP:${MANAGER_IP},DNS:${MANAGER_HOSTNAME}"
 
 # Step 5: Sign the Manager SSL certificate with the CA
-openssl x509 -req -in certs/${MANAGER_FOLDER}/csr.pem -CA certs/ca-cert.pem -CAkey certs/ca-key.pem -out certs/${MANAGER_FOLDER}/cert.pem -CAcreateserial -extfile <(printf "subjectAltName = IP:${MANAGER_IP},DNS:${MANAGER_HOSTNAME}") -days 365
+openssl x509 -req -in certs/${MANAGER_FOLDER}/csr.pem -CA certs/ca-cert.pem -CAkey certs/ca-key.pem -out certs/${MANAGER_FOLDER}/cert.pem -CAcreateserial -extfile <(printf "subjectAltName = IP:${MANAGER_IP},DNS:${MANAGER_HOSTNAME}") -days ${CERT_EXPIRATION_DAYS}
 
 # Optional: Display information about the generated certificates
 echo "Manager Certificate:"
