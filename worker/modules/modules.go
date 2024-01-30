@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
+	"time"
 
 	"github.com/r4ulcl/nTask/globalstructs"
 	"github.com/r4ulcl/nTask/worker/utils"
@@ -94,26 +96,62 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 		mutex.Unlock()
 	}()
 
-	// Wait for the command to finish
-	err = cmd.Wait()
-	if err != nil {
-		if debug {
-			log.Println("Modules Error waiting for command:", err)
+	// Create a channel to signal when the process is done
+	done := make(chan error, 1)
+
+	// Monitor the process in a goroutine
+	go func() {
+		// Wait for the command to finish
+		err := cmd.Wait()
+		done <- err
+	}()
+
+	// Check every 30 minutes if the process is still running
+	ticker := time.NewTicker(30 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			// Check if the process is still running
+			if err := isProcessRunning(cmd.Process.Pid); err != nil {
+				// Process is not running, break the loop
+				return "", err
+			}
+		case err := <-done:
+			// Process has finished
+			if err != nil {
+				if debug {
+					log.Println("Modules Error waiting for command:", err)
+				}
+				return err.Error(), err
+			}
+
+			// Process completed successfully
+			// Capture the output of the script
+			output := stdout.String() + stderr.String()
+			output = strings.TrimRight(output, "\n")
+			return output, nil
 		}
-		return err.Error(), err
+	}
+}
+
+// Function to check if a process with a given PID is still running
+func isProcessRunning(pid int) error {
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		return err
 	}
 
-	// Capture the output of the script
-	// Combine the standard output and standard error into a single string
-	output := stdout.String() + stderr.String()
-	output = strings.TrimRight(output, "\n")
+	// Send a signal of 0 to check if the process exists
+	err = process.Signal(syscall.Signal(0))
+	if err != nil {
+		// Process does not exist
+		return fmt.Errorf("Process with PID %d is not running", pid)
+	}
 
-	//Remove the ID from the status
-	mutex.Lock()
-	delete(status.WorkingIDs, id)
-	mutex.Unlock()
-
-	return output, nil
+	// Process is still running
+	return nil
 }
 
 // ProcessModule processes a task by iterating through its commands and executing corresponding modules
@@ -151,7 +189,7 @@ func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status 
 		outputCommand, err := runModule(config, commandAux, arguments, status, id, verbose, debug)
 		if err != nil {
 			// Save the text error in the task output to review
-			task.Commands[num].Output = outputCommand
+			task.Commands[num].Output = outputCommand + err.Error()
 			// Return an error if there is an issue running the module
 			return fmt.Errorf("error running %s task: %v", commandAux, err)
 		}

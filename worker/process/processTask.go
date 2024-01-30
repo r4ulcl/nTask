@@ -11,6 +11,8 @@ import (
 	"github.com/r4ulcl/nTask/worker/utils"
 )
 
+var mutex sync.Mutex
+
 // processTask is a helper function that processes the given task in the background.
 // It sets the worker status to indicate that it is currently working on the task.
 // It calls the ProcessModule function to execute the task's module.
@@ -49,9 +51,20 @@ func Task(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *
 }
 
 func add1IddleThreads(status *globalstructs.WorkerStatus) {
-	status.IddleThreads++
+	modifyIddleThreads(true, status)
 }
 
 func sustract1IddleThreads(status *globalstructs.WorkerStatus) {
-	status.IddleThreads--
+	modifyIddleThreads(false, status)
+}
+
+func modifyIddleThreads(add bool, status *globalstructs.WorkerStatus) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if add {
+		status.IddleThreads++
+	} else {
+		status.IddleThreads--
+	}
 }
