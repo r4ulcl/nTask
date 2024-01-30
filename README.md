@@ -26,11 +26,11 @@
   </a>
 
   <br>
-  <a href="https://hub.docker.com/r/r4ulcl/nTask">
-    <img src="https://github.com/r4ulcl/nTask/actions/workflows/docker-image.yml/badge.svg" alt="Docker Image">
+  <a href="https://hub.docker.com/r/r4ulcl/ntask-manager">
+    <img src="https://github.com/r4ulcl/nTask/actions/workflows/build-manager.yml/badge.svg" alt="ntask-manager Docker Image">
   </a>
-    <a href="https://hub.docker.com/r/r4ulcl/nTask/tags">
-    <img src="https://github.com/r4ulcl/nTask/actions/workflows/docker-image-dev.yml/badge.svg" alt="Docker Image dev">
+    <a href="https://hub.docker.com/r/r4ulcl/ntask-worker">
+    <img src="https://github.com/r4ulcl/nTask/actions/workflows/build-worker.yml/badge.svg" alt="ntask-worker Docker Image ">
   </a>
   
   </p>
