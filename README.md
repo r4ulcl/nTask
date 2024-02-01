@@ -206,7 +206,7 @@ Each worker uses a unique name and IP:port combination to identify itself to the
 
 ## Usage manager
 
-An usage example can be found here: https://r4ulcl.com/posts/using-ntask-to-distributed-task/
+An usage example can be found here: https://r4ulcl.com/posts/using-ntask-to-distributed-tasks/
 
 I recommend the following configuration:
 - Manager:
