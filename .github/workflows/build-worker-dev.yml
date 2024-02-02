@@ -38,7 +38,7 @@ jobs:
           file: ./worker/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/ntask-worker:dev
+          tags: ${{ github.actor }}/ntask-worker:dev
 
       - name: Login to GitHub Container Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
