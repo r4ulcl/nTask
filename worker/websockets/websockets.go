@@ -3,6 +3,7 @@ package websockets
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"os/exec"
 	"strconv"
@@ -36,103 +37,28 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 		err = json.Unmarshal(p, &msg)
 		if err != nil {
 			log.Println("WebSockets Error decoding JSON:", err)
-
 			continue
 		}
 
 		switch msg.Type {
 
 		case "status":
-			if debug {
-				if debug {
-					log.Println("WebSockets msg.Type", msg.Type)
-				}
-			}
-			jsonData, err := json.Marshal(status)
+			response, err = messageStatusTask(status, msg, verbose, debug)
 			if err != nil {
-				response.Type = "FAILED"
-			} else {
-				response.Type = "status"
-				response.JSON = string(jsonData)
+				log.Println("status error: ", err)
 			}
-
-			if debug {
-				// Print the JSON data
-				log.Println(string(jsonData))
-			}
-
 		case "addTask":
-			if debug {
-				log.Println("WebSockets msg.Type", msg.Type)
-			}
-			var requestTask globalstructs.Task
-			err = json.Unmarshal([]byte(msg.JSON), &requestTask)
+			response, err = messageAddTask(config, status, msg, verbose, debug, writeLock)
 			if err != nil {
-				log.Println("WebSockets addWorker Unmarshal error: ", err)
+				log.Println("addTask error: ", err)
 			}
-			// if executing task skip and return error
-			if status.IddleThreads <= 0 {
-				response.Type = "FAILED;addTask"
-				response.JSON = msg.JSON
-
-				requestTask.Status = "failed"
-			} else {
-				// Process task in background
-				if debug {
-					log.Println("WebSockets Task")
-				}
-				go process.Task(status, config, &requestTask, verbose, debug, writeLock)
-				response.Type = "OK;addTask"
-				response.JSON = msg.JSON
-				requestTask.Status = "running"
-			}
-
-			//return task
-			jsonData, err := json.Marshal(requestTask)
-			if err != nil {
-				log.Println("WebSockets Marshal error: ", err)
-			}
-			response.JSON = string(jsonData)
-
 		case "deleteTask":
-			if debug {
-				log.Println("WebSockets msg.Type", msg.Type)
-			}
-
-			var requestTask globalstructs.Task
-			err = json.Unmarshal([]byte(msg.JSON), &requestTask)
+			response, err = messageDeleteTask(config, status, msg, verbose, debug, writeLock)
 			if err != nil {
-				log.Println("WebSockets deleteTask Unmarshal error: ", err)
-			}
-
-			cmdID := status.WorkingIDs[requestTask.ID]
-
-			if cmdID < 0 {
-				log.Println("Invalid cmdID")
-				continue
-			}
-			cmdIDString := strconv.Itoa(cmdID)
-
-			// Kill the process using cmdID
-			cmd := exec.Command("kill", "-9", cmdIDString)
-
-			var stderr bytes.Buffer
-			cmd.Stderr = &stderr
-
-			err := cmd.Run()
-
-			if err != nil {
-				if debug {
-					log.Println("WebSockets Error killing process:", err)
-					log.Println("WebSockets Error details:", stderr.String())
-				}
-				response.Type = "FAILED;deleteTask"
-				response.JSON = msg.JSON
-			} else {
-				response.Type = "OK;deleteTask"
-				response.JSON = msg.JSON
+				log.Println("deleteTask error: ", err)
 			}
 		}
+
 		if debug {
 			log.Printf("Received message type: %s\n", msg.Type)
 			log.Printf("Received message json: %s\n", msg.JSON)
@@ -179,4 +105,118 @@ func RecreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debu
 			}
 		}
 	}
+}
+
+func messageAddTask(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, msg globalstructs.WebsocketMessage, verbose, debug bool, writeLock *sync.Mutex) (globalstructs.WebsocketMessage, error) {
+
+	response := globalstructs.WebsocketMessage{
+		Type: "",
+		JSON: "",
+	}
+
+	if debug {
+		log.Println("WebSockets msg.Type", msg.Type)
+	}
+	var requestTask globalstructs.Task
+	err := json.Unmarshal([]byte(msg.JSON), &requestTask)
+	if err != nil {
+		return response, fmt.Errorf("WebSockets addWorker Unmarshal error: %s", err.Error())
+	}
+	// if executing task skip and return error
+	if status.IddleThreads <= 0 {
+		response.Type = "FAILED;addTask"
+		response.JSON = msg.JSON
+
+		requestTask.Status = "failed"
+	} else {
+		// Process task in background
+		if debug {
+			log.Println("WebSockets Task")
+		}
+		go process.Task(status, config, &requestTask, verbose, debug, writeLock)
+		response.Type = "OK;addTask"
+		response.JSON = msg.JSON
+		requestTask.Status = "running"
+	}
+
+	//return task
+	jsonData, err := json.Marshal(requestTask)
+	if err != nil {
+		return response, fmt.Errorf("WebSockets Marshal error: %s", err.Error())
+	}
+	response.JSON = string(jsonData)
+
+	return response, nil
+}
+
+func messageDeleteTask(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, msg globalstructs.WebsocketMessage, verbose, debug bool, writeLock *sync.Mutex) (globalstructs.WebsocketMessage, error) {
+	response := globalstructs.WebsocketMessage{
+		Type: "",
+		JSON: "",
+	}
+	if debug {
+		log.Println("WebSockets msg.Type", msg.Type)
+	}
+
+	var requestTask globalstructs.Task
+	err := json.Unmarshal([]byte(msg.JSON), &requestTask)
+	if err != nil {
+		return response, fmt.Errorf("WebSockets deleteTask Unmarshal error: %s", err.Error())
+	}
+
+	cmdID := status.WorkingIDs[requestTask.ID]
+
+	if cmdID < 0 {
+		log.Println("Invalid cmdID")
+		return response, fmt.Errorf("Invalid cmdID")
+	}
+	cmdIDString := strconv.Itoa(cmdID)
+
+	// Kill the process using cmdID
+	cmd := exec.Command("kill", "-9", cmdIDString)
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	err = cmd.Run()
+
+	if err != nil {
+		if debug {
+			log.Println("WebSockets Error killing process:", err)
+			log.Println("WebSockets Error details:", stderr.String())
+		}
+		response.Type = "FAILED;deleteTask"
+		response.JSON = msg.JSON
+	} else {
+		response.Type = "OK;deleteTask"
+		response.JSON = msg.JSON
+	}
+
+	return response, nil
+}
+
+func messageStatusTask(status *globalstructs.WorkerStatus, msg globalstructs.WebsocketMessage, verbose, debug bool) (globalstructs.WebsocketMessage, error) {
+	response := globalstructs.WebsocketMessage{
+		Type: "",
+		JSON: "",
+	}
+
+	if debug {
+		if debug {
+			log.Println("WebSockets msg.Type", msg.Type)
+		}
+	}
+	jsonData, err := json.Marshal(status)
+	if err != nil {
+		response.Type = "FAILED"
+	} else {
+		response.Type = "status"
+		response.JSON = string(jsonData)
+	}
+
+	if debug {
+		// Print the JSON data
+		log.Println(string(jsonData))
+	}
+	return response, nil
 }

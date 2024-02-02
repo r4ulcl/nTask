@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -88,92 +89,79 @@ func RmTask(db *sql.DB, id string, verbose, debug bool, wg *sync.WaitGroup) erro
 }
 
 // GetTasks gets tasks with URL params as filter.
-func GetTasks(r *http.Request, db *sql.DB, verbose, debug bool) ([]globalstructs.Task, error) {
-	queryParams := r.URL.Query()
+func buildFilters(queryParams url.Values) string {
+	var filters []string
 
-	sql := "SELECT ID, command, name, createdAt, updatedAt, executedAt, status, workerName, username, priority, callbackURL, callbackToken FROM task WHERE 1=1 "
-
-	// Add filters for each parameter if provided
-	if ID := queryParams.Get("ID"); ID != "" {
-		sql += fmt.Sprintf(" AND ID LIKE  '%s'", ID)
-	}
-
-	if command := queryParams.Get("command"); command != "" {
-		sql += fmt.Sprintf(" AND command LIKE '%s'", command)
-	}
-
-	if name := queryParams.Get("name"); name != "" {
-		sql += fmt.Sprintf(" AND name LIKE '%s'", name)
-	}
-
-	if createdAt := queryParams.Get("createdAt"); createdAt != "" {
-		sql += fmt.Sprintf(" AND createdAt LIKE '%s'", createdAt)
-	}
-
-	if updatedAt := queryParams.Get("executedAt"); updatedAt != "" {
-		sql += fmt.Sprintf(" AND executedAt LIKE '%s'", updatedAt)
-	}
-
-	if updatedAt := queryParams.Get("updatedAt"); updatedAt != "" {
-		sql += fmt.Sprintf(" AND updatedAt LIKE '%s'", updatedAt)
-	}
-
-	if executedAt := queryParams.Get("executedAt"); executedAt != "" {
-		sql += fmt.Sprintf(" AND executedAt LIKE '%s'", executedAt)
-	}
-
-	if status := queryParams.Get("status"); status != "" {
-		sql += fmt.Sprintf(" AND status = '%s'", status)
-	}
-
-	if workerName := queryParams.Get("workerName"); workerName != "" {
-		sql += fmt.Sprintf(" AND workerName LIKE '%s'", workerName)
-	}
-
-	if username := queryParams.Get("username"); username != "" {
-		sql += fmt.Sprintf(" AND username LIKE '%s'", username)
-	}
-
-	if priority := queryParams.Get("priority"); priority != "" {
-		sql += fmt.Sprintf(" AND priority = '%s'", priority)
-	}
-
-	if callbackURL := queryParams.Get("callbackURL"); callbackURL != "" {
-		sql += fmt.Sprintf(" AND callbackURL = '%s'", callbackURL)
-	}
-
-	if callbackToken := queryParams.Get("callbackToken"); callbackToken != "" {
-		sql += fmt.Sprintf(" AND callbackToken = '%s'", callbackToken)
-	}
-
-	sql += " ORDER BY priority DESC, createdAt ASC "
-
-	// set limit and page
-	page := 1 // Default page number
-	if pageStr := queryParams.Get("page"); pageStr != "" {
-		page, _ = strconv.Atoi(pageStr)
-		if page < 1 {
-			page = 1
+	addFilter := func(key, format string) {
+		value := queryParams.Get(key)
+		if value != "" {
+			filters = append(filters, fmt.Sprintf(format, key, value))
 		}
 	}
 
-	limit := 1000 // Default limit
+	addFilter("ID", "ID LIKE '%s'")
+	addFilter("command", "command LIKE '%s'")
+	addFilter("name", "name LIKE '%s'")
+	addFilter("createdAt", "createdAt LIKE '%s'")
+	addFilter("updatedAt", "updatedAt LIKE '%s'")
+	addFilter("executedAt", "executedAt LIKE '%s'")
+	addFilter("status", "status = '%s'")
+	addFilter("workerName", "workerName LIKE '%s'")
+	addFilter("username", "username LIKE '%s'")
+	addFilter("priority", "priority = '%s'")
+	addFilter("callbackURL", "callbackURL = '%s'")
+	addFilter("callbackToken", "callbackToken = '%s'")
 
-	if limitStr := queryParams.Get("limit"); limitStr != "" {
-		limit, _ = strconv.Atoi(limitStr)
+	return strings.Join(filters, " AND ")
+}
+
+func buildOrderByAndLimit(page, limit int) string {
+	if page < 1 {
+		page = 1
 	}
 
 	offset := (page - 1) * limit
 
-	sql += fmt.Sprintf(" LIMIT %d OFFSET %d;", limit, offset)
+	return fmt.Sprintf(" ORDER BY priority DESC, createdAt ASC LIMIT %d OFFSET %d;", limit, offset)
+}
 
-	sql += ";"
+func GetTasks(r *http.Request, db *sql.DB, verbose, debug bool) ([]globalstructs.Task, error) {
+	queryParams := r.URL.Query()
+
+	filters := buildFilters(queryParams)
+	orderByAndLimit := buildOrderByAndLimit(getPage(queryParams), getLimit(queryParams))
+
+	sql := "SELECT ID, command, name, createdAt, updatedAt, executedAt, status, workerName, username, priority, callbackURL, callbackToken FROM task WHERE 1=1 "
+
+	if filters != "" {
+		sql += " AND " + filters
+	}
+
+	sql += orderByAndLimit
 
 	if debug {
 		log.Println("GetTasks sql", sql)
 	}
 
 	return GetTasksSQL(sql, db, verbose, debug)
+}
+
+func getPage(queryParams url.Values) int {
+	pageStr := queryParams.Get("page")
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		return 1
+	}
+	return page
+}
+
+func getLimit(queryParams url.Values) int {
+	limitStr := queryParams.Get("limit")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 {
+		return 1000
+	}
+	return limit
 }
 
 // GetTasksPending gets only tasks with status pending

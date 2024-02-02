@@ -114,7 +114,7 @@ func StartSSH(config *utils.ManagerSSHConfig, portAPI string, verbose, debug boo
 
 // ssh-keygen -t rsa -b 2048
 func checkFileExists(filePath string) bool {
-	_, error := os.Stat(filePath)
+	_, err := os.Stat(filePath)
 	//return !os.IsNotExist(err)
-	return !errors.Is(error, os.ErrNotExist)
+	return !errors.Is(err, os.ErrNotExist)
 }
