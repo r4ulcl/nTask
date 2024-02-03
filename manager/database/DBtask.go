@@ -97,7 +97,7 @@ func buildFilters(queryParams url.Values) string {
 		if value != "" {
 			// Change the format to handle non-string values
 			format = strings.ReplaceAll(format, "%s", "'%s'")
-			filters = append(filters, fmt.Sprintf(format, key, value))
+			filters = append(filters, fmt.Sprintf(format, value))
 		}
 	}
 
