@@ -150,12 +150,6 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 	if debug {
 		log.Println("Utils SendAddTask")
 	}
-	//Sustract 1 Iddle Thread in worker
-	err := database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug, wg)
-	if err != nil {
-		return err
-	}
-	// add 1 on callback
 
 	conn := config.WebSockets[worker.Name]
 	if conn == nil {
@@ -257,10 +251,6 @@ func SendDeleteTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Wor
 
 	// Set the task and worker as not working
 	err = database.SetTaskStatus(db, task.ID, "deleted", verbose, debug, wg)
-	if err != nil {
-		return err
-	}
-	err = database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug, wg)
 	if err != nil {
 		return err
 	}

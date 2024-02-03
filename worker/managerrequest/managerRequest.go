@@ -73,7 +73,7 @@ func AddWorker(config *utils.WorkerConfig, verbose, debug bool, writeLock *sync.
 	// Create a Worker object with the provided configuration
 	worker := globalstructs.Worker{
 		Name:         config.Name,
-		IddleThreads: config.IddleThreads,
+		IddleThreads: config.DefaultThreads,
 		UP:           true,
 		DownCount:    0,
 	}
@@ -105,7 +105,7 @@ func DeleteWorker(config *utils.WorkerConfig, verbose, debug bool, writeLock *sy
 	// Create a Worker object with the provided configuration
 	worker := globalstructs.Worker{
 		Name:         config.Name,
-		IddleThreads: config.IddleThreads,
+		IddleThreads: -1,
 		UP:           true,
 		DownCount:    0,
 	}

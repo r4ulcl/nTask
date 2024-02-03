@@ -123,7 +123,7 @@ func messageAddTask(config *utils.WorkerConfig, status *globalstructs.WorkerStat
 		return response, fmt.Errorf("WebSockets addWorker Unmarshal error: %s", err.Error())
 	}
 	// if executing task skip and return error
-	if status.IddleThreads <= 0 {
+	if len(status.WorkingIDs) <= 0 {
 		response.Type = "FAILED;addTask"
 		response.JSON = msg.JSON
 

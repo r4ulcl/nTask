@@ -28,7 +28,7 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 
 	status := globalstructs.WorkerStatus{
 		Name:         config.Name,
-		IddleThreads: config.IddleThreads,
+		IddleThreads: config.DefaultThreads,
 		WorkingIDs:   make(map[string]int),
 	}
 

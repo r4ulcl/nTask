@@ -48,16 +48,17 @@ type CommandSwagger struct {
 // Worker struct to store all worker information.
 type Worker struct {
 	// Workers name (unique)
-	Name         string `json:"name"`
-	IddleThreads int    `json:"IddleThreads"`
-	UP           bool   `json:"up"`
-	DownCount    int    `json:"downCount"`
+	Name           string `json:"name"`
+	DefaultThreads int    `json:"defaultThreads"`
+	IddleThreads   int    `json:"iddleThreads"`
+	UP             bool   `json:"up"`
+	DownCount      int    `json:"downCount"`
 }
 
 // WorkerStatus struct to process the worker status response.
 type WorkerStatus struct {
 	Name         string         `json:"name"`
-	IddleThreads int            `json:"IddleThreads"`
+	IddleThreads int            `json:"iddleThreads"`
 	WorkingIDs   map[string]int `json:"workingIds"`
 }
 
