@@ -180,35 +180,34 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 				log.Println("WebSockets msg.Type", msg.Type)
 				log.Println("WebSockets msg.JSON", msg.JSON)
 			}
-			if msg.Type == "status" {
-				// Unmarshal the JSON into a WorkerStatus struct
-				var status globalstructs.WorkerStatus
-				err = json.Unmarshal([]byte(msg.JSON), &status)
-				if err != nil {
-					log.Println("WebSockets status Unmarshal error: ", err)
-				}
+			// Unmarshal the JSON into a WorkerStatus struct
+			var status globalstructs.WorkerStatus
+			err = json.Unmarshal([]byte(msg.JSON), &status)
+			if err != nil {
+				log.Println("WebSockets status Unmarshal error: ", err)
+			}
 
-				if verbose {
-					log.Println("WebSockets Response status from worker", status.Name, msg.JSON)
-				}
-				worker, err := database.GetWorker(db, status.Name, verbose, debug)
-				if err != nil {
-					log.Println("WebSockets GetWorker error: ", err)
-				}
-				// If there is no error in making the request, assume worker is online
-				err = database.SetWorkerUPto(true, db, &worker, verbose, debug, wg)
-				if err != nil {
-					log.Println("WebSockets status error: ", err)
-				}
+			if verbose {
+				log.Println("WebSockets Response status from worker", status.Name, msg.JSON)
+			}
+			worker, err := database.GetWorker(db, status.Name, verbose, debug)
+			if err != nil {
+				log.Println("WebSockets GetWorker error: ", err)
+			}
+			// If there is no error in making the request, assume worker is online
+			err = database.SetWorkerUPto(true, db, &worker, verbose, debug, wg)
+			if err != nil {
+				log.Println("WebSockets status error: ", err)
+			}
 
-				// If worker IddleThreads is not the same as stored in the DB, update the DB
-				if len(status.WorkingIDs) != worker.IddleThreads {
-					err := database.SetIddleThreadsTo(len(status.WorkingIDs), db, worker.Name, verbose, debug, wg)
-					if err != nil {
-						log.Println("WebSockets status SetIddleThreadsTo error: ", err)
-					}
+			// If worker IddleThreads is not the same as stored in the DB, update the DB
+			if len(status.WorkingIDs) != worker.IddleThreads {
+				err := database.SetIddleThreadsTo(status.IddleThreads, db, worker.Name, verbose, debug, wg)
+				if err != nil {
+					log.Println("WebSockets status SetIddleThreadsTo error: ", err)
 				}
 			}
+
 		}
 
 		if debug {
