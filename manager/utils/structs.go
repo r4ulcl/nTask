@@ -47,3 +47,9 @@ type StatusWorker struct {
 	Up   int `json:"up"`
 	Down int `json:"down"`
 }
+
+// API username middleware
+type contextKey string
+
+const UsernameKey contextKey = "username"
+const WorkerKey contextKey = "worker"

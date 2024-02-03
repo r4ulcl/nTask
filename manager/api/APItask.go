@@ -41,7 +41,7 @@ import (
 // @security ApiKeyAuth
 // @router /task [get]
 func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
-	_, ok := r.Context().Value("username").(string)
+	_, ok := r.Context().Value(utils.UsernameKey).(string)
 	if !ok {
 		// if not username is a worker
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
@@ -89,7 +89,7 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 // @security ApiKeyAuth
 // @router /task [post]
 func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
-	username, okUser := r.Context().Value("username").(string)
+	username, okUser := r.Context().Value(utils.UsernameKey).(string)
 	if !okUser {
 		if debug {
 			log.Println("API { \"error\" : \"Unauthorized\" }")
@@ -173,7 +173,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 // @security ApiKeyAuth
 // @router /task/{ID} [delete]
 func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
-	_, ok := r.Context().Value("username").(string)
+	_, ok := r.Context().Value(utils.UsernameKey).(string)
 	if !ok {
 		http.Error(w, "{ \"error\" : \"Username not found\" }", http.StatusUnauthorized)
 		return
@@ -239,7 +239,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 // @security ApiKeyAuth
 // @router /task/{ID} [get]
 func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
-	_, ok := r.Context().Value("username").(string)
+	_, ok := r.Context().Value(utils.UsernameKey).(string)
 	if !ok {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return

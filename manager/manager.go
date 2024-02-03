@@ -23,11 +23,6 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-type contextKey string
-
-const usernameKey contextKey = "username"
-const workerKey contextKey = "worker"
-
 func loadManagerConfig(filename string, verbose, debug bool) (*utils.ManagerConfig, error) {
 	var config utils.ManagerConfig
 	if debug {
@@ -324,14 +319,14 @@ func (amw *authenticationMiddleware) Middleware(next http.Handler) http.Handler 
 			if foundUser {
 				// We found the token in our map
 				// Add the username to the request context
-				ctx := context.WithValue(r.Context(), usernameKey, user)
+				ctx := context.WithValue(r.Context(), utils.UsernameKey, user)
 
 				// Pass down the request with the updated context to the next middleware (or final handler)
 				next.ServeHTTP(w, r.WithContext(ctx))
 			} else if foundWorker {
 				// We found the token in our map
 				// Add the username to the request context
-				ctx := context.WithValue(r.Context(), workerKey, worker)
+				ctx := context.WithValue(r.Context(), utils.WorkerKey, worker)
 
 				// Pass down the request with the updated context to the next middleware (or final handler)
 				next.ServeHTTP(w, r.WithContext(ctx))

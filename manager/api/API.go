@@ -21,7 +21,7 @@ import (
 // @security ApiKeyAuth
 // @router /status [get]
 func HandleStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
-	_, ok := r.Context().Value("username").(string)
+	_, ok := r.Context().Value(utils.UsernameKey).(string)
 	if !ok {
 		// if not username is a worker
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
