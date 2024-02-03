@@ -321,14 +321,5 @@ func callback(result globalstructs.Task, config *utils.ManagerConfig, db *sql.DB
 		}
 	}
 
-	// Handle the result as needed
-
-	//Add 1 to Iddle thread in worker
-	// add 1 when finish
-	err = database.AddWorkerIddleThreads1(db, result.WorkerName, verbose, debug, wg)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
