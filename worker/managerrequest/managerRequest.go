@@ -72,10 +72,11 @@ func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writ
 func AddWorker(config *utils.WorkerConfig, verbose, debug bool, writeLock *sync.Mutex) error {
 	// Create a Worker object with the provided configuration
 	worker := globalstructs.Worker{
-		Name:         config.Name,
-		IddleThreads: config.DefaultThreads,
-		UP:           true,
-		DownCount:    0,
+		Name:           config.Name,
+		DefaultThreads: config.DefaultThreads,
+		IddleThreads:   config.DefaultThreads,
+		UP:             true,
+		DownCount:      0,
 	}
 
 	// Marshal the worker object into JSON
