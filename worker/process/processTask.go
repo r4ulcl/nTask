@@ -22,10 +22,10 @@ var mutex sync.Mutex
 // After completing the task, it resets the worker status to indicate that it is no longer working.
 func Task(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *globalstructs.Task, verbose, debug bool, writeLock *sync.Mutex) {
 	//Remove one from working threads
-	sustract1IddleThreads(status)
+	sustract1IddleThreads(status, verbose, debug)
 
 	//Add one from working threads
-	defer add1IddleThreads(status)
+	defer add1IddleThreads(status, verbose, debug)
 
 	if verbose {
 		log.Println("Process Start processing task", task.ID, " workCount: ", status.IddleThreads)
@@ -50,17 +50,21 @@ func Task(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *
 
 }
 
-func add1IddleThreads(status *globalstructs.WorkerStatus) {
-	modifyIddleThreads(true, status)
+func add1IddleThreads(status *globalstructs.WorkerStatus, verbose, debug bool) {
+	modifyIddleThreads(status, true, verbose, debug)
 }
 
-func sustract1IddleThreads(status *globalstructs.WorkerStatus) {
-	modifyIddleThreads(false, status)
+func sustract1IddleThreads(status *globalstructs.WorkerStatus, verbose, debug bool) {
+	modifyIddleThreads(status, false, verbose, debug)
 }
 
-func modifyIddleThreads(add bool, status *globalstructs.WorkerStatus) {
+func modifyIddleThreads(status *globalstructs.WorkerStatus, add, verbose, debug bool) {
 	mutex.Lock()
 	defer mutex.Unlock()
+
+	if debug {
+		log.Println("modifyIddleThreads", add)
+	}
 
 	if add {
 		status.IddleThreads++
