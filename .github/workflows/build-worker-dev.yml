@@ -1,4 +1,4 @@
-name: Docker Build and Publish Manager DEV
+name: Docker Build and Publish worker DEV
 
 on:
   push:
