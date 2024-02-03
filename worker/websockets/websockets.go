@@ -43,7 +43,7 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 		switch msg.Type {
 
 		case "status":
-			response, err = messageStatusTask(status, msg, verbose, debug)
+			response, err = messageStatusTask(config, status, msg, verbose, debug)
 			if err != nil {
 				log.Println("status error: ", err)
 			}
