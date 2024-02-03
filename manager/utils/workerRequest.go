@@ -151,6 +151,12 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 		log.Println("Utils SendAddTask")
 	}
 
+	// Subtract Iddle thread in DB, in the next status to worker it will update to real data
+	err := database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug, wg)
+	if err != nil {
+		return err
+	}
+
 	conn := config.WebSockets[worker.Name]
 	if conn == nil {
 		return fmt.Errorf("Error, websocket not found")
@@ -333,7 +339,9 @@ func WorkerDisconnected(db *sql.DB, config *ManagerConfig, worker *globalstructs
 		log.Println("Utils Error: WriteControl cant connect", worker.Name)
 	}
 	// Close connection
-	config.WebSockets[worker.Name].Close()
+	if websocket, ok := config.WebSockets[worker.Name]; ok {
+		websocket.Close()
+	}
 
 	delete(config.WebSockets, worker.Name)
 

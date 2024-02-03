@@ -347,3 +347,42 @@ func GetDownCount(db *sql.DB, verbose, debug bool) (int, error) {
 
 	return count, nil
 }
+
+// SetWorkerworkingToString sets the status of a worker to the specified working value using the worker's name.
+func AddWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool, wg *sync.WaitGroup) error {
+	// Add to the WaitGroup when the goroutine starts and done when exits
+	defer wg.Done()
+	wg.Add(1)
+	if debug {
+		log.Println("DB AddWorkerIddleThreads1 worker name:", worker)
+	}
+	_, err := db.Exec("UPDATE worker SET IddleThreads = IddleThreads + 1 WHERE name = ?;",
+		worker)
+	if err != nil {
+		if debug {
+			log.Println("DB Error DBworkers: ", err)
+		}
+		return err
+	}
+	return nil
+}
+
+// SubtractWorkerIddleThreads1
+func SubtractWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool, wg *sync.WaitGroup) error {
+	// Add to the WaitGroup when the goroutine starts and done when exits
+	defer wg.Done()
+	wg.Add(1)
+	if debug {
+		log.Println("DB SubtractWorkerIddleThreads1")
+	}
+
+	_, err := db.Exec("UPDATE worker SET iddleThreads = CASE WHEN iddleThreads > 0 THEN iddleThreads - 1 "+
+		"ELSE 0 END WHERE name = ?", worker)
+	if err != nil {
+		if debug {
+			log.Println("DB Error DBworkers: ", err)
+		}
+		return err
+	}
+	return nil
+}
