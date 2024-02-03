@@ -20,7 +20,7 @@ import (
 // After completing the task, it resets the worker status to indicate that it is no longer working.
 func Task(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *globalstructs.Task, verbose, debug bool, writeLock *sync.Mutex) {
 	if verbose {
-		log.Println("Process Start processing task", task.ID, " lenWorkCount: ", len(status.WorkingIDs))
+		log.Println("Process Start processing task", task.ID, " defaultThreads: ", config.DefaultThreads, " lenWorkCount: ", len(status.WorkingIDs))
 	}
 
 	err := modules.ProcessModule(task, config, status, task.ID, verbose, debug)
