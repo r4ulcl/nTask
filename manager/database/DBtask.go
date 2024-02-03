@@ -95,22 +95,25 @@ func buildFilters(queryParams url.Values) string {
 	addFilter := func(key, format string) {
 		value := queryParams.Get(key)
 		if value != "" {
+			// Change the format to handle non-string values
+			format = strings.ReplaceAll(format, "%s", "'%s'")
 			filters = append(filters, fmt.Sprintf(format, key, value))
 		}
 	}
 
-	addFilter("ID", "ID LIKE '%s'")
-	addFilter("command", "command LIKE '%s'")
-	addFilter("name", "name LIKE '%s'")
-	addFilter("createdAt", "createdAt LIKE '%s'")
-	addFilter("updatedAt", "updatedAt LIKE '%s'")
-	addFilter("executedAt", "executedAt LIKE '%s'")
-	addFilter("status", "status = '%s'")
-	addFilter("workerName", "workerName LIKE '%s'")
-	addFilter("username", "username LIKE '%s'")
-	addFilter("priority", "priority = '%s'")
-	addFilter("callbackURL", "callbackURL = '%s'")
-	addFilter("callbackToken", "callbackToken = '%s'")
+	addFilter("ID", "ID LIKE %s")
+	addFilter("command", "command LIKE %s")
+	addFilter("name", "name LIKE %s")
+	addFilter("createdAt", "createdAt LIKE %s")
+	addFilter("updatedAt", "updatedAt LIKE %s")
+	addFilter("executedAt", "executedAt LIKE %s")
+	// For status, workerName, username, and callbackURL, use equality (=) instead of LIKE
+	addFilter("status", "status = %s")
+	addFilter("workerName", "workerName LIKE %s")
+	addFilter("username", "username LIKE %s")
+	addFilter("priority", "priority = %s")
+	addFilter("callbackURL", "callbackURL = %s")
+	addFilter("callbackToken", "callbackToken = %s")
 
 	return strings.Join(filters, " AND ")
 }
