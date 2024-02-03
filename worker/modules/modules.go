@@ -19,6 +19,16 @@ import (
 var mutex sync.Mutex
 
 func runModule(config *utils.WorkerConfig, command string, arguments string, status *globalstructs.WorkerStatus, id string, verbose, debug bool) (string, error) {
+	mutex.Lock()
+	status.WorkingIDs[id] = -1
+	mutex.Unlock()
+
+	defer func() {
+		mutex.Lock()
+		delete(status.WorkingIDs, id)
+		mutex.Unlock()
+	}()
+
 	// if command is empty, like in the example "exec" to exec any binary
 	// the first argument is the command
 	var cmd *exec.Cmd
@@ -89,12 +99,6 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 	mutex.Lock()
 	status.WorkingIDs[id] = cmd.Process.Pid
 	mutex.Unlock()
-
-	defer func() {
-		mutex.Lock()
-		delete(status.WorkingIDs, id)
-		mutex.Unlock()
-	}()
 
 	// Create a channel to signal when the process is done
 	done := make(chan error, 1)
