@@ -115,6 +115,11 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 			if err != nil {
 				log.Println("WebSockets callbackTask error: ", err)
 			}
+			// Subtract Iddle thread in DB, in the next status to worker it will update to real data
+			err := database.AddWorkerIddleThreads1(db, worker.Name, verbose, debug, wg)
+			if err != nil {
+				log.Println(err.Error())
+			}
 
 			//Responses
 
