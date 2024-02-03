@@ -195,7 +195,7 @@ func messageDeleteTask(config *utils.WorkerConfig, status *globalstructs.WorkerS
 	return response, nil
 }
 
-func messageStatusTask(status *globalstructs.WorkerStatus, msg globalstructs.WebsocketMessage, verbose, debug bool) (globalstructs.WebsocketMessage, error) {
+func messageStatusTask(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, msg globalstructs.WebsocketMessage, verbose, debug bool) (globalstructs.WebsocketMessage, error) {
 	response := globalstructs.WebsocketMessage{
 		Type: "",
 		JSON: "",
@@ -206,6 +206,8 @@ func messageStatusTask(status *globalstructs.WorkerStatus, msg globalstructs.Web
 			log.Println("WebSockets msg.Type", msg.Type)
 		}
 	}
+	status.IddleThreads = config.DefaultThreads - len(status.WorkingIDs)
+
 	jsonData, err := json.Marshal(status)
 	if err != nil {
 		response.Type = "FAILED"

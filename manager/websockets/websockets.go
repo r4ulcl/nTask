@@ -3,7 +3,6 @@ package websockets
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"sync"
 
@@ -221,8 +220,8 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 		}
 
 		if debug {
-			fmt.Printf("Received message type: %s\n", msg.Type)
-			fmt.Printf("Received message json: %s\n", msg.JSON)
+			log.Printf("Received message type: %s\n", msg.Type)
+			log.Printf("Received message json: %s\n", msg.JSON)
 		}
 
 		if response.Type != "" {
