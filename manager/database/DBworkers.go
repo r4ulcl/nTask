@@ -18,7 +18,7 @@ func AddWorker(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg
 	// Insert the JSON data into the MySQL table
 	_, err := db.Exec("INSERT INTO worker (name, defaultThreads, iddleThreads, up, downCount)"+
 		" VALUES (?, ?, ?, ?, ?)",
-		worker.Name, worker.DefaultThreads, worker.DefaultThreads, worker.UP, worker.DownCount)
+		worker.Name, worker.DefaultThreads, worker.IddleThreads, worker.UP, worker.DownCount)
 	if err != nil {
 		return err
 	}

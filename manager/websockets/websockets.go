@@ -200,8 +200,13 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 				log.Println("WebSockets status error: ", err)
 			}
 
+			if debug {
+				log.Println("status.IddleThreads", status.IddleThreads)
+				log.Println("worker.IddleThreads", worker.IddleThreads)
+			}
+
 			// If worker IddleThreads is not the same as stored in the DB, update the DB
-			if len(status.WorkingIDs) != worker.IddleThreads {
+			if status.IddleThreads != worker.IddleThreads {
 				err := database.SetIddleThreadsTo(status.IddleThreads, db, worker.Name, verbose, debug, wg)
 				if err != nil {
 					log.Println("WebSockets status SetIddleThreadsTo error: ", err)
