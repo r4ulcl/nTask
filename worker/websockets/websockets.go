@@ -80,6 +80,9 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 func RecreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debug bool, writeLock *sync.Mutex) {
 	for {
 		time.Sleep(1 * time.Second) // Adjust the interval based on your requirements
+		if debug {
+			log.Println("Cheking RecreateConnection")
+		}
 		if err := config.Conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second)); err != nil {
 			conn, err := managerrequest.CreateWebsocket(config, config.CA, verifyAltName, verbose, debug)
 			if err != nil {
@@ -87,6 +90,9 @@ func RecreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debu
 					log.Println("WebSockets Error CreateWebsocket: ", err)
 				}
 			} else {
+				if debug {
+					log.Println("RecreateConnection - Connection OK")
+				}
 				config.Conn = conn
 
 				err = managerrequest.AddWorker(config, verbose, debug, writeLock)
