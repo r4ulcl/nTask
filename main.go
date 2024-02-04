@@ -40,7 +40,7 @@ type Arguments struct {
 
 func main() {
 	var arguments Arguments
-	version := "v0.1.1"
+	version := "v0.2"
 	var rootCmd = &cobra.Command{
 		Use:     "nTask",
 		Short:   "Your program description",

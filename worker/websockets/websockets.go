@@ -17,6 +17,14 @@ import (
 	"github.com/r4ulcl/nTask/worker/utils"
 )
 
+func SetConn(conn *websocket.Conn, config *utils.WorkerConfig, verbose, debug bool, writeLock *sync.Mutex) {
+	writeLock.Lock()
+	defer writeLock.Unlock()
+
+	config.Conn = conn
+
+}
+
 func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, verbose, debug bool, writeLock *sync.Mutex) {
 	for {
 
@@ -106,7 +114,7 @@ func CreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debug 
 		if err != nil {
 			log.Println("Worker Error worker CreateWebsocket: ", err)
 		} else {
-			config.Conn = conn
+			SetConn(conn, config, verbose, debug, writeLock)
 
 			err = managerrequest.AddWorker(config, verbose, debug, writeLock)
 			if err != nil {
