@@ -84,32 +84,39 @@ func RecreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debu
 			log.Println("Cheking RecreateConnection")
 		}
 		if err := config.Conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second)); err != nil {
-			conn, err := managerrequest.CreateWebsocket(config, config.CA, verifyAltName, verbose, debug)
+			if debug {
+				log.Println("RecreateConnection - Connection down")
+			}
+			CreateConnection(config, verifyAltName, verbose, debug, writeLock)
+		}
+	}
+}
+
+func CreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debug bool, writeLock *sync.Mutex) {
+	// Loop until connects
+	for {
+		if debug {
+			log.Println("Worker Trying to conenct to manager")
+		}
+		conn, err := managerrequest.CreateWebsocket(config, config.CA, verifyAltName, verbose, debug)
+		if err != nil {
+			log.Println("Worker Error worker CreateWebsocket: ", err)
+		} else {
+			config.Conn = conn
+
+			err = managerrequest.AddWorker(config, verbose, debug, writeLock)
 			if err != nil {
 				if verbose {
-					log.Println("WebSockets Error CreateWebsocket: ", err)
+					log.Println("Worker Error worker AddWorker: ", err)
 				}
 			} else {
-				if debug {
-					log.Println("RecreateConnection - Connection OK")
+				if verbose {
+					log.Println("Worker connected to manager. ")
 				}
-				config.Conn = conn
-
-				err = managerrequest.AddWorker(config, verbose, debug, writeLock)
-				if err != nil {
-					if verbose {
-						log.Println("WebSockets Error worker RecreateConnection AddWorker: ", err)
-					}
-				} else {
-					if verbose {
-						log.Println("WebSockets Worker connected to manager. ")
-					}
-
-					continue
-				}
-
+				break
 			}
 		}
+		time.Sleep(time.Second * 5)
 	}
 }
 
