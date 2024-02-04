@@ -88,6 +88,10 @@ func RecreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debu
 				log.Println("RecreateConnection - Connection down")
 			}
 			CreateConnection(config, verifyAltName, verbose, debug, writeLock)
+		} else {
+			if debug {
+				log.Println("RecreateConnection - Connection ok")
+			}
 		}
 	}
 }
