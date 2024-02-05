@@ -23,20 +23,8 @@ func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writ
 	if debug {
 		log.Println("Utils SendMessage", string(message))
 	}
-	// check if websocket alive
-	conn.SetPongHandler(func(appData string) error {
-		log.Println("Received Pong:", appData)
-		// Handle Pong message as needed
-		return nil
-	})
 
-	err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(2*time.Second))
-	if err != nil {
-		log.Println("Utils Error in websocket", string(message))
-		return err
-	}
-
-	err = conn.WriteMessage(websocket.TextMessage, message)
+	err := conn.WriteMessage(websocket.TextMessage, message)
 	if err != nil {
 		return err
 	}

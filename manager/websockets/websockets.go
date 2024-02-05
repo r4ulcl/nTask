@@ -33,13 +33,13 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 	for {
 		select {
 		case <-ticker.C:
+			if debug {
+				log.Println("Send Ping:", worker.Name)
+			}
 			err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(2*time.Second))
 			if err != nil {
 				log.Println("Error sending Ping", worker.Name, ":", err)
 				return
-			}
-			if debug {
-				log.Println("Sent Ping:", worker.Name)
 			}
 
 		// Handle other messages or events here

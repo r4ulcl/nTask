@@ -69,8 +69,8 @@ type Error struct {
 // websockets
 
 var Upgrader = websocket.Upgrader{
-	ReadBufferSize:  4096, // 4 kilobytes
-	WriteBufferSize: 4096, // 4 kilobytes
+	ReadBufferSize:  8192, // 8 kilobytes
+	WriteBufferSize: 8192, // 8 kilobytes
 }
 
 type WebsocketMessage struct {

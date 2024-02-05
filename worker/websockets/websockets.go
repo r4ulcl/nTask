@@ -51,6 +51,9 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 		switch msg.Type {
 
 		case "status":
+			if debug {
+				log.Println("Status message recieve")
+			}
 			response, err = messageStatusTask(config, status, msg, verbose, debug)
 			if err != nil {
 				log.Println("status error: ", err)
@@ -86,20 +89,53 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 }
 
 func RecreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debug bool, writeLock *sync.Mutex) {
-	for {
-		time.Sleep(1 * time.Second) // Adjust the interval based on your requirements
+	// Send Ping message every 5 seconds
+
+	// Set Pong handler
+	pongReceived := make(chan struct{})
+
+	config.Conn.SetPongHandler(func(appData string) error {
 		if debug {
-			log.Println("Cheking RecreateConnection")
+			log.Println("Received Pong:", appData)
 		}
-		if err := config.Conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second)); err != nil {
+		// Notify that Pong has been received
+		pongReceived <- struct{}{}
+		return nil
+	})
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
 			if debug {
-				log.Println("RecreateConnection - Connection down")
+				log.Println("Checking RecreateConnection")
 			}
-			CreateConnection(config, verifyAltName, verbose, debug, writeLock)
-		} else {
-			if debug {
-				log.Println("RecreateConnection - Connection ok")
+
+			// Use a channel to handle the timeout
+			timeout := time.After(2 * time.Second)
+
+			err := config.Conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(2*time.Second))
+			if err != nil {
+				log.Println("Error sending Ping:", err)
+				CreateConnection(config, verifyAltName, verbose, debug, writeLock)
+			} else {
+				if debug {
+					log.Println("RecreateConnection - Connection ok")
+				}
 			}
+
+			// Wait for Pong or timeout
+			select {
+			case <-pongReceived:
+				// Pong received, continue the loop
+			case <-timeout:
+				// Pong not received within the timeout, return an error or handle it accordingly
+				log.Println("Error sending Ping:", err)
+				CreateConnection(config, verifyAltName, verbose, debug, writeLock)
+			}
+
 		}
 	}
 }

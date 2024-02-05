@@ -59,7 +59,7 @@ func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writ
 	writeLock.Lock()
 	defer writeLock.Unlock()
 	if debug {
-		log.Println("sendMessage", string(message))
+		log.Println("sendMessage:", string(message))
 	}
 	err := conn.WriteMessage(websocket.TextMessage, message)
 	if err != nil {
