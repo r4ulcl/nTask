@@ -283,7 +283,7 @@ func addWorker(worker globalstructs.Worker, db *sql.DB, verbose, debug bool, wg 
 				}
 
 				// set worker up
-				err = database.SetWorkerUPto(true, db, &worker, verbose, debug, wg)
+				err = database.UpdateWorker(db, &worker, verbose, debug, wg)
 				if err != nil {
 					return err
 				}
