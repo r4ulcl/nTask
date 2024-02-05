@@ -36,13 +36,26 @@ func publicKeyFile(file string) (ssh.AuthMethod, error) {
 	return ssh.PublicKeys(key), nil
 }
 
+// Maintain a map of active SSH connections
+var activeConnections = make(map[string]*ssh.Client)
+
 func StartSSH(config *utils.ManagerSSHConfig, portAPI string, verbose, debug bool) {
 	log.Println("SSH StartSSH")
 	for {
-
 		for ip, port := range config.IPPort {
+			// Create a key for the activeConnections map
+			connectionKey := fmt.Sprintf("%s:%s", ip, port)
+
+			// Check if a connection to the host and port already exists
+			if _, ok := activeConnections[connectionKey]; ok {
+				if verbose {
+					log.Printf("SSH connection to %s already exists", connectionKey)
+				}
+				continue
+			}
+
 			go func(ip, port string) {
-				log.Println("SSH connecction", ip, port)
+				log.Println("SSH connection", ip, port)
 
 				if !checkFileExists(config.PrivateKeyPath) {
 					log.Fatal("File ", config.PrivateKeyPath, " not found")
@@ -74,6 +87,9 @@ func StartSSH(config *utils.ManagerSSHConfig, portAPI string, verbose, debug boo
 					return
 				}
 
+				// Add the connection to the activeConnections map
+				activeConnections[connectionKey] = sshClient
+
 				// Remote port to forward
 				remoteAddr := "127.0.0.1:" + portAPI
 				// Local address to forward to
@@ -87,6 +103,8 @@ func StartSSH(config *utils.ManagerSSHConfig, portAPI string, verbose, debug boo
 				remoteListener, err := sshClient.Listen("tcp", remoteAddr)
 				if err != nil {
 					log.Printf("Failed to request remote port forwarding: %v", err)
+					// Remove the connection from the activeConnections map on failure
+					delete(activeConnections, connectionKey)
 					return
 				}
 				defer remoteListener.Close()
@@ -98,6 +116,8 @@ func StartSSH(config *utils.ManagerSSHConfig, portAPI string, verbose, debug boo
 					remoteConn, err := remoteListener.Accept()
 					if err != nil {
 						log.Printf("Failed to accept connection on remote port: %v", err)
+						// Remove the connection from the activeConnections map on failure
+						delete(activeConnections, connectionKey)
 						return
 					}
 
