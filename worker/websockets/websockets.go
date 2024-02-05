@@ -114,11 +114,11 @@ func RecreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debu
 			}
 
 			// Use a channel to handle the timeout
-			timeout := time.After(2 * time.Second)
+			timeout := time.After(5 * time.Second)
 
-			err := config.Conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(2*time.Second))
+			err := config.Conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second))
 			if err != nil {
-				log.Println("Error sending Ping:", err)
+				log.Println("Error sending Ping err:", err)
 				CreateConnection(config, verifyAltName, verbose, debug, writeLock)
 			} else {
 				if debug {
@@ -129,11 +129,19 @@ func RecreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debu
 			// Wait for Pong or timeout
 			select {
 			case <-pongReceived:
+				if debug {
+					log.Println("pongReceived")
+				}
 				// Pong received, continue the loop
 			case <-timeout:
-				// Pong not received within the timeout, return an error or handle it accordingly
-				log.Println("Error sending Ping:", err)
+				// Pong not received within the timeout, close the connection
+				log.Println("Pong not received within the timeout. Closing the connection.")
+				err := config.Conn.Close()
+				if err != nil {
+					log.Println("Error closing connection:", err)
+				}
 				CreateConnection(config, verifyAltName, verbose, debug, writeLock)
+
 			}
 
 		}
@@ -146,6 +154,7 @@ func CreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debug 
 		if debug {
 			log.Println("Worker Trying to conenct to manager")
 		}
+
 		conn, err := managerrequest.CreateWebsocket(config, config.CA, verifyAltName, verbose, debug)
 		if err != nil {
 			log.Println("Worker Error worker CreateWebsocket: ", err)
@@ -165,6 +174,10 @@ func CreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debug 
 			}
 		}
 		time.Sleep(time.Second * 5)
+	}
+
+	if debug {
+		log.Println("Connection created successfully")
 	}
 }
 
