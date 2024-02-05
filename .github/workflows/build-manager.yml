@@ -2,8 +2,6 @@ name: Docker Build and Publish Manager
 
 on:
   push:
-    branches:
-      - 'main'
     tags:
       - 'v*'
 
