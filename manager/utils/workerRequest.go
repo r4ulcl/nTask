@@ -124,10 +124,10 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 		if debug {
 			log.Println("Utils Can't send message, error:", err)
 		}
-		err = WorkerDisconnected(db, config, worker, verbose, debug, wg)
+		/*err = WorkerDisconnected(db, config, worker, verbose, debug, wg)
 		if err != nil {
 			return err
-		}
+		}*/
 		return err
 	}
 
@@ -182,10 +182,6 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 	if err != nil {
 		if debug {
 			log.Println("Utils Can't send message, error:", err)
-		}
-		err = WorkerDisconnected(db, config, worker, verbose, debug, wg)
-		if err != nil {
-			return err
 		}
 		return err
 	}
@@ -243,10 +239,6 @@ func SendDeleteTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Wor
 	if err != nil {
 		if debug {
 			log.Println("Utils Can't send message, error:", err)
-		}
-		err = WorkerDisconnected(db, config, worker, verbose, debug, wg)
-		if err != nil {
-			return err
 		}
 		return err
 	}
