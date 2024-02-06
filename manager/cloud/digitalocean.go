@@ -438,7 +438,7 @@ func (c *DigitalOceanClient) DeleteDropletsByPrefix(ctx context.Context, prefix 
 	}
 
 	// Introduce a short delay to wait for the deletion to complete
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	return nil
 }
