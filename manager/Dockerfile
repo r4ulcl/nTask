@@ -1,6 +1,10 @@
 
 # STEP 1 build executable binary
 FROM golang:alpine as builder
+
+# Install ca-certificates
+RUN apk update && apk add --no-cache ca-certificates
+
 # copy files for compile
 COPY ./certs $GOPATH/src/github.com/r4ulcl/nTask/certs
 COPY ./docs $GOPATH/src/github.com/r4ulcl/nTask/docs
@@ -28,7 +32,8 @@ FROM scratch
 ENV GOPATH='/go' 
 
 # Add certs for API digitalocean
-ADD ca-certificates.crt /etc/ssl/certs/
+# Copy the CA certificates from the builder stage
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 # Copy our static executable
 COPY --from=builder /$GOPATH/bin/nTask /$GOPATH/bin/nTask
