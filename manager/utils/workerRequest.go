@@ -86,6 +86,12 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 			if debug {
 				log.Println("Utils downCount", downCount, " >= config.StatusCheckDown", config.StatusCheckDown)
 			}
+			// Set as 'pending' all workers tasks to REDO
+			err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
+			if err != nil {
+				return err
+			}
+
 			err = database.RmWorkerName(db, worker.Name, verbose, debug, wg)
 			if err != nil {
 				return err
@@ -97,11 +103,6 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 			}
 		}
 
-		// Set as 'pending' all workers tasks to REDO
-		err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
-		if err != nil {
-			return err
-		}
 		return nil
 	}
 
@@ -130,6 +131,7 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 		return err
 	}
 
+	// If no error worker is ok
 	err = database.SetWorkerDownCount(0, db, worker, verbose, debug, wg)
 	if err != nil {
 		return err

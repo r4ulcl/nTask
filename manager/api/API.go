@@ -29,15 +29,15 @@ func HandleStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerC
 	}
 
 	// get all data
-	task, err1 := utils.GetStatusTask(db, verbose, debug)
-	worker, err2 := utils.GetStatusWorker(db, verbose, debug)
+	tasks, err1 := utils.GetStatusTask(db, verbose, debug)
+	workers, err2 := utils.GetStatusWorker(db, verbose, debug)
 	if err1 != nil || err2 != nil {
 		http.Error(w, "{ \"error\" : \"Invalid callback body Marshal:"+err1.Error()+err2.Error()+"\"}", http.StatusBadRequest)
 		return
 	}
 	status := utils.Status{
-		Task:   task,
-		Worker: worker,
+		Task:   tasks,
+		Worker: workers,
 	}
 
 	var jsonData []byte
