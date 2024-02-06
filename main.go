@@ -30,12 +30,13 @@ import (
 
 // Config holds configuration parameters.
 type Arguments struct {
-	ConfigFile    string
-	ConfigSSHFile string
-	Swagger       bool
-	Verbose       bool
-	Debug         bool
-	VerifyAltName bool
+	ConfigFile      string
+	ConfigSSHFile   string
+	ConfigCloudFile string
+	Swagger         bool
+	Verbose         bool
+	Debug           bool
+	VerifyAltName   bool
 }
 
 func main() {
@@ -75,6 +76,8 @@ func main() {
 		"configFile", "c", "", "Path to the config file (default: manager.conf)")
 	managerCmd.Flags().StringVarP(&arguments.ConfigSSHFile,
 		"configSSHFile", "f", "", "Path to the config SSH file (default: empty)")
+	managerCmd.Flags().StringVarP(&arguments.ConfigCloudFile,
+		"configCloudFile", "C", "", "Path to the config Cloud file (default: empty)")
 
 	// Add worker subcommand
 	var workerCmd = &cobra.Command{
@@ -108,7 +111,7 @@ func managerStart(arguments *Arguments) {
 		arguments.ConfigFile = "manager.conf"
 	}
 	manager.StartManager(arguments.Swagger, arguments.ConfigFile,
-		arguments.ConfigSSHFile, arguments.VerifyAltName, arguments.Verbose, arguments.Debug)
+		arguments.ConfigSSHFile, arguments.ConfigCloudFile, arguments.VerifyAltName, arguments.Verbose, arguments.Debug)
 }
 
 func workerStart(arguments *Arguments) {
