@@ -30,6 +30,19 @@ type ManagerSSHConfig struct {
 	PrivateKeyPassword string            `json:"privateKeyPassword"`
 }
 
+// https://slugs.do-api.dev/
+type ManagerCloudConfig struct {
+	Provider     string `json:"provider"`
+	ApiKey       string `json:"apiKey"`
+	SnapshotName string `json:"snapshotName"`
+	Servers      int    `json:"servers"`
+	Region       string `json:"region"`
+	Size         string `json:"size"`
+	SshKeys      string `json:"sshKeys"`
+	SshPort      int    `json:"sshPort"`
+	Recreate     bool   `json:"recreate"`
+}
+
 type Status struct {
 	Task   StatusTask   `json:"task"`
 	Worker StatusWorker `json:"worker"`
