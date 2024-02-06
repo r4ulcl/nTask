@@ -27,6 +27,9 @@ FROM scratch
 #GOPATH doesn-t exists in scratch
 ENV GOPATH='/go' 
 
+# Add certs for API digitalocean
+ADD ca-certificates.crt /etc/ssl/certs/
+
 # Copy our static executable
 COPY --from=builder /$GOPATH/bin/nTask /$GOPATH/bin/nTask
 #Copy SQL file
