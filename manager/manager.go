@@ -209,7 +209,7 @@ func StartManager(swagger bool, configFile, configSSHFile, configCloudFile strin
 
 			switch configCloud.Provider {
 			case "digitalocean":
-				cloud.ProcessDigitalOcean(configCloud, configSSH, verbose, debug)
+				go cloud.ProcessDigitalOcean(configCloud, configSSH, verbose, debug)
 			default:
 				log.Fatal("Error: Provider not found")
 			}

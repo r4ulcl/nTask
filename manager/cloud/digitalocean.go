@@ -311,7 +311,7 @@ func (c *DigitalOceanClient) CreateXDropletsFromSnapshot(ctx context.Context, na
 		Backups:    false,
 		IPv6:       false,
 		Monitoring: false,
-		Tags:       []string{"nTask", "r4ulcl"},
+		Tags:       []string{"nTask", "worker"},
 	}
 
 	// Convert the payload to JSON
