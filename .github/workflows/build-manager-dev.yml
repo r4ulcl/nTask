@@ -36,7 +36,7 @@ jobs:
         with:
           context: .
           file: ./manager/Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ github.actor }}/ntask-manager:dev
 
@@ -49,7 +49,7 @@ jobs:
         with:
           context: .
           file: ./manager/Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/${{ github.actor }}/ntask-manager:dev
 

@@ -36,7 +36,7 @@ ENV GOPATH='/go'
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 # Copy our static executable
-COPY --from=builder /$GOPATH/bin/nTask /$GOPATH/bin/nTask
+COPY --from=builder $GOPATH/bin/nTask $GOPATH/bin/nTask
 #Copy SQL file
 COPY --from=builder /config/ /config/
 # Copy swagger
