@@ -5,15 +5,12 @@ on:
     tags:
       - 'v*'
 
-
 jobs:
   build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         go-version: [1.21.6]  # Add more versions if needed
-        #os: [windows, linux, darwin, freebsd, openbsd, netbsd, dragonfly]
         os: [windows, linux, darwin]
         arch: [amd64, arm64, 386, arm]
 
@@ -28,8 +25,12 @@ jobs:
         # Set other Go-related options as needed
 
     - name: Build binary
-      run: go build -o nTask-${{ matrix.os }}-${{ matrix.arch }}${{ runner.os == 'Windows' && matrix.os == 'windows' && matrix.arch == 'amd64' && '.exe' || '' }}
-      # Add any additional build steps or commands
+      run: |
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          go build -o nTask-${{ matrix.os }}-${{ matrix.arch }}.exe
+        else
+          go build -o nTask-${{ matrix.os }}-${{ matrix.arch }}
+        fi
 
   release:
     needs: build
@@ -65,4 +66,4 @@ jobs:
           nTask-linux-386
           nTask-darwin-amd64
           nTask-darwin-arm64
-        asset_name: nTask-${{ matrix.os }}-${{ matrix.arch }}
+        asset_name: nTask-${{ matrix.arch }}
