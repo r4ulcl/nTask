@@ -1,4 +1,4 @@
-name: Docker Build and Publish Manager DEV
+name: Docker Build and Publish worker DEV
 
 on:
   push:
@@ -18,12 +18,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3   
 
-      # manager docker
+      # worker docker
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ github.repository }}-manager
+          images: ${{ github.repository }}-worker
 
       - name: Login to DockerHub
         uses: docker/login-action@v1 
@@ -35,10 +35,10 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: ./manager/Dockerfile
+          file: ./worker/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ github.repository }}-manager:dev
+          tags: ${{ github.repository }}-worker:dev
 
       - name: Login to GitHub Container Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -48,8 +48,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./manager/Dockerfile
+          file: ./worker/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ github.repository }}-manager:dev
+          tags: ghcr.io/${{ github.repository }}-worker:dev
 

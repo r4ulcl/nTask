@@ -17,6 +17,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/r4ulcl/nTask/manager/api"
+	"github.com/r4ulcl/nTask/manager/cloud"
 	"github.com/r4ulcl/nTask/manager/database"
 	sshtunnel "github.com/r4ulcl/nTask/manager/sshTunnel"
 	"github.com/r4ulcl/nTask/manager/utils"
@@ -87,6 +88,36 @@ func loadManagerSSHConfig(filename string, verbose, debug bool) (*utils.ManagerS
 	return &configSSH, nil
 }
 
+func loadManagerCloudConfig(filename string, verbose, debug bool) (*utils.ManagerCloudConfig, error) {
+	var ManagerCloud utils.ManagerCloudConfig
+	if debug {
+		log.Println("Manager Loading manager config from file", filename)
+	}
+
+	// Validate filename
+	if filename == "" {
+		return nil, errors.New("filename cannot be empty")
+	}
+
+	// Check if file exists
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		return nil, fmt.Errorf("config file does not exist")
+	}
+
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use specific error message for json.Unmarshal failure
+	err = json.Unmarshal(content, &ManagerCloud)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshaling JSON: %w", err)
+	}
+
+	return &ManagerCloud, nil
+}
+
 func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
 	// worker
 	workers.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
@@ -148,7 +179,7 @@ func startSwaggerWeb(router *mux.Router, verbose, debug bool) {
 	}
 }
 
-func StartManager(swagger bool, configFile, configSSHFile string, verifyAltName, verbose, debug bool) {
+func StartManager(swagger bool, configFile, configSSHFile, configCloudFile string, verifyAltName, verbose, debug bool) {
 	log.Println("Manager Running as manager...")
 
 	// if config file empty set default
@@ -167,6 +198,27 @@ func StartManager(swagger bool, configFile, configSSHFile string, verifyAltName,
 		if err != nil {
 			log.Fatal("Error loading config SSH file: ", err)
 		}
+
+		// TODO:  Move to be independant of cloud service
+		var configCloud *utils.ManagerCloudConfig
+		if configCloudFile != "" {
+			configCloud, err = loadManagerCloudConfig(configCloudFile, verbose, debug)
+			if err != nil {
+				log.Fatal("Error loading config SSH file: ", err)
+			}
+
+			switch configCloud.Provider {
+			case "digitalocean":
+				go cloud.ProcessDigitalOcean(configCloud, configSSH, verbose, debug)
+			default:
+				log.Fatal("Error: Provider not found")
+			}
+
+		}
+		if debug {
+			log.Println("configSSH.IPPort ", configSSH.IPPort)
+		}
+
 	}
 
 	// create waitGroups for DB
@@ -319,14 +371,14 @@ func (amw *authenticationMiddleware) Middleware(next http.Handler) http.Handler 
 			if foundUser {
 				// We found the token in our map
 				// Add the username to the request context
-				ctx := context.WithValue(r.Context(), "username", user)
+				ctx := context.WithValue(r.Context(), utils.UsernameKey, user)
 
 				// Pass down the request with the updated context to the next middleware (or final handler)
 				next.ServeHTTP(w, r.WithContext(ctx))
 			} else if foundWorker {
 				// We found the token in our map
 				// Add the username to the request context
-				ctx := context.WithValue(r.Context(), "worker", worker)
+				ctx := context.WithValue(r.Context(), utils.WorkerKey, worker)
 
 				// Pass down the request with the updated context to the next middleware (or final handler)
 				next.ServeHTTP(w, r.WithContext(ctx))
