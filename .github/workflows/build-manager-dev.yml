@@ -18,13 +18,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3   
 
-
       - name: Set lowercase repository name
         id: set_lowercase_repo
         run: |
           LOWERCASE_REPO=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
           echo "::set-output name=lowercase_repo::${LOWERCASE_REPO}"
-
 
       # manager docker
       - name: Extract metadata (tags, labels) for Docker
