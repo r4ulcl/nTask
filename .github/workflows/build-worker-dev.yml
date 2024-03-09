@@ -23,7 +23,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ github.actor }}/ntask-worker
+          images: ${{ github.repository }}-worker
 
       - name: Login to DockerHub
         uses: docker/login-action@v1 
@@ -38,7 +38,7 @@ jobs:
           file: ./worker/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ github.actor }}/ntask-worker:dev
+          tags: ${{ github.repository }}-worker:dev
 
       - name: Login to GitHub Container Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -51,5 +51,5 @@ jobs:
           file: ./worker/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ github.actor }}/ntask-worker:dev
+          tags: ghcr.io/${{ github.repository }}-worker:dev
 
