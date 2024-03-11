@@ -2,8 +2,6 @@ name: Docker Build and Publish Manager
 
 on:
   push:
-    branches:
-      - 'main'
     tags:
       - 'v*'
 
@@ -20,12 +18,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3   
 
+      - name: Set lowercase repository name
+        id: set_lowercase_repo
+        run: |
+          LOWERCASE_REPO=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+          echo "::set-output name=lowercase_repo::${LOWERCASE_REPO}"
+          
       # manager docker
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ github.actor }}/ntask-manager
+          images: ${{ steps.set_lowercase_repo.outputs.lowercase_repo }}-manager
 
       - name: Login to DockerHub
         uses: docker/login-action@v1 
@@ -38,7 +42,7 @@ jobs:
         with:
           context: .
           file: ./manager/Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -52,7 +56,7 @@ jobs:
         with:
           context: .
           file: ./manager/Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ github.actor }}/ntask-manager:latest, ghcr.io/${{ steps.meta.outputs.tags }}
+          tags: ghcr.io/${{ steps.set_lowercase_repo.outputs.lowercase_repo }}-manager:latest, ghcr.io/${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
