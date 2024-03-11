@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 
 	"github.com/r4ulcl/nTask/manager/utils"
 	"golang.org/x/crypto/ssh"
@@ -35,86 +36,112 @@ func publicKeyFile(file string) (ssh.AuthMethod, error) {
 	return ssh.PublicKeys(key), nil
 }
 
+// Maintain a map of active SSH connections
+var activeConnections = make(map[string]*ssh.Client)
+
 func StartSSH(config *utils.ManagerSSHConfig, portAPI string, verbose, debug bool) {
 	log.Println("SSH StartSSH")
+	for {
+		for ip, port := range config.IPPort {
+			// Create a key for the activeConnections map
+			connectionKey := fmt.Sprintf("%s:%s", ip, port)
 
-	for ip, port := range config.IPPort {
-		go func(ip, port string) {
-			log.Println("SSH connecction", ip, port)
-
-			if !checkFileExists(config.PrivateKeyPath) {
-				log.Fatal("File ", config.PrivateKeyPath, " not found")
+			// Check if a connection to the host and port already exists
+			if _, ok := activeConnections[connectionKey]; ok {
+				if verbose {
+					log.Printf("SSH connection to %s already exists", connectionKey)
+				}
+				continue
 			}
 
-			auth, err := publicKeyFile(config.PrivateKeyPath)
-			if err != nil {
-				log.Fatal("Error loading file ", config.PrivateKeyPath, err)
-			}
+			go func(ip, port string) {
+				log.Println("SSH connection", ip, port)
 
-			// SSH connection configuration
-			sshConfig := &ssh.ClientConfig{
-				User: config.SSHUsername,
-				Auth: []ssh.AuthMethod{
-					auth,
-				},
-				HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-			}
-
-			// If a password is provided, add it as an additional authentication method
-			if config.PrivateKeyPassword != "" {
-				sshConfig.Auth = append(sshConfig.Auth, ssh.Password(config.PrivateKeyPassword))
-			}
-
-			// Connect to the SSH server
-			sshClient, err := ssh.Dial("tcp", ip+":"+port, sshConfig)
-			if err != nil {
-				log.Fatalf("Failed to dial: %s", err)
-			}
-
-			// Remote port to forward
-			remoteAddr := "127.0.0.1:" + portAPI
-			// Local address to forward to
-			localAddr := "127.0.0.1:" + portAPI
-
-			if debug {
-				log.Println("SSH remoteAddr", remoteAddr)
-			}
-
-			// Request remote port forwarding
-			remoteListener, err := sshClient.Listen("tcp", remoteAddr)
-			if err != nil {
-				log.Fatalf("Failed to request remote port forwarding: %v", err)
-			}
-			defer remoteListener.Close()
-
-			fmt.Printf("Remote port forwarding %s to %s via SSH...\n", remoteAddr, localAddr)
-
-			for {
-				// Wait for a connection on the remote port
-				remoteConn, err := remoteListener.Accept()
-				if err != nil {
-					log.Fatalf("Failed to accept connection on remote port: %v", err)
+				if !checkFileExists(config.PrivateKeyPath) {
+					log.Fatal("File ", config.PrivateKeyPath, " not found")
 				}
 
-				// Connect to the local server
-				localConn, err := net.Dial("tcp", localAddr)
+				auth, err := publicKeyFile(config.PrivateKeyPath)
 				if err != nil {
-					log.Printf("Failed to connect to local server: %v", err)
-					remoteConn.Close()
-					continue
+					log.Fatal("Error loading file ", config.PrivateKeyPath, err)
 				}
 
-				// Start forwarding data between local and remote connections
-				go forwardData(remoteConn, localConn)
-				go forwardData(localConn, remoteConn)
-			}
-		}(ip, port)
+				// SSH connection configuration
+				sshConfig := &ssh.ClientConfig{
+					User: config.SSHUsername,
+					Auth: []ssh.AuthMethod{
+						auth,
+					},
+					HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+				}
+
+				// If a password is provided, add it as an additional authentication method
+				if config.PrivateKeyPassword != "" {
+					sshConfig.Auth = append(sshConfig.Auth, ssh.Password(config.PrivateKeyPassword))
+				}
+
+				// Connect to the SSH server
+				sshClient, err := ssh.Dial("tcp", ip+":"+port, sshConfig)
+				if err != nil {
+					log.Printf("Failed to dial: %s", err)
+					return
+				}
+
+				// Add the connection to the activeConnections map
+				activeConnections[connectionKey] = sshClient
+
+				// Remote port to forward
+				remoteAddr := "127.0.0.1:" + portAPI
+				// Local address to forward to
+				localAddr := "127.0.0.1:" + portAPI
+
+				if debug {
+					log.Println("SSH remoteAddr", remoteAddr)
+				}
+
+				// Request remote port forwarding
+				remoteListener, err := sshClient.Listen("tcp", remoteAddr)
+				if err != nil {
+					log.Printf("Failed to request remote port forwarding: %v", err)
+					// Remove the connection from the activeConnections map on failure
+					delete(activeConnections, connectionKey)
+					return
+				}
+				defer remoteListener.Close()
+
+				fmt.Printf("Remote port forwarding %s to %s via SSH...\n", remoteAddr, localAddr)
+
+				for {
+					// Wait for a connection on the remote port
+					remoteConn, err := remoteListener.Accept()
+					if err != nil {
+						log.Printf("Failed to accept connection on remote port: %v", err)
+						// Remove the connection from the activeConnections map on failure
+						delete(activeConnections, connectionKey)
+						return
+					}
+
+					// Connect to the local server
+					localConn, err := net.Dial("tcp", localAddr)
+					if err != nil {
+						log.Printf("Failed to connect to local server: %v", err)
+						remoteConn.Close()
+						continue
+					}
+
+					// Start forwarding data between local and remote connections
+					go forwardData(remoteConn, localConn)
+					go forwardData(localConn, remoteConn)
+				}
+			}(ip, port)
+		}
+		time.Sleep(time.Second * 60)
 	}
 }
 
 // ssh-keygen -t rsa -b 2048
 func checkFileExists(filePath string) bool {
-	_, error := os.Stat(filePath)
+	_, err := os.Stat(filePath)
 	//return !os.IsNotExist(err)
-	return !errors.Is(error, os.ErrNotExist)
+	return !errors.Is(err, os.ErrNotExist)
 }
