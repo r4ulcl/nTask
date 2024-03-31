@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 
 	globalstructs "github.com/r4ulcl/nTask/globalstructs"
 	"github.com/r4ulcl/nTask/worker/managerrequest"
@@ -28,7 +27,7 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 
 	status := globalstructs.WorkerStatus{
 		Name:         config.Name,
-		IddleThreads: config.IddleThreads,
+		IddleThreads: config.DefaultThreads,
 		WorkingIDs:   make(map[string]int),
 	}
 
@@ -69,31 +68,7 @@ func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug 
 		config.ClientHTTP = &http.Client{}
 	}
 
-	// Loop until connects
-	for {
-		if debug {
-			log.Println("Worker Trying to conenct to manager")
-		}
-		conn, err := managerrequest.CreateWebsocket(config, config.CA, verifyAltName, verbose, debug)
-		if err != nil {
-			log.Println("Worker Error worker CreateWebsocket: ", err)
-		} else {
-			config.Conn = conn
-
-			err = managerrequest.AddWorker(config, verbose, debug, &writeLock)
-			if err != nil {
-				if verbose {
-					log.Println("Worker Error worker AddWorker: ", err)
-				}
-			} else {
-				if verbose {
-					log.Println("Worker connected to manager. ")
-				}
-				break
-			}
-		}
-		time.Sleep(time.Second * 5)
-	}
+	websockets.CreateConnection(config, verifyAltName, verbose, debug, &writeLock)
 
 	go websockets.GetMessage(config, &status, verbose, debug, &writeLock)
 

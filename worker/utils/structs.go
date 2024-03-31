@@ -9,7 +9,7 @@ import (
 
 type WorkerConfig struct {
 	Name              string            `json:"name"`
-	IddleThreads      int               `json:"iddleThreads"`
+	DefaultThreads    int               `json:"defaultThreads"`
 	ManagerIP         string            `json:"managerIP"`
 	ManagerPort       string            `json:"managerPort"`
 	ManagerOauthToken string            `json:"managerOauthToken"`

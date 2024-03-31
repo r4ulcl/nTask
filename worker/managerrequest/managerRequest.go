@@ -59,7 +59,7 @@ func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writ
 	writeLock.Lock()
 	defer writeLock.Unlock()
 	if debug {
-		log.Println("sendMessage", string(message))
+		log.Println("sendMessage:", string(message))
 	}
 	err := conn.WriteMessage(websocket.TextMessage, message)
 	if err != nil {
@@ -72,10 +72,11 @@ func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writ
 func AddWorker(config *utils.WorkerConfig, verbose, debug bool, writeLock *sync.Mutex) error {
 	// Create a Worker object with the provided configuration
 	worker := globalstructs.Worker{
-		Name:         config.Name,
-		IddleThreads: config.IddleThreads,
-		UP:           true,
-		DownCount:    0,
+		Name:           config.Name,
+		DefaultThreads: config.DefaultThreads,
+		IddleThreads:   config.DefaultThreads,
+		UP:             true,
+		DownCount:      0,
 	}
 
 	// Marshal the worker object into JSON
@@ -105,7 +106,7 @@ func DeleteWorker(config *utils.WorkerConfig, verbose, debug bool, writeLock *sy
 	// Create a Worker object with the provided configuration
 	worker := globalstructs.Worker{
 		Name:         config.Name,
-		IddleThreads: config.IddleThreads,
+		IddleThreads: -1,
 		UP:           true,
 		DownCount:    0,
 	}
