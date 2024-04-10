@@ -24,7 +24,7 @@ jobs:
           LOWERCASE_REPO=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
           echo "::set-output name=lowercase_repo::${LOWERCASE_REPO}"
 
-      # manager docker
+      # Docker
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
@@ -36,26 +36,20 @@ jobs:
         with:
           username: ${{ github.actor }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and push docker
-        id: docker_build
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./manager/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.set_lowercase_repo.outputs.lowercase_repo }}-manager:dev
 
       - name: Login to GitHub Container Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Build and push docker
-        id: docker_build_ghcr
+      # Push
+      - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./manager/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ steps.set_lowercase_repo.outputs.lowercase_repo }}-manager:dev
+          tags: |
+            ${{ steps.set_lowercase_repo.outputs.lowercase_repo }}-manager:dev
+            ghcr.io/${{ steps.set_lowercase_repo.outputs.lowercase_repo }}-manager:dev
+          labels: ${{ steps.meta.outputs.labels }}
 
