@@ -19,6 +19,16 @@ import (
 var mutex sync.Mutex
 
 func runModule(config *utils.WorkerConfig, command string, arguments string, status *globalstructs.WorkerStatus, id string, verbose, debug bool) (string, error) {
+	mutex.Lock()
+	status.WorkingIDs[id] = -1
+	mutex.Unlock()
+
+	defer func() {
+		mutex.Lock()
+		delete(status.WorkingIDs, id)
+		mutex.Unlock()
+	}()
+
 	// if command is empty, like in the example "exec" to exec any binary
 	// the first argument is the command
 	var cmd *exec.Cmd
@@ -83,18 +93,12 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 			// Some other error occurred
 			fmt.Printf("Command finished with unexpected error: %v\n", err)
 		}
-		return err.Error(), err
+		return "", err
 	}
 
 	mutex.Lock()
 	status.WorkingIDs[id] = cmd.Process.Pid
 	mutex.Unlock()
-
-	defer func() {
-		mutex.Lock()
-		delete(status.WorkingIDs, id)
-		mutex.Unlock()
-	}()
 
 	// Create a channel to signal when the process is done
 	done := make(chan error, 1)
@@ -107,16 +111,18 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 	}()
 
 	// Check every 30 minutes if the process is still running
-	ticker := time.NewTicker(30 * time.Minute)
+	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
 			// Check if the process is still running
-			if err := isProcessRunning(cmd.Process.Pid); err != nil {
+			if err := isProcessRunning(cmd.Process.Pid, verbose, debug); err != nil {
 				// Process is not running, break the loop
-				return "", err
+				output := stdout.String() + stderr.String()
+				output = strings.TrimRight(output, "\n")
+				return output, err
 			}
 		case err := <-done:
 			// Process has finished
@@ -124,7 +130,9 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 				if debug {
 					log.Println("Modules Error waiting for command:", err)
 				}
-				return err.Error(), err
+				output := stdout.String() + stderr.String()
+				output = strings.TrimRight(output, "\n")
+				return output, err
 			}
 
 			// Process completed successfully
@@ -137,7 +145,10 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 }
 
 // Function to check if a process with a given PID is still running
-func isProcessRunning(pid int) error {
+func isProcessRunning(pid int, verbose, debug bool) error {
+	if debug {
+		log.Println("isProcessRunning", pid)
+	}
 	process, err := os.FindProcess(pid)
 	if err != nil {
 		return err
@@ -189,7 +200,7 @@ func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status 
 		outputCommand, err := runModule(config, commandAux, arguments, status, id, verbose, debug)
 		if err != nil {
 			// Save the text error in the task output to review
-			task.Commands[num].Output = outputCommand + err.Error()
+			task.Commands[num].Output = outputCommand + ";" + err.Error()
 			// Return an error if there is an issue running the module
 			return fmt.Errorf("error running %s task: %v", commandAux, err)
 		}

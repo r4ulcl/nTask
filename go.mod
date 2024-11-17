@@ -3,10 +3,10 @@ module github.com/r4ulcl/nTask
 go 1.21.5
 
 require (
-	github.com/go-sql-driver/mysql v1.7.1
+	github.com/go-sql-driver/mysql v1.8.1
 	github.com/gorilla/mux v1.8.1
-	github.com/gorilla/websocket v1.5.1
-	github.com/spf13/cobra v1.8.0
+	github.com/gorilla/websocket v1.5.3
+	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/swaggo/http-swagger v1.3.4
 	github.com/swaggo/swag v1.16.3
@@ -14,6 +14,7 @@ require (
 )
 
 require (
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.20.0 // indirect
