@@ -58,5 +58,6 @@ func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *syn
 				time.Sleep(time.Second * 1)
 			}
 		}
+		time.Sleep(time.Millisecond * 500)
 	}
 }

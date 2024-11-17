@@ -13,6 +13,7 @@ import (
 var sqlInit = `
 CREATE TABLE IF NOT EXISTS worker (
     name VARCHAR(255) PRIMARY KEY,
+    DefaultThreads INT,
     IddleThreads INT,
     up BOOLEAN,
     downCount INT
