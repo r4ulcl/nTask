@@ -11,8 +11,6 @@ import (
 	"github.com/r4ulcl/nTask/worker/utils"
 )
 
-var mutex sync.Mutex
-
 // processTask is a helper function that processes the given task in the background.
 // It sets the worker status to indicate that it is currently working on the task.
 // It calls the ProcessModule function to execute the task's module.
@@ -21,14 +19,8 @@ var mutex sync.Mutex
 // Finally, it calls the CallbackTaskMessage function to send the task result to the configured callback endpoint.
 // After completing the task, it resets the worker status to indicate that it is no longer working.
 func Task(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *globalstructs.Task, verbose, debug bool, writeLock *sync.Mutex) {
-	//Remove one from working threads
-	sustract1IddleThreads(status)
-
-	//Add one from working threads
-	defer add1IddleThreads(status)
-
 	if verbose {
-		log.Println("Process Start processing task", task.ID, " workCount: ", status.IddleThreads)
+		log.Println("Process Start processing task", task.ID, " defaultThreads: ", config.DefaultThreads, " lenWorkCount: ", len(status.WorkingIDs))
 	}
 
 	err := modules.ProcessModule(task, config, status, task.ID, verbose, debug)
@@ -48,23 +40,4 @@ func Task(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *
 		time.Sleep(time.Second * 10)
 	}
 
-}
-
-func add1IddleThreads(status *globalstructs.WorkerStatus) {
-	modifyIddleThreads(true, status)
-}
-
-func sustract1IddleThreads(status *globalstructs.WorkerStatus) {
-	modifyIddleThreads(false, status)
-}
-
-func modifyIddleThreads(add bool, status *globalstructs.WorkerStatus) {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	if add {
-		status.IddleThreads++
-	} else {
-		status.IddleThreads--
-	}
 }
