@@ -23,14 +23,8 @@ func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writ
 	if debug {
 		log.Println("Utils SendMessage", string(message))
 	}
-	// check if websocket alive
-	err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second))
-	if err != nil {
-		log.Println("Utils Error in websocket", string(message))
-		return err
-	}
 
-	err = conn.WriteMessage(websocket.TextMessage, message)
+	err := conn.WriteMessage(websocket.TextMessage, message)
 	if err != nil {
 		return err
 	}
@@ -92,6 +86,12 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 			if debug {
 				log.Println("Utils downCount", downCount, " >= config.StatusCheckDown", config.StatusCheckDown)
 			}
+			// Set as 'pending' all workers tasks to REDO
+			err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
+			if err != nil {
+				return err
+			}
+
 			err = database.RmWorkerName(db, worker.Name, verbose, debug, wg)
 			if err != nil {
 				return err
@@ -103,11 +103,6 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 			}
 		}
 
-		// Set as 'pending' all workers tasks to REDO
-		err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
-		if err != nil {
-			return err
-		}
 		return nil
 	}
 
@@ -129,13 +124,14 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 		if debug {
 			log.Println("Utils Can't send message, error:", err)
 		}
-		err = WorkerDisconnected(db, config, worker, verbose, debug, wg)
+		/*err = WorkerDisconnected(db, config, worker, verbose, debug, wg)
 		if err != nil {
 			return err
-		}
+		}*/
 		return err
 	}
 
+	// If no error worker is ok
 	err = database.SetWorkerDownCount(0, db, worker, verbose, debug, wg)
 	if err != nil {
 		return err
@@ -150,12 +146,12 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 	if debug {
 		log.Println("Utils SendAddTask")
 	}
-	//Sustract 1 Iddle Thread in worker
+
+	// Subtract Iddle thread in DB, in the next status to worker it will update to real data
 	err := database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug, wg)
 	if err != nil {
 		return err
 	}
-	// add 1 on callback
 
 	conn := config.WebSockets[worker.Name]
 	if conn == nil {
@@ -186,10 +182,6 @@ func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 	if err != nil {
 		if debug {
 			log.Println("Utils Can't send message, error:", err)
-		}
-		err = WorkerDisconnected(db, config, worker, verbose, debug, wg)
-		if err != nil {
-			return err
 		}
 		return err
 	}
@@ -248,19 +240,11 @@ func SendDeleteTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Wor
 		if debug {
 			log.Println("Utils Can't send message, error:", err)
 		}
-		err = WorkerDisconnected(db, config, worker, verbose, debug, wg)
-		if err != nil {
-			return err
-		}
 		return err
 	}
 
 	// Set the task and worker as not working
 	err = database.SetTaskStatus(db, task.ID, "deleted", verbose, debug, wg)
-	if err != nil {
-		return err
-	}
-	err = database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug, wg)
 	if err != nil {
 		return err
 	}
@@ -343,7 +327,9 @@ func WorkerDisconnected(db *sql.DB, config *ManagerConfig, worker *globalstructs
 		log.Println("Utils Error: WriteControl cant connect", worker.Name)
 	}
 	// Close connection
-	config.WebSockets[worker.Name].Close()
+	if websocket, ok := config.WebSockets[worker.Name]; ok {
+		websocket.Close()
+	}
 
 	delete(config.WebSockets, worker.Name)
 

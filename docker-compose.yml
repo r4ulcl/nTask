@@ -1,9 +1,10 @@
 version: '3.4'
 services:
   manager:
-    build:
-      context: .
-      dockerfile: ./manager/Dockerfile
+    image: ghcr.io/r4ulcl/ntask-manager:latest
+    #build:
+    #  context: .
+    #  dockerfile: ./manager/Dockerfile
     restart: unless-stopped
     container_name: nTask_manager
     ports:
