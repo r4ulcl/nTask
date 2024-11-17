@@ -15,7 +15,7 @@ MANAGER_IP="127.0.0.1"
 MANAGER_HOSTNAME="manager.local"
 
 # Set certificate expiration time in days
-CERT_EXPIRATION_DAYS=365
+CERT_EXPIRATION_DAYS=3650
 
 # Create directories to store the CA and certificate files
 mkdir -p certs/${MANAGER_FOLDER}
