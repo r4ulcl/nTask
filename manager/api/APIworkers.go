@@ -29,7 +29,7 @@ import (
 // @security ApiKeyAuth
 // @router /worker [get]
 func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
-	username, ok := r.Context().Value("username").(string)
+	username, ok := r.Context().Value(utils.UsernameKey).(string)
 	if !ok {
 		log.Println("API username", username)
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
@@ -74,8 +74,8 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 // @security ApiKeyAuth
 // @router /worker [post]
 func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
-	_, okUser := r.Context().Value("username").(string)
-	_, okWorker := r.Context().Value("worker").(string)
+	_, okUser := r.Context().Value(utils.UsernameKey).(string)
+	_, okWorker := r.Context().Value(utils.WorkerKey).(string)
 	if !okUser && !okWorker {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
@@ -135,7 +135,7 @@ func addWorker(worker globalstructs.Worker, db *sql.DB, verbose, debug bool, wg 
 }
 
 func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
-	_, okWorker := r.Context().Value("worker").(string)
+	_, okWorker := r.Context().Value(utils.WorkerKey).(string)
 	if !okWorker {
 		if verbose {
 			log.Println("API HandleCallback: { \"error\" : \"Unauthorized\" }")
@@ -170,8 +170,8 @@ func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *u
 // @security ApiKeyAuth
 // @router /worker/{NAME} [delete]
 func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
-	_, okUser := r.Context().Value("username").(string)
-	_, okWorker := r.Context().Value("worker").(string)
+	_, okUser := r.Context().Value(utils.UsernameKey).(string)
+	_, okWorker := r.Context().Value(utils.WorkerKey).(string)
 	if !okUser && !okWorker {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
@@ -207,7 +207,7 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 // @security ApiKeyAuth
 // @router /worker/{NAME} [get]
 func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
-	_, ok := r.Context().Value("username").(string)
+	_, ok := r.Context().Value(utils.UsernameKey).(string)
 	if !ok {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return

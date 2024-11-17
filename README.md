@@ -7,13 +7,13 @@
     <img src="https://img.shields.io/github/v/release/r4ulcl/nTask" alt="GitHub releases">
   </a>
   <a href="https://github.com/r4ulcl/nTask/stargazers">
-    <img src="https://img.shields.io/github/stars/r4ulcl/nTask.svg" alt="GitHub stars">
+    <img src="https://img.shields.io/github/stars/r4ulcl/nTask.svg?style=flat" alt="GitHub stars">
   </a>
   <a href="https://github.com/r4ulcl/nTask/network">
-    <img src="https://img.shields.io/github/forks/r4ulcl/nTask.svg" alt="GitHub forks">
+    <img src="https://img.shields.io/github/forks/r4ulcl/nTask.svg?style=flat" alt="GitHub forks">
   </a>
   <a href="https://github.com/r4ulcl/nTask/issues">
-    <img src="https://img.shields.io/github/issues/r4ulcl/nTask.svg" alt="GitHub issues">
+    <img src="https://img.shields.io/github/issues/r4ulcl/nTask.svg?style=flat" alt="GitHub issues">
   </a>
   <a href="https://www.codefactor.io/repository/github/r4ulcl/nTask">
     <img src="https://www.codefactor.io/repository/github/r4ulcl/nTask/badge" alt="CodeFactor" />
@@ -22,7 +22,7 @@
     <img src="https://tokei.rs/b1/github/r4ulcl/nTask" alt="LoC" />
   </a>
   <a href="https://github.com/r4ulcl/nTask/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/r4ulcl/nTask.svg" alt="GitHub license">
+    <img src="https://img.shields.io/github/license/r4ulcl/nTask.svg?style=flat" alt="GitHub license">
   </a>
 
   <br>
@@ -442,11 +442,13 @@ To generate the Swagger documentation, follow these steps:
 The diagram above illustrates the architecture of the nTask Manager and its interactions with the workers.
 
 ## TODO
-- Code tests
-- DigitalOcean API
-  - Get list of droplets to SSH connect
-  - Dinamic number of droplets between min and max
-- Optimize small tasks
+- [ ] Code tests
+- [x] DigitalOcean API
+  - [x] Get list of droplets to SSH connect
+  - [x] Create droplets from snapshot
+  - [ ] Dinamic number of droplets between min and max
+- [ ] Oracle cloud
+- [ ] Optimize small tasks
 
 ## Author
 
