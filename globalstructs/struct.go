@@ -8,7 +8,8 @@ import "github.com/gorilla/websocket"
 // Task Struct to store all Task information.
 type Task struct {
 	ID            string    `json:"id"`
-	Commands      []Command `json:"command"`
+	Commands      []Command `json:"commands"`
+	Files  		  []File   `json:"files"`
 	Name          string    `json:"name"`
 	CreatedAt     string    `json:"createdAt"`
 	UpdatedAt     string    `json:"updatedAt"`
@@ -25,14 +26,19 @@ type Task struct {
 type Command struct {
 	Module         string `json:"module"`
 	Args           string `json:"args"`
-	FileContent    string `json:"fileContent"`
-	RemoteFilePath string `json:"remoteFilePath"`
 	Output         string `json:"output"`
+}
+
+// Files struct to encapsulate FileContent and RemoteFilePath
+type File struct {
+	FileContentB64    string `json:"fileContentB64"`
+	RemoteFilePath string `json:"remoteFilePath"`
 }
 
 // Task Struct for swagger docs, for the POST
 type TaskSwagger struct {
-	Commands []CommandSwagger `json:"command"`
+	Commands []CommandSwagger `json:"commands"`
+	Files    []File `json:"files"`
 	Name     string           `json:"name"`
 	Priority int              `json:"priority"`
 }
@@ -41,8 +47,6 @@ type TaskSwagger struct {
 type CommandSwagger struct {
 	Module         string `json:"module"`
 	Args           string `json:"args"`
-	FileContent    string `json:"fileContent"`
-	RemoteFilePath string `json:"remoteFilePath"`
 }
 
 // Worker struct to store all worker information.

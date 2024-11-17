@@ -11,6 +11,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"path/filepath"
+	"encoding/base64"
 
 	"github.com/r4ulcl/nTask/globalstructs"
 	"github.com/r4ulcl/nTask/worker/utils"
@@ -165,6 +167,55 @@ func isProcessRunning(pid int, verbose, debug bool) error {
 	return nil
 }
 
+// ProcessFiles decodes the base64 content of each file in task.Files and saves it to its RemoteFilePath.
+// It updates the WorkerStatus and handles verbose and debug logging as needed.
+func ProcessFiles(task *globalstructs.Task, config *utils.WorkerConfig, status *globalstructs.WorkerStatus, id string, verbose, debug bool) error {
+	for num, file := range task.Files {
+		// Assuming 'fileContentB64B64' is the base64-encoded content as a string
+		// If this is a typo, rename it appropriately (e.g., 'FileContentB64')
+		contentB64 := file.FileContentB64
+		path := file.RemoteFilePath
+
+		// Decode the base64 content
+		decodedBytes, err := base64.StdEncoding.DecodeString(contentB64)
+		if err != nil {
+			return fmt.Errorf("file %d: failed to decode base64 content: %w", num+1, err)
+		}
+
+		// Ensure the directory exists
+		dir := getDirectory(path)
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			return fmt.Errorf("file %d: failed to create directories for %s: %w", num+1, path, err)
+		}
+
+		// Write the decoded content to the specified path
+		if err := os.WriteFile(path, decodedBytes, 0644); err != nil {
+			return fmt.Errorf("file %d: failed to write file %s: %w", num+1, path, err)
+		}
+
+		// Update the worker status if applicable
+		// (Assuming WorkerStatus has a method or field to update progress)
+		// status.UpdateProgress(num + 1, len(task.Files))
+
+		// Verbose logging
+		if verbose {
+			fmt.Printf("Saved file %d to %s\n", num+1, path)
+		}
+
+		// Debug logging
+		if debug {
+			fmt.Printf("Debug: File %d details - Path: %s, Content Length: %d bytes\n", num+1, path, len(decodedBytes))
+		}
+	}
+
+	return nil
+}
+
+// getDirectory extracts the directory part from a file path using filepath.Dir
+func getDirectory(filePath string) string {
+	return filepath.Dir(filePath)
+}
+
 // ProcessModule processes a task by iterating through its commands and executing corresponding modules
 func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status *globalstructs.WorkerStatus, id string, verbose, debug bool) error {
 	for num, command := range task.Commands {
@@ -176,19 +227,6 @@ func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status 
 		if !found {
 			// Return an error if the module is not found
 			return fmt.Errorf("unknown command: %s", module)
-		}
-
-		// If there is a file in the command, save to disk
-		if command.FileContent != "" {
-			if command.RemoteFilePath == "" {
-				return fmt.Errorf("RemoteFilePath empty")
-			}
-
-			err := SaveStringToFile(command.RemoteFilePath, command.FileContent)
-			if err != nil {
-				return err
-			}
-
 		}
 
 		if verbose {

@@ -16,7 +16,7 @@
             "name": "GPL-3.0",
             "url": "https://github.com/r4ulcl/nTask/blob/main/LICENSE"
         },
-        "version": "1.0"
+        "version": "v0.1"
     },
     "basePath": "/",
     "paths": {
@@ -86,6 +86,12 @@
                         "type": "string",
                         "description": "Task command",
                         "name": "command",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Task files",
+                        "name": "file",
                         "in": "query"
                     },
                     {
@@ -543,16 +549,10 @@
                 "args": {
                     "type": "string"
                 },
-                "fileContent": {
-                    "type": "string"
-                },
                 "module": {
                     "type": "string"
                 },
                 "output": {
-                    "type": "string"
-                },
-                "remoteFilePath": {
                     "type": "string"
                 }
             }
@@ -563,13 +563,7 @@
                 "args": {
                     "type": "string"
                 },
-                "fileContent": {
-                    "type": "string"
-                },
                 "module": {
-                    "type": "string"
-                },
-                "remoteFilePath": {
                     "type": "string"
                 }
             }
@@ -578,6 +572,17 @@
             "type": "object",
             "properties": {
                 "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "globalstructs.File": {
+            "type": "object",
+            "properties": {
+                "fileContentB64": {
+                    "type": "string"
+                },
+                "remoteFilePath": {
                     "type": "string"
                 }
             }
@@ -591,7 +596,7 @@
                 "callbackURL": {
                     "type": "string"
                 },
-                "command": {
+                "commands": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/globalstructs.Command"
@@ -602,6 +607,12 @@
                 },
                 "executedAt": {
                     "type": "string"
+                },
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/globalstructs.File"
+                    }
                 },
                 "id": {
                     "type": "string"
@@ -630,10 +641,16 @@
         "globalstructs.TaskSwagger": {
             "type": "object",
             "properties": {
-                "command": {
+                "commands": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/globalstructs.CommandSwagger"
+                    }
+                },
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/globalstructs.File"
                     }
                 },
                 "name": {
@@ -647,10 +664,13 @@
         "globalstructs.Worker": {
             "type": "object",
             "properties": {
-                "IddleThreads": {
+                "defaultThreads": {
                     "type": "integer"
                 },
                 "downCount": {
+                    "type": "integer"
+                },
+                "iddleThreads": {
                     "type": "integer"
                 },
                 "name": {

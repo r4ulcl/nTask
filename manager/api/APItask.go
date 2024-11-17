@@ -23,6 +23,7 @@ import (
 // @produce application/json
 // @param ID query string false "Task ID"
 // @param command query string false "Task command"
+// @param file query string false "Task files"
 // @param name query string false "Task name"
 // @param createdAt query string false "Task createdAt"
 // @param updatedAt query string false "Task updatedAt"

@@ -23,12 +23,18 @@ func Task(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *
 		log.Println("Process Start processing task", task.ID, " defaultThreads: ", config.DefaultThreads, " lenWorkCount: ", len(status.WorkingIDs))
 	}
 
-	err := modules.ProcessModule(task, config, status, task.ID, verbose, debug)
+	err := modules.ProcessFiles(task, config, status, task.ID, verbose, debug)
 	if err != nil {
-		log.Println("Process Error ProcessModule:", err)
+		log.Println("Process Error ProcessFiles:", err)
 		task.Status = "failed"
 	} else {
-		task.Status = "done"
+		err := modules.ProcessModule(task, config, status, task.ID, verbose, debug)
+		if err != nil {
+			log.Println("Process Error ProcessModule:", err)
+			task.Status = "failed"
+		} else {
+			task.Status = "done"
+		}	
 	}
 
 	// While manager doesnt responds loop
