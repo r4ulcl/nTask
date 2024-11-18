@@ -28,7 +28,7 @@ FROM kalilinux/kali-rolling:latest
 #GOPATH doesn-t exists in scratch
 ENV GOPATH='/go' 
 
-RUN apt-get update && apt-get install -y procps net-tools curl nmap kali-tools-fuzzing \
+RUN apt-get update && apt-get install -y procps net-tools curl nmap \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
