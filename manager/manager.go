@@ -319,25 +319,33 @@ func StartManager(swagger bool, configFile, configSSHFile, configCloudFile strin
 
 	http.Handle("/", router)
 
-	// if there is cert is HTTPS
+	// Start the servers
 	if config.CertFolder != "" {
-		// Set string for the port http
-		addr := fmt.Sprintf(":%s", config.HttpPort)
+		// Set string for the HTTPS port
+		httpsAddr := fmt.Sprintf(":%s", config.HttpsPort)
 		if verbose {
-			log.Println("Manager HttpsPort", config.HttpsPort)
+			log.Println("Starting HTTPS server on port", config.HttpsPort)
 		}
-		go log.Fatal(http.ListenAndServeTLS(addr, config.CertFolder+"/cert.pem", config.CertFolder+"/key.pem", router))
+
+		// Start HTTPS server in a goroutine
+		go func() {
+			err := http.ListenAndServeTLS(httpsAddr, config.CertFolder+"/cert.pem", config.CertFolder+"/key.pem", router)
+			if err != nil {
+				log.Fatalf("Error starting HTTPS server: %v", err)
+			}
+		}()
 	}
 
-	// Set string for the port http
-	addr := fmt.Sprintf(":%s", config.HttpPort)
+	// Set string for the HTTP port
+	httpAddr := fmt.Sprintf(":%s", config.HttpPort)
 	if verbose {
-		log.Println("Manager HttpPort", config.HttpPort)
+		log.Println("Starting HTTP server on port", config.HttpPort)
 	}
 
-	err = http.ListenAndServe(addr, nil)
+	// Start HTTP server
+	err = http.ListenAndServe(httpAddr, nil)
 	if err != nil {
-		log.Println("Manager Error manager CertFolder: ", err)
+		log.Fatalf("Error starting HTTP server: %v", err)
 	}
 
 	/*
