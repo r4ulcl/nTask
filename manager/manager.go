@@ -273,7 +273,7 @@ func StartManager(swagger bool, configFile, configSSHFile, configCloudFile strin
 	go utils.ManageTasks(config, db, verbose, debug, &wg, &writeLock)
 
 	if configSSHFile != "" {
-		go sshtunnel.StartSSH(configSSH, config.Port, verbose, debug)
+		go sshtunnel.StartSSH(configSSH, config.HttpPort, config.HttpsPort, verbose, debug)
 	}
 
 	router := mux.NewRouter()
@@ -319,15 +319,20 @@ func StartManager(swagger bool, configFile, configSSHFile, configCloudFile strin
 
 	http.Handle("/", router)
 
-	// Set string for the port
-	addr := fmt.Sprintf(":%s", config.Port)
-	if verbose {
-		log.Println("Manager Port", config.Port)
-	}
-
 	// if there is cert is HTTPS
 	if config.CertFolder != "" {
-		log.Fatal(http.ListenAndServeTLS(addr, config.CertFolder+"/cert.pem", config.CertFolder+"/key.pem", router))
+		// Set string for the port http
+		addr := fmt.Sprintf(":%s", config.HttpPort)
+		if verbose {
+			log.Println("Manager HttpsPort", config.HttpsPort)
+		}
+		go log.Fatal(http.ListenAndServeTLS(addr, config.CertFolder+"/cert.pem", config.CertFolder+"/key.pem", router))
+	}
+
+	// Set string for the port http
+	addr := fmt.Sprintf(":%s", config.HttpPort)
+	if verbose {
+		log.Println("Manager HttpPort", config.HttpPort)
 	}
 
 	err = http.ListenAndServe(addr, nil)

@@ -9,7 +9,8 @@ import (
 type ManagerConfig struct {
 	Users              map[string]string          `json:"users"`
 	Workers            map[string]string          `json:"workers"`
-	Port               string                     `json:"port"`
+	HttpPort           string                     `json:"httpPort"`
+	HttpsPort          string                     `json:"httpsPort"`
 	DBUsername         string                     `json:"dbUsername"`
 	DBPassword         string                     `json:"dbPassword"`
 	DBHost             string                     `json:"dbHost"`

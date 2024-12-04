@@ -39,7 +39,7 @@ func publicKeyFile(file string) (ssh.AuthMethod, error) {
 // Maintain a map of active SSH connections
 var activeConnections = make(map[string]*ssh.Client)
 
-func StartSSH(config *utils.ManagerSSHConfig, portAPI string, verbose, debug bool) {
+func StartSSH(config *utils.ManagerSSHConfig, httpPort, httpsPort string, verbose, debug bool) {
 	log.Println("SSH StartSSH")
 	for {
 		for ip, port := range config.IPPort {
@@ -90,49 +90,56 @@ func StartSSH(config *utils.ManagerSSHConfig, portAPI string, verbose, debug boo
 				// Add the connection to the activeConnections map
 				activeConnections[connectionKey] = sshClient
 
-				// Remote port to forward
-				remoteAddr := "127.0.0.1:" + portAPI
-				// Local address to forward to
-				localAddr := "127.0.0.1:" + portAPI
+				// Port forwarding for HTTP and HTTPS
+				forwardPort := func(localPort, remotePort string) {
+					remoteAddr := "127.0.0.1:" + remotePort
+					localAddr := "127.0.0.1:" + localPort
 
-				if debug {
-					log.Println("SSH remoteAddr", remoteAddr)
-				}
+					if debug {
+						log.Printf("SSH forwarding remoteAddr: %s to localAddr: %s", remoteAddr, localAddr)
+					}
 
-				// Request remote port forwarding
-				remoteListener, err := sshClient.Listen("tcp", remoteAddr)
-				if err != nil {
-					log.Printf("Failed to request remote port forwarding: %v", err)
-					// Remove the connection from the activeConnections map on failure
-					delete(activeConnections, connectionKey)
-					return
-				}
-				defer remoteListener.Close()
-
-				fmt.Printf("Remote port forwarding %s to %s via SSH...\n", remoteAddr, localAddr)
-
-				for {
-					// Wait for a connection on the remote port
-					remoteConn, err := remoteListener.Accept()
+					// Request remote port forwarding
+					remoteListener, err := sshClient.Listen("tcp", remoteAddr)
 					if err != nil {
-						log.Printf("Failed to accept connection on remote port: %v", err)
+						log.Printf("Failed to request remote port forwarding: %v", err)
 						// Remove the connection from the activeConnections map on failure
 						delete(activeConnections, connectionKey)
 						return
 					}
+					defer remoteListener.Close()
 
-					// Connect to the local server
-					localConn, err := net.Dial("tcp", localAddr)
-					if err != nil {
-						log.Printf("Failed to connect to local server: %v", err)
-						remoteConn.Close()
-						continue
+					fmt.Printf("Remote port forwarding %s to %s via SSH...\n", remoteAddr, localAddr)
+
+					for {
+						// Wait for a connection on the remote port
+						remoteConn, err := remoteListener.Accept()
+						if err != nil {
+							log.Printf("Failed to accept connection on remote port: %v", err)
+							// Remove the connection from the activeConnections map on failure
+							delete(activeConnections, connectionKey)
+							return
+						}
+
+						// Connect to the local server
+						localConn, err := net.Dial("tcp", localAddr)
+						if err != nil {
+							log.Printf("Failed to connect to local server: %v", err)
+							remoteConn.Close()
+							continue
+						}
+
+						// Start forwarding data between local and remote connections
+						go forwardData(remoteConn, localConn)
+						go forwardData(localConn, remoteConn)
 					}
-
-					// Start forwarding data between local and remote connections
-					go forwardData(remoteConn, localConn)
-					go forwardData(localConn, remoteConn)
 				}
+
+				// Start forwarding for HTTP
+				go forwardPort(httpPort, httpPort)
+
+				// Start forwarding for HTTPS
+				go forwardPort(httpsPort, httpsPort)
 			}(ip, port)
 		}
 		time.Sleep(time.Second * 60)

@@ -1,14 +1,15 @@
 version: '3.4'
 services:
   manager:
-    image: ghcr.io/r4ulcl/ntask-manager:latest
-    #build:
-    #  context: .
-    #  dockerfile: ./manager/Dockerfile
+    image: ghcr.io/r4ulcl/ntask-manager:dev
+#    build:
+#      context: .
+#      dockerfile: ./manager/Dockerfile
     restart: unless-stopped
     container_name: nTask_manager
     ports:
       - 8080:8080
+      - 8443:8443
     depends_on:
       - db
     env_file: .env
@@ -22,7 +23,7 @@ services:
 
   db:
     image: mysql
-    command: --default-authentication-plugin=caching_sha2_password
+    #command: --default-authentication-plugin=caching_sha2_password
     restart: unless-stopped
 #    ports:
 #      - 3306:3306
@@ -33,3 +34,34 @@ services:
       MYSQL_DATABASE: manager
     volumes:
       - ./db:/var/lib/mysql
+
+
+  worker1:
+#    build: 
+#      context: .
+#      dockerfile: ./worker/Dockerfile
+    image:  ghcr.io/r4ulcl/ntask-worker:dev
+    restart: unless-stopped
+    container_name: nTask-worker1
+    depends_on:
+      - manager
+    env_file: .env
+    command: worker --verbose --debug
+    volumes:
+      - ./worker.conf:/config/worker.conf
+      - ./certs/:/config/certs/
+
+  worker2:
+#    build: 
+#      context: .
+#      dockerfile: ./worker/Dockerfile
+    image:  ghcr.io/r4ulcl/ntask-worker:dev
+    restart: unless-stopped
+    container_name: nTask-worker2
+    depends_on:
+      - manager
+    env_file: .env
+    command: worker --verbose --debug
+    volumes:
+      - ./worker.conf:/config/worker.conf
+      - ./certs/:/config/certs/
