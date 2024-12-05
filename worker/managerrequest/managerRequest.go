@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -18,14 +19,15 @@ func CreateWebsocket(config *utils.WorkerConfig, caCertPath string,
 	headers.Set("Authorization", config.ManagerOauthToken)
 
 	var serverAddr string
+	portStr := strconv.Itoa(config.ManagerPort)
 	if transport, ok := config.ClientHTTP.Transport.(*http.Transport); ok {
 		if transport.TLSClientConfig != nil {
-			serverAddr = "wss://" + config.ManagerIP + ":" + config.ManagerPort + "/worker/websocket"
+			serverAddr = "wss://" + config.ManagerIP + ":" + portStr + "/worker/websocket"
 		} else {
-			serverAddr = "ws://" + config.ManagerIP + ":" + config.ManagerPort + "/worker/websocket"
+			serverAddr = "ws://" + config.ManagerIP + ":" + portStr + "/worker/websocket"
 		}
 	} else {
-		serverAddr = "wss://" + config.ManagerIP + ":" + config.ManagerPort + "/worker/websocket"
+		serverAddr = "wss://" + config.ManagerIP + ":" + portStr + "/worker/websocket"
 	}
 
 	if debug {

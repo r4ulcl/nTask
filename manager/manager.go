@@ -320,16 +320,25 @@ func StartManager(swagger bool, configFile, configSSHFile, configCloudFile strin
 	http.Handle("/", router)
 
 	// Start the servers
-	if config.CertFolder != "" {
+	if config.CertFolder != "" && config.HttpsPort > 0 && config.HttpsPort > 0 {
+
 		// Set string for the HTTPS port
-		httpsAddr := fmt.Sprintf(":%s", config.HttpsPort)
+		httpsAddr := fmt.Sprintf(":%d", config.HttpsPort)
 		if verbose {
 			log.Println("Starting HTTPS server on port", config.HttpsPort)
 		}
 
+		// Start HTTPS server with timeouts
+		httpsServer := &http.Server{
+			Addr:         httpsAddr,
+			Handler:      router, // Assuming you have a router defined
+			ReadTimeout:  10 * time.Second,
+			WriteTimeout: 10 * time.Second,
+			IdleTimeout:  15 * time.Second,
+		}
 		// Start HTTPS server in a goroutine
 		go func() {
-			err := http.ListenAndServeTLS(httpsAddr, config.CertFolder+"/cert.pem", config.CertFolder+"/key.pem", router)
+			err := httpsServer.ListenAndServeTLS(config.CertFolder+"/cert.pem", config.CertFolder+"/key.pem")
 			if err != nil {
 				log.Fatalf("Error starting HTTPS server: %v", err)
 			}
@@ -337,13 +346,21 @@ func StartManager(swagger bool, configFile, configSSHFile, configCloudFile strin
 	}
 
 	// Set string for the HTTP port
-	httpAddr := fmt.Sprintf(":%s", config.HttpPort)
+	httpAddr := fmt.Sprintf(":%d", config.HttpPort)
 	if verbose {
 		log.Println("Starting HTTP server on port", config.HttpPort)
 	}
 
+	server := &http.Server{
+		Addr:         httpAddr,
+		Handler:      nil,              // or your router
+		ReadTimeout:  10 * time.Second, // Time to read the request
+		WriteTimeout: 10 * time.Second, // Time to send the response
+		IdleTimeout:  15 * time.Second, // Time to wait for the next request
+	}
+
 	// Start HTTP server
-	err = http.ListenAndServe(httpAddr, nil)
+	err = server.ListenAndServe()
 	if err != nil {
 		log.Fatalf("Error starting HTTP server: %v", err)
 	}

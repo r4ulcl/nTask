@@ -11,7 +11,7 @@ type WorkerConfig struct {
 	Name              string            `json:"name"`
 	DefaultThreads    int               `json:"defaultThreads"`
 	ManagerIP         string            `json:"managerIP"`
-	ManagerPort       string            `json:"managerPort"`
+	ManagerPort       int               `json:"managerPort"`
 	ManagerOauthToken string            `json:"managerOauthToken"`
 	CA                string            `json:"ca"`
 	InsecureModules   bool              `json:"insecureModules"`

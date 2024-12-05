@@ -140,7 +140,8 @@ The manager requires a configuration file named `manager.conf` to be present in 
   },
   "statusCheckSeconds": 10,
   "StatusCheckDown": 360,
-  "port": "8080",
+  "httpPort": 8080,
+  "httpsPort": 8443,
   "dbUsername": "your_username",
   "dbPassword": "your_password",
   "dbHost": "db",
@@ -155,7 +156,8 @@ The manager requires a configuration file named `manager.conf` to be present in 
 - `workers`: A map of worker names and their corresponding tokens for authentication. (In this case all workers use the same token called workers)
 - `statusCheckSeconds`: The interval in seconds between status check requests from the manager to the workers.
 - `StatusCheckDown`: The number of seconds after which a worker is marked as down if the status check request fails.
-- `port`: The port on which the manager should listen for incoming connections.
+- `httpPort`: The port on which the manager should listen for incoming connections without TLS.
+- `httpsPort`: The port on which the manager should listen for incoming connections with TLS.
 - `dbUsername`: The username for the database connection.
 - `dbPassword`: The password for the database connection.
 - `dbHost`: The hostname of the database server.
@@ -173,7 +175,7 @@ The worker requires a configuration file named `workerouter.conf` to be present 
   "name": "",
   "iddleThreads": 2,
   "managerIP": "127.0.0.1",
-  "managerPort": "8080",
+  "managerPort": 8443,
   "managerOauthToken": "IeH0vpYFz2Yol6RdLvYZz62TFMv5FF",
   "CA": "./certs/ca-cert.pem",
   "insecureModules": true,

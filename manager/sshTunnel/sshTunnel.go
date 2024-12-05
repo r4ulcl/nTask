@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/r4ulcl/nTask/manager/utils"
@@ -39,7 +40,7 @@ func publicKeyFile(file string) (ssh.AuthMethod, error) {
 // Maintain a map of active SSH connections
 var activeConnections = make(map[string]*ssh.Client)
 
-func StartSSH(config *utils.ManagerSSHConfig, httpPort, httpsPort string, verbose, debug bool) {
+func StartSSH(config *utils.ManagerSSHConfig, httpPort, httpsPort int, verbose, debug bool) {
 	log.Println("SSH StartSSH")
 	for {
 		for ip, port := range config.IPPort {
@@ -91,9 +92,9 @@ func StartSSH(config *utils.ManagerSSHConfig, httpPort, httpsPort string, verbos
 				activeConnections[connectionKey] = sshClient
 
 				// Port forwarding for HTTP and HTTPS
-				forwardPort := func(localPort, remotePort string) {
-					remoteAddr := "127.0.0.1:" + remotePort
-					localAddr := "127.0.0.1:" + localPort
+				forwardPort := func(localPort, remotePort int) {
+					remoteAddr := "127.0.0.1:" + strconv.Itoa(remotePort)
+					localAddr := "127.0.0.1:" + strconv.Itoa(localPort)
 
 					if debug {
 						log.Printf("SSH forwarding remoteAddr: %s to localAddr: %s", remoteAddr, localAddr)
