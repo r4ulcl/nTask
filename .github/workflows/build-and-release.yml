@@ -27,9 +27,9 @@ jobs:
     - name: Build binary
       run: |
         if [ "${{ runner.os }}" = "Windows" ]; then
-          go build -o nTask-${{ matrix.os }}-${{ matrix.arch }}.exe
+          go build -o ${GITHUB_REPOSITORY}-${{ matrix.os }}-${{ matrix.arch }}.exe
         else
-          go build -o nTask-${{ matrix.os }}-${{ matrix.arch }}
+          go build -o ${GITHUB_REPOSITORY}-${{ matrix.os }}-${{ matrix.arch }}
         fi
 
   release:
@@ -41,8 +41,6 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/v')
       id: create_release
       uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref }}
         release_name: Release ${{ github.ref }}
@@ -59,11 +57,11 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: |
-          nTask-windows-amd64.exe
-          nTask-windows-386.exe
-          nTask-linux-amd64
-          nTask-linux-arm64
-          nTask-linux-386
-          nTask-darwin-amd64
-          nTask-darwin-arm64
-        asset_name: nTask-${{ matrix.arch }}
+          ${GITHUB_REPOSITORY}-windows-amd64.exe
+          ${GITHUB_REPOSITORY}-windows-386.exe
+          ${GITHUB_REPOSITORY}-linux-amd64
+          ${GITHUB_REPOSITORY}-linux-arm64
+          ${GITHUB_REPOSITORY}-linux-386
+          ${GITHUB_REPOSITORY}-darwin-amd64
+          ${GITHUB_REPOSITORY}-darwin-arm64
+        asset_name: ${GITHUB_REPOSITORY}-${{ matrix.arch }}

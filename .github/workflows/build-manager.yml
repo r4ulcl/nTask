@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v3
         
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v3
 
       - name: Checkout
         uses: actions/checkout@v3   
@@ -32,31 +32,25 @@ jobs:
           images: ${{ steps.set_lowercase_repo.outputs.lowercase_repo }}-manager
 
       - name: Login to DockerHub
-        uses: docker/login-action@v1 
+        uses: docker/login-action@v3
         with:
           username: ${{ github.actor }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and push docker
-        id: docker_build
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./manager/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
 
       - name: Login to GitHub Container Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Build and push docker
-        id: docker_build_ghcr
+      # Push
+      - name: Build and push
+        id: docker_build
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./manager/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ steps.set_lowercase_repo.outputs.lowercase_repo }}-manager:latest, ghcr.io/${{ steps.meta.outputs.tags }}
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            ghcr.io/${{ steps.set_lowercase_repo.outputs.lowercase_repo }}-manager:latest
+            ghcr.io/${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
