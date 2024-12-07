@@ -383,6 +383,54 @@ ssh -L local_port:remote_server:remote_port -R remote_port:localhost:local_port 
 
    This command establishes a tunnel between the manager and the worker, allowing secure communication without exposing the API to the internet.
 
+## Using Cloud
+
+### Digital Ocean 
+
+You can use Digital Ocean as cloud for the workers. 
+
+#### Configure workers and snapshot
+
+- Install tool in workers
+- Start worker as a service
+- Shutdown and create snapshot
+
+#### Configure manager
+
+cloud.conf
+
+``` bash
+{
+    "provider": "digitalocean",
+    "apiKey": "<API>",
+    "snapshotName": "ntask-worker",
+    "servers": 4,
+    "region": "<REGION>",
+    "size": "<SIZE>",
+    "sshKeys": "a3:32:a3:f3:4a:d4:dd:33:c2:87:98:33:aa:a1:a1:dd",
+    "sshPort": 22,
+    "recreate": false
+}
+```
+
+- Replace "ntask-worker" with your spanshot name
+
+
+#### Usage
+
+ Add the following flag to the worker `--configCloudFile ./cloud.conf`
+
+
+You can use my referral link to get 200$ in credit over 60 days:
+
+<a href="https://www.digitalocean.com/?refcode=f36ecfd0f9a2&utm_campaign=Referral_Invite&utm_medium=Referral_Program&utm_source=badge"><img src="https://web-platforms.sfo2.cdn.digitaloceanspaces.com/WWW/Badge%201.svg" alt="DigitalOcean Referral Badge" /></a>
+
+WARNING: If you run too many very intensive tasks on the same droplet, the worker may start to crash and become unstable, as tasks are closed and the connection is cut off. Don't run a large number of tasks on the same worker simultaneously causing the CPU usage to reach 100%. (In s-2vcpu-2gb-90gb-intel max 6 threads to execute big tasks)
+
+### Other clouds
+
+TODO
+
 ## Global flags
 
 The nTask Manager supports the following global flags:
