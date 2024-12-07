@@ -88,11 +88,12 @@ task_ids=()
 
 # Connect to Manager
 ## Send nmap ping only range
-command="{\"module\": \"exec\", \"args\": \"cat /tmp/a\"}"
+command="{\"module\": \"exec\", \"args\": \"cat /tmp/a /tmp/b\"}"
 FILE_PATH="test.txt"
 FILE_CONTENT_B64=$(base64 "$FILE_PATH")
 files="{\"fileContentb64\": \"$FILE_CONTENT_B64\", \"remoteFilePath\": \"/tmp/a\"}"
-task_data="{\"commands\": [$command], \"files\": [$files],\"priority\": 0}"
+files2="{\"fileContentb64\": \"$FILE_CONTENT_B64\", \"remoteFilePath\": \"/tmp/b\"}"
+task_data="{\"commands\": [$command], \"files\": [$files, $files2],\"priority\": 0}"
 task_id=$(send_post_request "$url/task" "$oauthToken" "$task_data")
 # add task_id to array
 task_ids+=("$task_id")
