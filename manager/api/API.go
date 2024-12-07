@@ -3,7 +3,6 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -54,5 +53,6 @@ func HandleStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerC
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, string(jsonData))
+	// Use json.NewEncoder for safe encoding
+	json.NewEncoder(w).Encode(status)
 }

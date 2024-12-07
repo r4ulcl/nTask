@@ -58,7 +58,8 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, string(jsonData))
+	// Use json.NewEncoder for safe encoding
+	json.NewEncoder(w).Encode(workers)
 }
 
 // HandleWorkerPost handles the request to add a worker
@@ -237,7 +238,8 @@ func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.Ma
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, string(jsonData))
+	// Use json.NewEncoder for safe encoding
+	json.NewEncoder(w).Encode(worker)
 }
 
 // Other functions

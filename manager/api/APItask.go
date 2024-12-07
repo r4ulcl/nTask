@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -75,7 +74,8 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, string(jsonData))
+	// Use json.NewEncoder for safe encoding
+	json.NewEncoder(w).Encode(tasks)
 }
 
 // @description Add a new tasks
@@ -150,16 +150,11 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 		return
 	}
 
-	jsonData, err := json.Marshal(task)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid callback body: "+err.Error()+"\"}", http.StatusBadRequest)
-		return
-	}
-
 	// Handle the result as needed
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, string(jsonData))
+	// Use json.NewEncoder for safe encoding
+	json.NewEncoder(w).Encode(task)
 }
 
 // @description Delete a tasks
@@ -217,15 +212,10 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	// Return task with deleted status
 	task.Status = "deleted"
 
-	jsonData, err := json.Marshal(task)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid callback body: "+err.Error()+"\"}", http.StatusBadRequest)
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, string(jsonData))
+	// Use json.NewEncoder for safe encoding
+	json.NewEncoder(w).Encode(task)
 }
 
 // @description Get status of a task
@@ -271,7 +261,8 @@ func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.Mana
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, string(jsonData))
+	// Use json.NewEncoder for safe encoding
+	json.NewEncoder(w).Encode(task)
 }
 
 // generateRandomID generates a random ID of the specified length
