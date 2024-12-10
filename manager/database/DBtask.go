@@ -102,35 +102,35 @@ func RmTask(db *sql.DB, id string, verbose, debug bool, wg *sync.WaitGroup) erro
 	return nil
 }
 
-// GetTasks gets tasks with URL params as filter.
-func buildFilters(queryParams url.Values) string {
+// buildFiltersWithParams constructs SQL filters using query parameters safely.
+func buildFiltersWithParams(queryParams url.Values) (string, []interface{}) {
 	var filters []string
+	var args []interface{}
 
-	addFilter := func(key, format string) {
+	addFilter := func(key, condition string) {
 		value := queryParams.Get(key)
 		if value != "" {
-			// Change the format to handle non-string values
-			format = strings.ReplaceAll(format, "%s", "'%s'")
-			filters = append(filters, fmt.Sprintf(format, value))
+			filters = append(filters, condition)
+			args = append(args, value)
 		}
 	}
 
-	addFilter("ID", "ID LIKE %s")
-	addFilter("commands", "command LIKE %s")
-	addFilter("files", "files LIKE %s")
-	addFilter("name", "name LIKE %s")
-	addFilter("createdAt", "createdAt LIKE %s")
-	addFilter("updatedAt", "updatedAt LIKE %s")
-	addFilter("executedAt", "executedAt LIKE %s")
-	// For status, workerName, username, and callbackURL, use equality (=) instead of LIKE
-	addFilter("status", "status = %s")
-	addFilter("workerName", "workerName LIKE %s")
-	addFilter("username", "username LIKE %s")
-	addFilter("priority", "priority = %s")
-	addFilter("callbackURL", "callbackURL = %s")
-	addFilter("callbackToken", "callbackToken = %s")
+	// Apply filters for various fields
+	addFilter("ID", "ID LIKE ?")
+	addFilter("commands", "commands LIKE ?")
+	addFilter("files", "files LIKE ?")
+	addFilter("name", "name LIKE ?")
+	addFilter("createdAt", "createdAt LIKE ?")
+	addFilter("updatedAt", "updatedAt LIKE ?")
+	addFilter("executedAt", "executedAt LIKE ?")
+	addFilter("status", "status = ?")
+	addFilter("workerName", "workerName LIKE ?")
+	addFilter("username", "username LIKE ?")
+	addFilter("priority", "priority = ?")
+	addFilter("callbackURL", "callbackURL = ?")
+	addFilter("callbackToken", "callbackToken = ?")
 
-	return strings.Join(filters, " AND ")
+	return strings.Join(filters, " AND "), args
 }
 
 func buildOrderByAndLimit(page, limit int) string {
@@ -143,25 +143,34 @@ func buildOrderByAndLimit(page, limit int) string {
 	return fmt.Sprintf(" ORDER BY priority DESC, createdAt ASC LIMIT %d OFFSET %d;", limit, offset)
 }
 
+// GetTasks retrieves tasks from the database using URL parameters as filters.
 func GetTasks(r *http.Request, db *sql.DB, verbose, debug bool) ([]globalstructs.Task, error) {
 	queryParams := r.URL.Query()
 
-	filters := buildFilters(queryParams)
+	// Parse filters and build SQL conditions
+	filters, args := buildFiltersWithParams(queryParams)
+
+	// Build ORDER BY and LIMIT clauses
 	orderByAndLimit := buildOrderByAndLimit(getPage(queryParams), getLimit(queryParams))
 
-	sql := "SELECT ID, commands, files, name, createdAt, updatedAt, executedAt, status, workerName, username, priority, callbackURL, callbackToken FROM task WHERE 1=1 "
+	// Base SQL query
+	sql := "SELECT ID, commands, files, name, createdAt, updatedAt, executedAt, status, workerName, username, priority, callbackURL, callbackToken FROM task WHERE 1=1"
 
+	// Append filters and arguments
 	if filters != "" {
 		sql += " AND " + filters
 	}
 
+	// Add ORDER BY and LIMIT clauses
 	sql += orderByAndLimit
 
 	if debug {
-		log.Println("GetTasks sql", sql)
+		log.Println("GetTasks SQL:", sql)
+		log.Println("Query Arguments:", args)
 	}
 
-	return GetTasksSQL(sql, db, verbose, debug)
+	// Fetch tasks using the constructed SQL query
+	return GetTasksSQL(sql, args, db, verbose, debug)
 }
 
 func getPage(queryParams url.Values) int {
@@ -182,90 +191,60 @@ func getLimit(queryParams url.Values) int {
 	return limit
 }
 
-// GetTasksPending gets only tasks with status pending
 func GetTasksPending(limit int, db *sql.DB, verbose, debug bool) ([]globalstructs.Task, error) {
-	sql := "SELECT ID, commands, files, name, createdAt, updatedAt, executedAt, status, WorkerName, username, " +
-		"priority, callbackURL, callbackToken FROM task WHERE status = 'pending' ORDER BY priority DESC, createdAt ASC limit %d"
-	formattedSQL := fmt.Sprintf(sql, limit)
-	return GetTasksSQL(formattedSQL, db, verbose, debug)
+	sql := "SELECT ID, commands, files, name, createdAt, updatedAt, executedAt, status, WorkerName, username, priority, callbackURL, callbackToken FROM task WHERE status = 'pending' ORDER BY priority DESC, createdAt ASC LIMIT ?"
+	return GetTasksSQL(sql, []interface{}{limit}, db, verbose, debug)
 }
 
-// GetTasksSQL gets tasks by passing the SQL query in sql param
-func GetTasksSQL(sql string, db *sql.DB, verbose, debug bool) ([]globalstructs.Task, error) {
+// GetTasksSQL executes a parameterized SQL query to fetch tasks.
+func GetTasksSQL(sqlQuery string, args []interface{}, db *sql.DB, verbose, debug bool) ([]globalstructs.Task, error) {
 	var tasks []globalstructs.Task
 
-	// Query all tasks from the task table
-	rows, err := db.Query(sql)
+	// Execute the parameterized query
+	rows, err := db.Query(sqlQuery, args...)
 	if err != nil {
 		if debug {
-			log.Println("DB Error DBTask GetTasksSQL: ", sql, err)
+			log.Println("DB Error DBTask GetTasksSQL:", sqlQuery, err)
 		}
 		return tasks, err
 	}
 	defer rows.Close()
 
-	// Iterate over the rows
+	// Process rows and map to task objects
 	for rows.Next() {
-		// Declare variables to store JSON data
-		var ID string
-		var commandsAux string
-		var filesAux string
-		var name string
-		var createdAt string
-		var updatedAt string
-		var executedAt string
-		var status string
-		var workerName string
-		var username string
-		var priority int
-		var callbackURL string
-		var callbackToken string
+		var task globalstructs.Task
+		var commandsAux, filesAux string
 
-		// Scan the values from the row into variables
-		err := rows.Scan(&ID, &commandsAux,&filesAux, &name, &createdAt, &updatedAt, &executedAt, &status, &workerName, &username, &priority, &callbackURL, &callbackToken)
+		// Scan row values into variables
+		err := rows.Scan(
+			&task.ID, &commandsAux, &filesAux, &task.Name,
+			&task.CreatedAt, &task.UpdatedAt, &task.ExecutedAt, &task.Status,
+			&task.WorkerName, &task.Username, &task.Priority, &task.CallbackURL,
+			&task.CallbackToken,
+		)
 		if err != nil {
 			if debug {
-				log.Println("DB Error DBTask GetTasksSQL: ", err)
+				log.Println("DB Error DBTask GetTasksSQL: Row Scan", err)
 			}
 			return tasks, err
 		}
 
-		// Data into a Task struct
-		var task globalstructs.Task
-		task.ID = ID
-
-		// String to []struct
-		var commands []globalstructs.Command
-		err = json.NewDecoder(strings.NewReader(commandsAux)).Decode(&commands)
-		if err != nil {
-			return tasks, err
+		// Convert JSON strings to slices of structs
+		if err := json.Unmarshal([]byte(commandsAux), &task.Commands); err != nil {
+			return tasks, fmt.Errorf("error parsing commands: %w", err)
 		}
-		task.Commands = commands
-		var files []globalstructs.File
-		err = json.NewDecoder(strings.NewReader(filesAux)).Decode(&files)
-		if err != nil {
-			return tasks, err
+		if err := json.Unmarshal([]byte(filesAux), &task.Files); err != nil {
+			return tasks, fmt.Errorf("error parsing files: %w", err)
 		}
-		task.Files = files
-		task.Name = name
-		task.CreatedAt = createdAt
-		task.UpdatedAt = updatedAt
-		task.ExecutedAt = executedAt
-		task.Status = status
-		task.WorkerName = workerName
-		task.Username = username
-		task.Priority = priority
-		task.CallbackURL = callbackURL
-		task.CallbackToken = callbackToken
 
-		// Append the task to the slice
+		// Append task to the results slice
 		tasks = append(tasks, task)
 	}
 
-	// Check for errors from iterating over rows
+	// Check for errors during row iteration
 	if err := rows.Err(); err != nil {
 		if debug {
-			log.Println("DB Error DBTask GetTasksSQL: ", err)
+			log.Println("DB Error DBTask GetTasksSQL: Rows Iteration", err)
 		}
 		return tasks, err
 	}
@@ -291,7 +270,7 @@ func GetTask(db *sql.DB, id string, verbose, debug bool) (globalstructs.Task, er
 	var callbackToken string
 
 	err := db.QueryRow("SELECT ID, createdAt, updatedAt, executedAt, commands, files, name, status, WorkerName, username, priority, callbackURL, callbackToken FROM task WHERE ID = ?",
-		id).Scan(&id, &createdAt, &updatedAt, &executedAt, &commandsAux,&filesAux, &name, &status, &workerName, &username, &priority, &callbackURL, &callbackToken)
+		id).Scan(&id, &createdAt, &updatedAt, &executedAt, &commandsAux, &filesAux, &name, &status, &workerName, &username, &priority, &callbackURL, &callbackToken)
 	if err != nil {
 		if debug {
 			log.Println("DB Error DBTask GetTask: ", err)
