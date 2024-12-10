@@ -20,8 +20,14 @@ func forwardData(src, dest net.Conn) {
 		log.Printf("Error forwarding data: %v", err)
 	}
 
-	src.Close()
-	dest.Close()
+	err = src.Close()
+	if err != nil {
+		log.Printf("Error closing src: %v", err)
+	}
+	err = dest.Close()
+	if err != nil {
+		log.Printf("Error closing dest: %v", err)
+	}
 }
 
 func publicKeyFile(file string) (ssh.AuthMethod, error) {
@@ -126,7 +132,10 @@ func StartSSH(config *utils.ManagerSSHConfig, httpPort, httpsPort int, verbose, 
 						localConn, err := net.Dial("tcp", localAddr)
 						if err != nil {
 							log.Printf("Failed to connect to local server: %v", err)
-							remoteConn.Close()
+							err := remoteConn.Close()
+							if err != nil {
+								log.Printf("Failed closing remote port forwarding: %v", err)
+							}
 							continue
 						}
 

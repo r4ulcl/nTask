@@ -324,11 +324,14 @@ func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose, debug 
 
 func WorkerDisconnected(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
 	if debug {
-		log.Println("Utils Error: WriteControl cant connect", worker.Name)
+		log.Println("Utils Error WorkerDisconnected: WriteControl cant connect", worker.Name)
 	}
 	// Close connection
 	if websocket, ok := config.WebSockets[worker.Name]; ok {
-		websocket.Close()
+		err := websocket.Close()
+		if err != nil {
+			return err
+		}
 	}
 
 	delete(config.WebSockets, worker.Name)

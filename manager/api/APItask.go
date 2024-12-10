@@ -75,7 +75,10 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	// Use json.NewEncoder for safe encoding
-	json.NewEncoder(w).Encode(tasks)
+	err = json.NewEncoder(w).Encode(tasks)
+	if err != nil {
+		http.Error(w, "{ \"error\" : \"Invalid tasks encode body:"+err.Error()+"\"}", http.StatusBadRequest)
+	}
 }
 
 // @description Add a new tasks
@@ -154,7 +157,10 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	// Use json.NewEncoder for safe encoding
-	json.NewEncoder(w).Encode(task)
+	err = json.NewEncoder(w).Encode(task)
+	if err != nil {
+		http.Error(w, "{ \"error\" : \"Invalid tasks encode body:"+err.Error()+"\"}", http.StatusBadRequest)
+	}
 }
 
 // @description Delete a tasks
@@ -215,7 +221,10 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	// Use json.NewEncoder for safe encoding
-	json.NewEncoder(w).Encode(task)
+	err = json.NewEncoder(w).Encode(task)
+	if err != nil {
+		http.Error(w, "{ \"error\" : \"Invalid tasks encode body:"+err.Error()+"\"}", http.StatusBadRequest)
+	}
 }
 
 // @description Get status of a task
@@ -262,7 +271,10 @@ func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	// Use json.NewEncoder for safe encoding
-	json.NewEncoder(w).Encode(task)
+	err = json.NewEncoder(w).Encode(task)
+	if err != nil {
+		http.Error(w, "{ \"error\" : \"Invalid task encode body:"+err.Error()+"\"}", http.StatusBadRequest)
+	}
 }
 
 // generateRandomID generates a random ID of the specified length

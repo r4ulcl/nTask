@@ -54,5 +54,8 @@ func HandleStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerC
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	// Use json.NewEncoder for safe encoding
-	json.NewEncoder(w).Encode(status)
+	err = json.NewEncoder(w).Encode(status)
+	if err != nil {
+		http.Error(w, "{ \"error\" : \"Invalid status encode body:"+err.Error()+"\"}", http.StatusBadRequest)
+	}
 }
