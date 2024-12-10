@@ -116,7 +116,10 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 					response.Type = "FAILED"
 				} else {
 					response.Type = "OK"
-					config.WebSockets[worker.Name].Close()
+					err = config.WebSockets[worker.Name].Close()
+					if err != nil {
+						log.Println("WebSockets Close error: ", err)
+					}
 					delete(config.WebSockets, worker.Name)
 				}
 

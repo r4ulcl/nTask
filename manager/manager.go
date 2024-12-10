@@ -319,8 +319,11 @@ func StartManager(swagger bool, configFile, configSSHFile, configCloudFile strin
 
 	http.Handle("/", router)
 
+	// Crate WaitGroup
+	var wgServer sync.WaitGroup
+
 	// Start the servers
-	if config.CertFolder != "" && config.HttpsPort > 0 && config.HttpsPort > 0 {
+	if config.CertFolder != "" && config.HttpsPort > 0 {
 
 		// Set string for the HTTPS port
 		httpsAddr := fmt.Sprintf(":%d", config.HttpsPort)
@@ -343,27 +346,34 @@ func StartManager(swagger bool, configFile, configSSHFile, configCloudFile strin
 				log.Fatalf("Error starting HTTPS server: %v", err)
 			}
 		}()
+		wgServer.Add(1)
 	}
+	if config.HttpPort > 0 {
 
-	// Set string for the HTTP port
-	httpAddr := fmt.Sprintf(":%d", config.HttpPort)
-	if verbose {
-		log.Println("Starting HTTP server on port", config.HttpPort)
-	}
+		// Set string for the HTTP port
+		httpAddr := fmt.Sprintf(":%d", config.HttpPort)
+		if verbose {
+			log.Println("Starting HTTP server on port", config.HttpPort)
+		}
 
-	server := &http.Server{
-		Addr:         httpAddr,
-		Handler:      nil,              // or your router
-		ReadTimeout:  10 * time.Second, // Time to read the request
-		WriteTimeout: 10 * time.Second, // Time to send the response
-		IdleTimeout:  15 * time.Second, // Time to wait for the next request
-	}
+		server := &http.Server{
+			Addr:         httpAddr,
+			Handler:      nil,              // or your router
+			ReadTimeout:  10 * time.Second, // Time to read the request
+			WriteTimeout: 10 * time.Second, // Time to send the response
+			IdleTimeout:  15 * time.Second, // Time to wait for the next request
+		}
 
-	// Start HTTP server
-	err = server.ListenAndServe()
-	if err != nil {
-		log.Fatalf("Error starting HTTP server: %v", err)
+		// Start HTTP server
+		go func() {
+			err = server.ListenAndServe()
+			if err != nil {
+				log.Fatalf("Error starting HTTP server: %v", err)
+			}
+		}()
+		wgServer.Add(1)
 	}
+	wgServer.Wait()
 
 	/*
 		err = http.ListenAndServe(":"+config.Port, allowCORS(http.DefaultServeMux))

@@ -2,17 +2,17 @@ package modules
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
-	"path/filepath"
-	"encoding/base64"
 
 	"github.com/r4ulcl/nTask/globalstructs"
 	"github.com/r4ulcl/nTask/worker/utils"
@@ -184,12 +184,13 @@ func ProcessFiles(task *globalstructs.Task, config *utils.WorkerConfig, status *
 
 		// Ensure the directory exists
 		dir := getDirectory(path)
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		const dirPerm = 0750 // Use restricted permissions (0750)
+		if err := os.MkdirAll(dir, dirPerm); err != nil {
 			return fmt.Errorf("file %d: failed to create directories for %s: %w", num+1, path, err)
 		}
-
 		// Write the decoded content to the specified path
-		if err := os.WriteFile(path, decodedBytes, 0644); err != nil {
+		const filePerm = 0600
+		if err := os.WriteFile(path, decodedBytes, filePerm); err != nil {
 			return fmt.Errorf("file %d: failed to write file %s: %w", num+1, path, err)
 		}
 

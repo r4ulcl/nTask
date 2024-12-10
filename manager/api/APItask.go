@@ -280,5 +280,9 @@ func generateRandomID(length int, verbose, debug bool) (string, error) {
 	// Convert random bytes to hex string
 	randomID := hex.EncodeToString(randomBytes)
 
+	if verbose || debug {
+		log.Println("generateRandomID executed", randomID)
+	}
+
 	return randomID, nil
 }

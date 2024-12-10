@@ -64,7 +64,7 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 				log.Println("addTask error: ", err)
 			}
 		case "deleteTask":
-			response, err = messageDeleteTask(config, status, msg, verbose, debug, writeLock)
+			response, err = messageDeleteTask(status, msg, verbose, debug)
 			if err != nil {
 				log.Println("deleteTask error: ", err)
 			}
@@ -223,12 +223,12 @@ func messageAddTask(config *utils.WorkerConfig, status *globalstructs.WorkerStat
 	return response, nil
 }
 
-func messageDeleteTask(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, msg globalstructs.WebsocketMessage, verbose, debug bool, writeLock *sync.Mutex) (globalstructs.WebsocketMessage, error) {
+func messageDeleteTask(status *globalstructs.WorkerStatus, msg globalstructs.WebsocketMessage, verbose, debug bool) (globalstructs.WebsocketMessage, error) {
 	response := globalstructs.WebsocketMessage{
 		Type: "",
 		JSON: "",
 	}
-	if debug {
+	if debug || verbose {
 		log.Println("WebSockets msg.Type", msg.Type)
 	}
 
@@ -276,7 +276,7 @@ func messageStatusTask(config *utils.WorkerConfig, status *globalstructs.WorkerS
 	}
 	status.IddleThreads = config.DefaultThreads - len(status.WorkingIDs)
 
-	if debug {
+	if debug || verbose {
 		log.Println("WebSockets msg.Type", msg.Type, "status:", status)
 	}
 
