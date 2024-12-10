@@ -184,7 +184,7 @@ func ProcessFiles(task *globalstructs.Task, config *utils.WorkerConfig, status *
 
 		// Ensure the directory exists
 		dir := getDirectory(path)
-		const dirPerm = 0750 // Use restricted permissions (0750)
+		const dirPerm = 0600 // Use restricted permissions (0600)
 		if err := os.MkdirAll(dir, dirPerm); err != nil {
 			return fmt.Errorf("file %d: failed to create directories for %s: %w", num+1, path, err)
 		}

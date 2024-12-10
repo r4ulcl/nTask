@@ -28,7 +28,7 @@ import (
 // @name Authorization
 // @description ApiKeyAuth to login
 
-// Config holds configuration parameters.
+// Arguments  Config holds configuration parameters.
 type Arguments struct {
 	ConfigFile      string
 	ConfigSSHFile   string

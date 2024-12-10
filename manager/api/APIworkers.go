@@ -17,7 +17,7 @@ import (
 	"github.com/r4ulcl/nTask/manager/websockets"
 )
 
-// HandleWorker Get handles the request to get workers
+// HandleWorkerGet Get handles the request to get workers
 // @description Handle worker request
 // @summary Get workers
 // @Tags worker
@@ -138,6 +138,7 @@ func addWorker(worker globalstructs.Worker, db *sql.DB, verbose, debug bool, wg 
 	return nil
 }
 
+// HandleWorkerPostWebsocket HandleWorkerPostWebsocket
 func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
 	_, okWorker := r.Context().Value(utils.WorkerKey).(string)
 	if !okWorker {

@@ -9,6 +9,7 @@ import (
 	"github.com/r4ulcl/nTask/manager/utils"
 )
 
+// HandleStatus Get status summary from Manager
 // @description Get status summary from Manager
 // @summary Get status summary from Manager
 // @Tags status
