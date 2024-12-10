@@ -133,14 +133,15 @@ func buildFiltersWithParams(queryParams url.Values) (string, []interface{}) {
 	return strings.Join(filters, " AND "), args
 }
 
-func buildOrderByAndLimit(page, limit int) string {
+func buildOrderByAndLimit(page, limit int) (string, int, int) {
 	if page < 1 {
 		page = 1
 	}
 
 	offset := (page - 1) * limit
 
-	return fmt.Sprintf(" ORDER BY priority DESC, createdAt ASC LIMIT %d OFFSET %d;", limit, offset)
+	orderBy := " ORDER BY priority DESC, createdAt ASC"
+	return orderBy, limit, offset
 }
 
 // GetTasks retrieves tasks from the database using URL parameters as filters.
@@ -151,18 +152,24 @@ func GetTasks(r *http.Request, db *sql.DB, verbose, debug bool) ([]globalstructs
 	filters, args := buildFiltersWithParams(queryParams)
 
 	// Build ORDER BY and LIMIT clauses
-	orderByAndLimit := buildOrderByAndLimit(getPage(queryParams), getLimit(queryParams))
+	orderBy, limit, offset := buildOrderByAndLimit(getPage(queryParams), getLimit(queryParams))
 
 	// Base SQL query
 	sql := "SELECT ID, commands, files, name, createdAt, updatedAt, executedAt, status, workerName, username, priority, callbackURL, callbackToken FROM task WHERE 1=1"
 
-	// Append filters and arguments
+	// Append filters
 	if filters != "" {
 		sql += " AND " + filters
 	}
 
-	// Add ORDER BY and LIMIT clauses
-	sql += orderByAndLimit
+	// Add ORDER BY clause
+	sql += orderBy
+
+	// Add LIMIT and OFFSET as placeholders
+	sql += " LIMIT ? OFFSET ?"
+
+	// Append LIMIT and OFFSET to arguments
+	args = append(args, limit, offset)
 
 	if debug {
 		log.Println("GetTasks SQL:", sql)

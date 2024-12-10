@@ -101,6 +101,7 @@ func GenerateTLSConfig(caCertPath string, verifyAltName, verbose, debug bool) (*
 		tlsConfig = &tls.Config{
 			InsecureSkipVerify: true, // Enable server verification
 			RootCAs:            certPool,
+			MinVersion:         tls.VersionTLS12, // Minimum version set to TLS 1.2
 			VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 				if len(rawCerts) == 0 {
 					return fmt.Errorf("no certificates provided by the server")

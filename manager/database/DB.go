@@ -85,7 +85,7 @@ func initFromVar(db *sql.DB, verbose, debug bool) error {
 		}
 
 		// Execute the SQL statement
-		_, err := db.Exec(sqlStatement)
+		_, err := db.Query(sqlStatement)
 		if err != nil {
 			return err
 		}
