@@ -35,9 +35,9 @@ func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *syn
 				for _, worker := range workers {
 					// if WorkerName not send or set this worker, just sendAddTask
 					if task.WorkerName == "" || task.WorkerName == worker.Name {
-						err = SendAddTask(db, config, &worker, &task, verbose, debug, wg, writeLock)
+						err = sendAddTask(db, config, &worker, &task, verbose, debug, wg, writeLock)
 						if err != nil {
-							log.Println("Utils Error SendAddTask", err.Error())
+							log.Println("Utils Error sendAddTask", err.Error())
 							//time.Sleep(time.Second * 1)
 							break
 						}

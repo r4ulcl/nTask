@@ -15,6 +15,7 @@ import (
 	"github.com/r4ulcl/nTask/manager/utils"
 )
 
+// HandleTaskGet Get status of tasks
 // @description Get status of tasks
 // @summary Get all tasks
 // @Tags task
@@ -81,6 +82,7 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 	}
 }
 
+// HandleTaskPost Add a new tasks
 // @description Add a new tasks
 // @summary Add a new tasks
 // @Tags task
@@ -163,6 +165,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 	}
 }
 
+// HandleTaskDelete Delete a tasks
 // @description Delete a tasks
 // @summary Delete a tasks
 // @Tags task
@@ -227,6 +230,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	}
 }
 
+// HandleTaskStatus Get status of a task
 // @description Get status of a task
 // @summary Get status of a task
 // @Tags task

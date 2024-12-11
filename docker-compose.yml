@@ -25,14 +25,8 @@ services:
     restart: unless-stopped
 #    ports:
 #      - 3306:3306
-    read_only: true  # Make the root filesystem read-only to prevent malicious writes
     tmpfs:
       - /tmp  # Mount temporary directories in memory (non-persistent)
-    user: mysql  # Run the container as a non-root user
-    cap_drop:
-      - ALL  # Drop all unnecessary capabilities
-    cap_add:
-      - CHOWN  # Allow the container to manage file ownership, useful for databases
     security_opt:
       - no-new-privileges:true  # Prevent privilege escalation within the container
     environment:

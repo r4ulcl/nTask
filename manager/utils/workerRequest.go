@@ -64,48 +64,11 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 	if debug {
 		log.Println("Utils verifyWorker", worker.Name)
 	}
+
 	conn := config.WebSockets[worker.Name]
 	if conn == nil {
-		if debug {
-			log.Println("Utils Error: The worker doesnt have a websocket", worker.Name)
-		}
-
-		delete(config.WebSockets, worker.Name)
-
-		err := database.SetWorkerUPto(false, db, worker, verbose, debug, wg)
-		if err != nil {
-			return err
-		}
-
-		downCount, err := database.GetWorkerDownCount(db, worker, verbose, debug)
-		if err != nil {
-			return err
-		}
-
-		if downCount >= config.StatusCheckDown {
-			if debug {
-				log.Println("Utils downCount", downCount, " >= config.StatusCheckDown", config.StatusCheckDown)
-			}
-			// Set as 'pending' all workers tasks to REDO
-			err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
-			if err != nil {
-				return err
-			}
-
-			err = database.RmWorkerName(db, worker.Name, verbose, debug, wg)
-			if err != nil {
-				return err
-			}
-		} else {
-			err = database.AddWorkerDownCount(db, worker, verbose, debug, wg)
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
+		return handleMissingWebSocket(worker, db, config, verbose, debug, wg, writeLock)
 	}
-
 	msg := globalstructs.WebsocketMessage{
 		Type: "status",
 		JSON: "{}",
@@ -118,33 +81,56 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 		}
 		return err
 	}
+	return SendMessage(conn, jsonData, verbose, debug, writeLock)
+}
 
-	err = SendMessage(conn, jsonData, verbose, debug, writeLock)
+func handleMissingWebSocket(worker *globalstructs.Worker, db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) error {
+	if debug {
+		log.Println("Utils Error: The worker doesnt have a websocket", worker.Name)
+	}
+
+	delete(config.WebSockets, worker.Name)
+
+	err := database.SetWorkerUPto(false, db, worker, verbose, debug, wg)
 	if err != nil {
-		if debug {
-			log.Println("Utils Can't send message, error:", err)
-		}
-		/*err = WorkerDisconnected(db, config, worker, verbose, debug, wg)
-		if err != nil {
-			return err
-		}*/
 		return err
 	}
 
-	// If no error worker is ok
-	err = database.SetWorkerDownCount(0, db, worker, verbose, debug, wg)
+	downCount, err := database.GetWorkerDownCount(db, worker, verbose, debug)
+	if err != nil {
+		return err
+	}
+
+	if downCount >= config.StatusCheckDown {
+		return setTasksToPending(worker, db, verbose, debug, wg)
+	} else {
+		err = database.AddWorkerDownCount(db, worker, verbose, debug, wg)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func setTasksToPending(worker *globalstructs.Worker, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) error {
+	err := database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
+	if err != nil {
+		return err
+	}
+
+	err = database.RmWorkerName(db, worker.Name, verbose, debug, wg)
 	if err != nil {
 		return err
 	}
 
 	return nil
-
 }
 
-// SendAddTask sends a request to a worker to add a task.
-func SendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) error {
+// sendAddTask sends a request to a worker to add a task.
+func sendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) error {
 	if debug {
-		log.Println("Utils SendAddTask")
+		log.Println("Utils sendAddTask")
 	}
 
 	// Subtract Iddle thread in DB, in the next status to worker it will update to real data

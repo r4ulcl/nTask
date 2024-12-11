@@ -198,6 +198,7 @@ func getLimit(queryParams url.Values) int {
 	return limit
 }
 
+// GetTasksPending Get Tasks  with status = Pending
 func GetTasksPending(limit int, db *sql.DB, verbose, debug bool) ([]globalstructs.Task, error) {
 	sql := "SELECT ID, commands, files, name, createdAt, updatedAt, executedAt, status, WorkerName, username, priority, callbackURL, callbackToken FROM task WHERE status = 'pending' ORDER BY priority DESC, createdAt ASC LIMIT ?"
 	return GetTasksSQL(sql, []interface{}{limit}, db, verbose, debug)
@@ -315,7 +316,7 @@ func GetTask(db *sql.DB, id string, verbose, debug bool) (globalstructs.Task, er
 	return task, nil
 }
 
-// GetTaskExecutedAt
+// GetTaskExecutedAt Get Task ExecutedAt by id
 func GetTaskExecutedAt(db *sql.DB, id string, verbose, debug bool) (string, error) {
 	// Retrieve the workerName from the task table
 	var executedAt string
@@ -331,6 +332,7 @@ func GetTaskExecutedAt(db *sql.DB, id string, verbose, debug bool) (string, erro
 	return executedAt, nil
 }
 
+/*
 // GetTaskWorker gets task workerName from an ID
 // This is the worker executing the task
 func GetTaskWorker(db *sql.DB, id string, verbose, debug bool) (string, error) {
@@ -376,7 +378,7 @@ func SetTasksWorkerInvalid(db *sql.DB, workerName string, verbose, debug bool, w
 		return err
 	}
 	return nil
-}
+}*/
 
 // SetTasksWorkerPending set all task of worker to pending because failed
 func SetTasksWorkerPending(db *sql.DB, workerName string, verbose, debug bool, wg *sync.WaitGroup) error {
@@ -409,15 +411,15 @@ func SetTaskWorkerName(db *sql.DB, id, workerName string, verbose, debug bool, w
 	return nil
 }
 
-// SetTasksWorkerEmpty remove the worker name of the task in the database
-func SetTasksWorkerEmpty(db *sql.DB, workerName string, verbose, debug bool, wg *sync.WaitGroup) error {
+// setTasksWorkerEmpty remove the worker name of the task in the database
+func setTasksWorkerEmpty(db *sql.DB, workerName string, verbose, debug bool, wg *sync.WaitGroup) error {
 	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
 	wg.Add(1)
 	// Update the workerName column of the task table for the given ID
 	_, err := db.Exec("UPDATE task SET workerName = '' WHERE  workerName = ?", workerName)
 	if err != nil {
-		if debug {
+		if debug || verbose {
 			log.Println("DB Error DBTask SetTaskWorkerName: ", err)
 		}
 		return err
@@ -441,6 +443,7 @@ func SetTaskStatus(db *sql.DB, id, status string, verbose, debug bool, wg *sync.
 	return nil
 }
 
+/*
 // SetTaskStatusIfPending saves the status of the task in the database if current is pending
 func SetTaskStatusIfPending(db *sql.DB, id, status string, verbose, debug bool, wg *sync.WaitGroup) error {
 	// Add to the WaitGroup when the goroutine starts and done when exits
@@ -456,8 +459,9 @@ func SetTaskStatusIfPending(db *sql.DB, id, status string, verbose, debug bool, 
 	}
 	return nil
 }
+*/
 
-// SetTaskStatusIfPending saves the status of the task in the database if current is pending
+// SetTasksStatusIfRunning saves the status of the task in the database if current is running
 func SetTasksStatusIfRunning(db *sql.DB, status string, verbose, debug bool, wg *sync.WaitGroup) error {
 	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
@@ -473,7 +477,7 @@ func SetTasksStatusIfRunning(db *sql.DB, status string, verbose, debug bool, wg 
 	return nil
 }
 
-// SetTaskExecutedAt saves current time as executedAt
+// SetTaskExecutedAtNow saves current time as executedAt
 func SetTaskExecutedAtNow(db *sql.DB, id string, verbose, debug bool, wg *sync.WaitGroup) error {
 	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
@@ -489,6 +493,7 @@ func SetTaskExecutedAtNow(db *sql.DB, id string, verbose, debug bool, wg *sync.W
 	return nil
 }
 
+/*
 // SetTaskExecutedAt saves current time as executedAt
 func SetTaskExecutedAt(executedAt string, db *sql.DB, id string, verbose, debug bool, wg *sync.WaitGroup) error {
 	// Add to the WaitGroup when the goroutine starts and done when exits
@@ -504,9 +509,10 @@ func SetTaskExecutedAt(executedAt string, db *sql.DB, id string, verbose, debug 
 	}
 	return nil
 }
-
+*/
 // Count
 
+// GetPendingCount Get count of pending tasks
 func GetPendingCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
 	query := "SELECT COUNT(*) FROM task where status = 'pending'"
@@ -521,6 +527,7 @@ func GetPendingCount(db *sql.DB, verbose, debug bool) (int, error) {
 	return count, nil
 }
 
+// GetRunningCount count of running tasks
 func GetRunningCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
 	query := "SELECT COUNT(*) FROM task where status = 'running'"
@@ -535,6 +542,7 @@ func GetRunningCount(db *sql.DB, verbose, debug bool) (int, error) {
 	return count, nil
 }
 
+// GetDoneCount count of done tasks
 func GetDoneCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
 	query := "SELECT COUNT(*) FROM task where status = 'done'"
@@ -549,6 +557,7 @@ func GetDoneCount(db *sql.DB, verbose, debug bool) (int, error) {
 	return count, nil
 }
 
+// GetFailedCount count of failed tasks
 func GetFailedCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
 	query := "SELECT COUNT(*) FROM task where status = 'failed'"
@@ -563,6 +572,7 @@ func GetFailedCount(db *sql.DB, verbose, debug bool) (int, error) {
 	return count, nil
 }
 
+// GetDeletedCount count of deleted tasks
 func GetDeletedCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
 	query := "SELECT COUNT(*) FROM task where status = 'deleted'"

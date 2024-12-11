@@ -45,7 +45,7 @@ func RmWorkerName(db *sql.DB, name string, verbose, debug bool, wg *sync.WaitGro
 	}
 
 	// Set workers task to any worker
-	err = SetTasksWorkerEmpty(db, name, verbose, debug, wg)
+	err = setTasksWorkerEmpty(db, name, verbose, debug, wg)
 	if err != nil {
 		return err
 	}
@@ -176,7 +176,7 @@ func SetWorkerUPto(up bool, db *sql.DB, worker *globalstructs.Worker, verbose, d
 	return nil
 }
 
-// SetWorkerworkingToString sets the status of a worker to the specified working value using the worker's name.
+// SetIddleThreadsTo sets the status of a worker to the specified iddle value using the worker's name.
 func SetIddleThreadsTo(IddleThreads int, db *sql.DB, worker string, verbose, debug bool, wg *sync.WaitGroup) error {
 	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
@@ -320,6 +320,7 @@ func AddWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose, debug
 	return nil
 }
 
+// GetUpCount Get workers up count
 func GetUpCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
 	query := "SELECT COUNT(*) FROM worker where up = true"

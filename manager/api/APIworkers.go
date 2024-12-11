@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"sync"
 
@@ -251,8 +250,9 @@ func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.Ma
 
 // Other functions
 
-// ReadUserIP reads the user's IP address from the request
-func ReadUserIP(r *http.Request, verbose, debug bool) string {
+/*
+// readUserIP reads the user's IP address from the request
+func readUserIP(r *http.Request, verbose, debug bool) string {
 	IPAddress := r.Header.Get("X-Real-Ip")
 	if IPAddress == "" {
 		IPAddress = r.Header.Get("X-Forwarded-For")
@@ -270,3 +270,4 @@ func ReadUserIP(r *http.Request, verbose, debug bool) string {
 	// If there's an error (e.g., no port found), return the original address
 	return IPAddress
 }
+*/

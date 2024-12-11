@@ -74,6 +74,10 @@ func initFromVar(db *sql.DB, verbose, debug bool) error {
 	// Split the content of the SQL file into individual statements
 	sqlStatements := strings.Split(string(sqlInit), ";")
 
+	if verbose || debug {
+		log.Println("initFromVar sqlInit")
+	}
+
 	// Execute each SQL statement
 	for _, statement := range sqlStatements {
 		// Trim leading and trailing whitespaces

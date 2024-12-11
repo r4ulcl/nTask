@@ -1,4 +1,4 @@
-// workerouter.go
+// Package worker for all the workers data
 package worker
 
 import (

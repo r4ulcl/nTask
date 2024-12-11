@@ -37,6 +37,7 @@ type Droplet struct {
 	// Add other fields as needed
 }
 
+// ProcessDigitalOcean Process Digital Ocean config
 func ProcessDigitalOcean(configCloud *utils.ManagerCloudConfig, configSSH *utils.ManagerSSHConfig, verbose, debug bool) {
 	doClient := &DigitalOceanClient{Token: configCloud.ApiKey}
 
@@ -273,7 +274,7 @@ func (c *DigitalOceanClient) GetSnapshotsByPrefix(ctx context.Context, prefix st
 	return filtered, nil
 }
 
-// --------------
+// RequestPayload Request Payload for Digital Ocean
 type RequestPayload struct {
 	Names      []string      `json:"names"`
 	Region     string        `json:"region"`
@@ -286,14 +287,17 @@ type RequestPayload struct {
 	Tags       []string      `json:"tags"`
 }
 
+// DropletResponse Droplet Response
 type DropletResponse struct {
 	ID int `json:"id"`
 }
 
+// DigitalOceanResponse Digital Ocean Response
 type DigitalOceanResponse struct {
 	Droplets []DropletResponse `json:"droplets"`
 }
 
+// CreateXDropletsFromSnapshot Create X Droplets From a Snapshot
 func (c *DigitalOceanClient) CreateXDropletsFromSnapshot(ctx context.Context, name, snapshotID, region, size, sshKey string, count, startNumber int) ([]int, error) {
 	// Create the payload for the request
 	names := make([]string, count)

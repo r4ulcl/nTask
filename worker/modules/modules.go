@@ -261,8 +261,8 @@ func stringList(list []string, verbose, debug bool) string {
 	return stringList
 }
 
-// SaveStringToFile saves a string to a file.
-func SaveStringToFile(filename string, content string) error {
+// saveStringToFile saves a string to a file.
+func saveStringToFile(filename string, content string) error {
 	// Write the string content to the file
 	err := os.WriteFile(filename, []byte(content), 0600)
 	if err != nil {

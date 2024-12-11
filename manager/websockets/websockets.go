@@ -126,7 +126,7 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 				// Set the tasks as failed
 				err := database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
 				if err != nil {
-					log.Println("WebSockets SetTasksWorkerFailed error: ", err)
+					log.Println("WebSockets SetTasksWorkerPending error: ", err)
 				}
 			case "callbackTask":
 				if debug {
