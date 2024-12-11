@@ -39,7 +39,7 @@ type Droplet struct {
 
 // ProcessDigitalOcean Process Digital Ocean config
 func ProcessDigitalOcean(configCloud *utils.ManagerCloudConfig, configSSH *utils.ManagerSSHConfig, verbose, debug bool) {
-	doClient := &DigitalOceanClient{Token: configCloud.ApiKey}
+	doClient := &DigitalOceanClient{Token: configCloud.APIKey}
 
 	// Check snapshot exists
 	snapshot, err := doClient.GetSnapshotByName(context.Background(), configCloud.SnapshotName)
@@ -75,7 +75,7 @@ func ProcessDigitalOcean(configCloud *utils.ManagerCloudConfig, configSSH *utils
 			log.Println("Creating multiple droplets from snapshot")
 		}
 		// Create new droplets
-		ids, err := doClient.CreateXDropletsFromSnapshot(context.Background(), configCloud.SnapshotName, snapshot.ID, configCloud.Region, configCloud.Size, configCloud.SshKeys, missingDroplets, numDroplets)
+		ids, err := doClient.CreateXDropletsFromSnapshot(context.Background(), configCloud.SnapshotName, snapshot.ID, configCloud.Region, configCloud.Size, configCloud.SSHKeys, missingDroplets, numDroplets)
 		if err != nil {
 			log.Println("Error CreateXDropletsFromSnapshot:", err)
 		}
@@ -102,7 +102,7 @@ func ProcessDigitalOcean(configCloud *utils.ManagerCloudConfig, configSSH *utils
 
 	for _, ip := range ips {
 		log.Println(ip)
-		configSSH.IPPort[ip] = fmt.Sprint(configCloud.SshPort)
+		configSSH.IPPort[ip] = fmt.Sprint(configCloud.SSHPort)
 	}
 }
 

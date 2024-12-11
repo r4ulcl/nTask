@@ -9,8 +9,8 @@ import (
 type ManagerConfig struct {
 	Users              map[string]string          `json:"users"`
 	Workers            map[string]string          `json:"workers"`
-	HttpPort           int                        `json:"httpPort"`
-	HttpsPort          int                        `json:"httpsPort"`
+	HTTPPort           int                        `json:"httpPort"`
+	HTTPSPort          int                        `json:"httpsPort"`
 	DBUsername         string                     `json:"dbUsername"`
 	DBPassword         string                     `json:"dbPassword"`
 	DBHost             string                     `json:"dbHost"`
@@ -34,13 +34,13 @@ type ManagerSSHConfig struct {
 // https://slugs.do-api.dev/
 type ManagerCloudConfig struct {
 	Provider     string `json:"provider"`
-	ApiKey       string `json:"apiKey"`
+	APIKey       string `json:"apiKey"`
 	SnapshotName string `json:"snapshotName"`
 	Servers      int    `json:"servers"`
 	Region       string `json:"region"`
 	Size         string `json:"size"`
-	SshKeys      string `json:"sshKeys"`
-	SshPort      int    `json:"sshPort"`
+	SSHKeys      string `json:"sshKeys"`
+	SSHPort      int    `json:"sshPort"`
 	Recreate     bool   `json:"recreate"`
 }
 

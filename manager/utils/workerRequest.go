@@ -67,7 +67,7 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 
 	conn := config.WebSockets[worker.Name]
 	if conn == nil {
-		return handleMissingWebSocket(worker, db, config, verbose, debug, wg, writeLock)
+		return handleMissingWebSocket(worker, db, config, verbose, debug, wg)
 	}
 	msg := globalstructs.WebsocketMessage{
 		Type: "status",
@@ -84,7 +84,7 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 	return SendMessage(conn, jsonData, verbose, debug, writeLock)
 }
 
-func handleMissingWebSocket(worker *globalstructs.Worker, db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) error {
+func handleMissingWebSocket(worker *globalstructs.Worker, db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup) error {
 	if debug {
 		log.Println("Utils Error: The worker doesnt have a websocket", worker.Name)
 	}

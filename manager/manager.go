@@ -1,4 +1,4 @@
-// manager.go
+// Package manager with manager main data
 package manager
 
 import (
@@ -273,7 +273,7 @@ func StartManager(swagger bool, configFile, configSSHFile, configCloudFile strin
 	go utils.ManageTasks(config, db, verbose, debug, &wg, &writeLock)
 
 	if configSSHFile != "" {
-		go sshtunnel.StartSSH(configSSH, config.HttpPort, config.HttpsPort, verbose, debug)
+		go sshtunnel.StartSSH(configSSH, config.HTTPPort, config.HTTPSPort, verbose, debug)
 	}
 
 	router := mux.NewRouter()
@@ -323,12 +323,12 @@ func StartManager(swagger bool, configFile, configSSHFile, configCloudFile strin
 	var wgServer sync.WaitGroup
 
 	// Start the servers
-	if config.CertFolder != "" && config.HttpsPort > 0 {
+	if config.CertFolder != "" && config.HTTPSPort > 0 {
 
 		// Set string for the HTTPS port
-		httpsAddr := fmt.Sprintf(":%d", config.HttpsPort)
+		httpsAddr := fmt.Sprintf(":%d", config.HTTPSPort)
 		if verbose {
-			log.Println("Starting HTTPS server on port", config.HttpsPort)
+			log.Println("Starting HTTPS server on port", config.HTTPSPort)
 		}
 
 		// Start HTTPS server with timeouts
@@ -348,12 +348,12 @@ func StartManager(swagger bool, configFile, configSSHFile, configCloudFile strin
 		}()
 		wgServer.Add(1)
 	}
-	if config.HttpPort > 0 {
+	if config.HTTPPort > 0 {
 
 		// Set string for the HTTP port
-		httpAddr := fmt.Sprintf(":%d", config.HttpPort)
+		httpAddr := fmt.Sprintf(":%d", config.HTTPPort)
 		if verbose {
-			log.Println("Starting HTTP server on port", config.HttpPort)
+			log.Println("Starting HTTP server on port", config.HTTPPort)
 		}
 
 		server := &http.Server{
