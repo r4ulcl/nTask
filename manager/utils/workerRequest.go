@@ -103,11 +103,10 @@ func handleMissingWebSocket(worker *globalstructs.Worker, db *sql.DB, config *Ma
 
 	if downCount >= config.StatusCheckDown {
 		return setTasksToPending(worker, db, verbose, debug, wg)
-	} else {
-		err = database.AddWorkerDownCount(db, worker, verbose, debug, wg)
-		if err != nil {
-			return err
-		}
+	}
+	err = database.AddWorkerDownCount(db, worker, verbose, debug, wg)
+	if err != nil {
+		return err
 	}
 
 	return nil
