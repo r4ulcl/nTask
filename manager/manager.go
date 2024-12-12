@@ -183,50 +183,47 @@ func startSwaggerWeb(router *mux.Router, verbose, debug bool) {
 func StartManager(swagger bool, configFile, configSSHFile, configCloudFile string, verifyAltName, verbose, debug bool) {
 	log.Println("Manager Running as manager...")
 
-	// if config file empty set default
+	// Set default config file if not provided
 	if configFile == "" {
 		configFile = "manager.conf"
 	}
 
 	config, err := loadManagerConfig(configFile, verbose, debug)
 	if err != nil {
-		log.Fatal("Error loading config file: ", err)
+		log.Fatalf("Error loading config file: %v", err)
 	}
 
 	var configSSH *utils.ManagerSSHConfig
 	if configSSHFile != "" {
 		configSSH, err = loadManagerSSHConfig(configSSHFile, verbose, debug)
 		if err != nil {
-			log.Fatal("Error loading config SSH file: ", err)
+			log.Fatalf("Error loading config SSH file: %v", err)
 		}
-
-		// TODO:  Move to be independant of cloud service
-		var configCloud *utils.ManagerCloudConfig
-		if configCloudFile != "" {
-			configCloud, err = loadManagerCloudConfig(configCloudFile, verbose, debug)
-			if err != nil {
-				log.Fatal("Error loading config SSH file: ", err)
-			}
-
-			switch configCloud.Provider {
-			case "digitalocean":
-				go cloud.ProcessDigitalOcean(configCloud, configSSH, verbose, debug)
-			default:
-				log.Fatal("Error: Provider not found")
-			}
-
-		}
-		if debug {
-			log.Println("configSSH.IPPort ", configSSH.IPPort)
-		}
-
 	}
 
-	// create waitGroups for DB
+	var configCloud *utils.ManagerCloudConfig
+	if configCloudFile != "" {
+		configCloud, err = loadManagerCloudConfig(configCloudFile, verbose, debug)
+		if err != nil {
+			log.Fatalf("Error loading config Cloud file: %v", err)
+		}
+
+		switch configCloud.Provider {
+		case "digitalocean":
+			go cloud.ProcessDigitalOcean(configCloud, configSSH, verbose, debug)
+		default:
+			log.Fatal("Error: Unsupported cloud provider")
+		}
+	}
+
+	if debug && configSSH != nil {
+		log.Printf("configSSH.IPPort: %v", configSSH.IPPort)
+	}
+
 	var wg sync.WaitGroup
 	var writeLock sync.Mutex
 
-	// Start DB
+	// Attempt to connect to the database
 	var db *sql.DB
 	for {
 		if debug {
@@ -234,43 +231,36 @@ func StartManager(swagger bool, configFile, configSSHFile, configCloudFile strin
 		}
 		db, err = database.ConnectDB(config.DBUsername, config.DBPassword, config.DBHost, config.DBPort, config.DBDatabase, verbose, debug)
 		if err != nil {
-			log.Println("Error manager ConnectDB: ", err)
-			if db != nil {
-				defer db.Close()
-			}
-			time.Sleep(time.Second * 5)
+			log.Printf("Error connecting to DB: %v", err)
+			time.Sleep(5 * time.Second)
 		} else {
+			defer db.Close()
 			break
 		}
 	}
 
-	// if running set to failed
 	if debug {
-		log.Println("Manager Set task running to failed")
+		log.Println("Manager Setting tasks with running status to failed")
 	}
-	err = database.SetTasksStatusIfRunning(db, "failed", verbose, debug, &wg)
-	if err != nil {
-		log.Println("Error SetTasksStatusIfRunning:", err)
+	if err := database.SetTasksStatusIfRunning(db, "failed", verbose, debug, &wg); err != nil {
+		log.Printf("Error setting task statuses: %v", err)
 		return
 	}
-	// Create an HTTP client with the custom TLS configuration
+
+	// Create an HTTP client with TLS if configured
 	if config.CertFolder != "" {
-		clientHTTP, err := utils.CreateTLSClientWithCACert(config.CertFolder+"/ca-cert.pem", verifyAltName, verbose, debug)
+		config.ClientHTTP, err = utils.CreateTLSClientWithCACert(config.CertFolder+"/ca-cert.pem", verifyAltName, verbose, debug)
 		if err != nil {
-			log.Println("Error creating HTTP client:", err)
+			log.Printf("Error creating HTTP client: %v", err)
 			return
 		}
-		config.ClientHTTP = clientHTTP
-
 	} else {
 		config.ClientHTTP = &http.Client{}
 	}
 	config.ClientHTTP.Timeout = 5 * time.Second
 
-	// verify status workers infinite
+	// Start background tasks
 	go utils.VerifyWorkersLoop(db, config, verbose, debug, &wg, &writeLock)
-
-	// manage task, routine to send task to iddle workers
 	go utils.ManageTasks(config, db, verbose, debug, &wg, &writeLock)
 
 	if configSSHFile != "" {
@@ -278,111 +268,90 @@ func StartManager(swagger bool, configFile, configSSHFile, configCloudFile strin
 	}
 
 	router := mux.NewRouter()
-
-	amw := authenticationMiddleware{tokenUsers: make(map[string]string), tokenWorkers: make(map[string]string)}
+	amw := authenticationMiddleware{
+		tokenUsers:   make(map[string]string),
+		tokenWorkers: make(map[string]string),
+	}
 	amw.Populate(config)
 
 	if swagger {
-		// Start swagger endpoint
 		startSwaggerWeb(router, verbose, debug)
 	}
 
-	// r.HandleFunc("/send/{recipient}", handleSendMessage).Methods("POST")
+	// Set up routes
+	setupRoutes(router, config, db, verbose, debug, &wg, &writeLock, amw)
 
-	// Status
+	// Start servers
+	startServers(router, config, verbose, debug)
+}
+
+func setupRoutes(router *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex, amw authenticationMiddleware) {
 	status := router.PathPrefix("/status").Subrouter()
 	status.Use(amw.Middleware)
 	status.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleStatus(w, r, config, db, verbose, debug)
-	}).Methods("GET") // get callback info from task
+	}).Methods("GET")
 
-	// Worker
 	workers := router.PathPrefix("/worker").Subrouter()
 	workers.Use(amw.Middleware)
-	addHandleWorker(workers, config, db, verbose, debug, &wg, &writeLock)
+	addHandleWorker(workers, config, db, verbose, debug, wg, writeLock)
 
-	// Task
 	task := router.PathPrefix("/task").Subrouter()
 	task.Use(amw.Middleware)
-	addHandleTask(task, config, db, verbose, debug, &wg, &writeLock)
+	addHandleTask(task, config, db, verbose, debug, wg, writeLock)
 
-	// Middleware to modify server response headers
 	router.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Modify the server response headers here
 			w.Header().Set("Server", "Apache")
-
-			// Call the next handler
 			next.ServeHTTP(w, r)
 		})
 	})
-	//router.Use(amw.Middleware)
+}
 
-	http.Handle("/", router)
-
-	// Crate WaitGroup
+func startServers(router *mux.Router, config *utils.ManagerConfig, verbose, debug bool) {
 	var wgServer sync.WaitGroup
 
-	// Start the servers
 	if config.CertFolder != "" && config.HTTPSPort > 0 {
-
-		// Set string for the HTTPS port
 		httpsAddr := fmt.Sprintf(":%d", config.HTTPSPort)
 		if verbose {
-			log.Println("Starting HTTPS server on port", config.HTTPSPort)
+			log.Printf("Starting HTTPS server on port %d", config.HTTPSPort)
 		}
-
-		// Start HTTPS server with timeouts
 		httpsServer := &http.Server{
 			Addr:         httpsAddr,
-			Handler:      router, // Assuming you have a router defined
+			Handler:      router,
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  15 * time.Second,
 		}
-		// Start HTTPS server in a goroutine
 		go func() {
-			err := httpsServer.ListenAndServeTLS(config.CertFolder+"/cert.pem", config.CertFolder+"/key.pem")
-			if err != nil {
+			if err := httpsServer.ListenAndServeTLS(config.CertFolder+"/cert.pem", config.CertFolder+"/key.pem"); err != nil {
 				log.Fatalf("Error starting HTTPS server: %v", err)
 			}
 		}()
 		wgServer.Add(1)
 	}
-	if config.HTTPPort > 0 {
 
-		// Set string for the HTTP port
+	if config.HTTPPort > 0 {
 		httpAddr := fmt.Sprintf(":%d", config.HTTPPort)
 		if verbose {
-			log.Println("Starting HTTP server on port", config.HTTPPort)
+			log.Printf("Starting HTTP server on port %d", config.HTTPPort)
 		}
-
-		server := &http.Server{
+		httpServer := &http.Server{
 			Addr:         httpAddr,
-			Handler:      nil,              // or your router
-			ReadTimeout:  10 * time.Second, // Time to read the request
-			WriteTimeout: 10 * time.Second, // Time to send the response
-			IdleTimeout:  15 * time.Second, // Time to wait for the next request
+			Handler:      router,
+			ReadTimeout:  10 * time.Second,
+			WriteTimeout: 10 * time.Second,
+			IdleTimeout:  15 * time.Second,
 		}
-
-		// Start HTTP server
 		go func() {
-			err = server.ListenAndServe()
-			if err != nil {
+			if err := httpServer.ListenAndServe(); err != nil {
 				log.Fatalf("Error starting HTTP server: %v", err)
 			}
 		}()
 		wgServer.Add(1)
 	}
+
 	wgServer.Wait()
-
-	/*
-		err = http.ListenAndServe(":"+config.Port, allowCORS(http.DefaultServeMux))
-		if err != nil {
-			log.Println("Manager Error manager: ",err)
-		}
-	*/
-
 }
 
 // Define our struct
