@@ -18,8 +18,8 @@
   <a href="https://www.codefactor.io/repository/github/r4ulcl/nTask">
     <img src="https://www.codefactor.io/repository/github/r4ulcl/nTask/badge" alt="CodeFactor" />
   </a>
-    <a href="https://github.com/r4ulcl/nTask">
-    <img src="https://tokei.rs/b1/github/r4ulcl/nTask" alt="LoC" />
+  <a href="https://app.codacy.com/gh/r4ulcl/nTask/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade">
+    <img src="https://app.codacy.com/project/badge/Grade/61f29ad1815b446c821d1cb61cdb92a5"/>
   </a>
   <a href="https://github.com/r4ulcl/nTask/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/r4ulcl/nTask.svg?style=flat" alt="GitHub license">
