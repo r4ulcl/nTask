@@ -17,6 +17,7 @@ import (
 	"github.com/r4ulcl/nTask/manager/database"
 )
 
+// SendMessage Function to send message in a websocket
 func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writeLock *sync.Mutex) error {
 	writeLock.Lock()
 	defer writeLock.Unlock()
@@ -308,6 +309,7 @@ func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose, debug 
 	return client, nil
 }
 
+// WorkerDisconnected Disconnect worker
 func WorkerDisconnected(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
 	if debug {
 		log.Println("Utils Error WorkerDisconnected: WriteControl cant connect", worker.Name)

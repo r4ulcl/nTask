@@ -264,7 +264,7 @@ func GetWorkerSQL(sql string, db *sql.DB, verbose, debug bool) ([]globalstructs.
 	return workers, nil
 }
 
-// GetWorkerCount get workers downCount by name (used to downCount until 3 to set down)
+// GetWorkerDownCount get workers downCount by name (used to downCount until 3 to set down)
 func GetWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool) (int, error) {
 	var countS string
 	err := db.QueryRow("SELECT downCount FROM worker WHERE name = ?",
@@ -286,7 +286,7 @@ func GetWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose, debug
 	return downCount, nil
 }
 
-// SetWorkerCount set worker downCount to downCount int
+// SetWorkerDownCount set worker downCount to downCount int
 func SetWorkerDownCount(count int, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
 	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
@@ -303,7 +303,7 @@ func SetWorkerDownCount(count int, db *sql.DB, worker *globalstructs.Worker, ver
 	return nil
 }
 
-// AddWorkerCount add 1 to worker downCount
+// AddWorkerDownCount add 1 to worker downCount
 func AddWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
 	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
@@ -335,6 +335,7 @@ func GetUpCount(db *sql.DB, verbose, debug bool) (int, error) {
 	return count, nil
 }
 
+// GetDownCount get count of up = false
 func GetDownCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
 	query := "SELECT COUNT(*) FROM worker where up = false"
@@ -349,8 +350,9 @@ func GetDownCount(db *sql.DB, verbose, debug bool) (int, error) {
 	return count, nil
 }
 
-// SetWorkerworkingToString sets the status of a worker to the specified working value using the worker's name.
-func AddWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool, wg *sync.WaitGroup) error {
+/*
+// AddWorkerIddleThreads1 sets the status of a worker to the specified working value using the worker's name.
+func AddWorkerIddleThreads2222(db *sql.DB, worker string, verbose, debug bool, wg *sync.WaitGroup) error {
 	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
 	wg.Add(1)
@@ -366,9 +368,9 @@ func AddWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool, wg *
 		return err
 	}
 	return nil
-}
+}*/
 
-// SubtractWorkerIddleThreads1
+// SubtractWorkerIddleThreads1 Subtract WorkerIddleThreads 1 if >0
 func SubtractWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool, wg *sync.WaitGroup) error {
 	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()

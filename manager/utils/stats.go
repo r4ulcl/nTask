@@ -6,6 +6,7 @@ import (
 	"github.com/r4ulcl/nTask/manager/database"
 )
 
+// GetStatusTask function to get task status, pending, running, etc
 func GetStatusTask(db *sql.DB, verbose, debug bool) (StatusTask, error) {
 	task := StatusTask{
 		Pending: 0,
@@ -48,6 +49,7 @@ func GetStatusTask(db *sql.DB, verbose, debug bool) (StatusTask, error) {
 	return task, nil
 }
 
+// GetStatusWorker func to get status up, down of workers
 func GetStatusWorker(db *sql.DB, verbose, debug bool) (StatusWorker, error) {
 	worker := StatusWorker{
 		Up:   0,

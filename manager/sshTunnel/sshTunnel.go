@@ -46,6 +46,7 @@ func publicKeyFile(file string) (ssh.AuthMethod, error) {
 // Maintain a map of active SSH connections
 var activeConnections = make(map[string]*ssh.Client)
 
+// StartSSH main function to startSSH
 func StartSSH(config *utils.ManagerSSHConfig, httpPort, httpsPort int, verbose, debug bool) {
 	log.Println("SSH StartSSH")
 	for {

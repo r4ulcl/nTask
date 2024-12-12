@@ -26,7 +26,7 @@ import (
 
 func loadManagerConfig(filename string, verbose, debug bool) (*utils.ManagerConfig, error) {
 	var config utils.ManagerConfig
-	if debug {
+	if debug || verbose {
 		log.Println("Manager Loading manager config from file", filename)
 	}
 
@@ -60,7 +60,7 @@ func loadManagerConfig(filename string, verbose, debug bool) (*utils.ManagerConf
 
 func loadManagerSSHConfig(filename string, verbose, debug bool) (*utils.ManagerSSHConfig, error) {
 	var configSSH utils.ManagerSSHConfig
-	if debug {
+	if debug || verbose {
 		log.Println("Manager Loading manager config from file", filename)
 	}
 
@@ -90,7 +90,7 @@ func loadManagerSSHConfig(filename string, verbose, debug bool) (*utils.ManagerS
 
 func loadManagerCloudConfig(filename string, verbose, debug bool) (*utils.ManagerCloudConfig, error) {
 	var ManagerCloud utils.ManagerCloudConfig
-	if debug {
+	if debug || verbose {
 		log.Println("Manager Loading manager config from file", filename)
 	}
 
@@ -174,11 +174,12 @@ func startSwaggerWeb(router *mux.Router, verbose, debug bool) {
 		http.ServeFile(w, r, "docs/swagger.json")
 	}).Methods("GET")
 
-	if verbose {
+	if verbose || debug {
 		log.Println("Manager Configure swagger docs in /swagger/")
 	}
 }
 
+// StartManager main function to start manager
 func StartManager(swagger bool, configFile, configSSHFile, configCloudFile string, verifyAltName, verbose, debug bool) {
 	log.Println("Manager Running as manager...")
 

@@ -1,3 +1,4 @@
+// Package cloud to all the nTask manager cloud management
 package cloud
 
 import (
@@ -41,68 +42,99 @@ type Droplet struct {
 func ProcessDigitalOcean(configCloud *utils.ManagerCloudConfig, configSSH *utils.ManagerSSHConfig, verbose, debug bool) {
 	doClient := &DigitalOceanClient{Token: configCloud.APIKey}
 
-	// Check snapshot exists
-	snapshot, err := doClient.GetSnapshotByName(context.Background(), configCloud.SnapshotName)
+	// Step 1: Check if snapshot exists
+	snapshot, err := getSnapshotByName(doClient, configCloud.SnapshotName)
 	if err != nil {
 		log.Fatal("Error GetSnapshotByName:", err)
 	}
 
+	// Step 2: Recreate droplets if needed
 	if configCloud.Recreate {
-		// Delete all droplets by prefix
-		if debug {
-			log.Println("Delete all droplet with prefix:", configCloud.SnapshotName)
-		}
-		err = doClient.DeleteDropletsByPrefix(context.Background(), configCloud.SnapshotName)
-		if err != nil {
-			log.Fatal("Error GetSnapshotByName:", err)
-		}
+		deleteDropletsByPrefix(doClient, configCloud.SnapshotName, debug)
 	}
 
-	// Get current number of droplets
-	if debug {
-		log.Println("List droplets by prefix")
-	}
-	droplets, err := doClient.ListDropletsByPrefix(context.Background(), configCloud.SnapshotName)
+	// Step 3: List current droplets and create new ones if necessary
+	droplets, err := listDroplets(doClient, configCloud.SnapshotName, debug)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
 
+	// Step 4: Create missing droplets from snapshot if needed
+	createMissingDroplets(doClient, configCloud, snapshot, droplets, debug, verbose)
+
+	// Step 5: Get all IPs and add to SSH config
+	updateSSHConfigWithIPs(doClient, configCloud.SnapshotName, configCloud.SSHPort, configSSH)
+}
+
+// Helper function: Get snapshot by name
+func getSnapshotByName(doClient *DigitalOceanClient, snapshotName string) (*Snapshot, error) {
+	return doClient.GetSnapshotByName(context.Background(), snapshotName)
+}
+
+// Helper function: Delete droplets by prefix
+func deleteDropletsByPrefix(doClient *DigitalOceanClient, snapshotName string, debug bool) {
+	if debug {
+		log.Println("Delete all droplets with prefix:", snapshotName)
+	}
+	err := doClient.DeleteDropletsByPrefix(context.Background(), snapshotName)
+	if err != nil {
+		log.Fatal("Error DeleteDropletsByPrefix:", err)
+	}
+}
+
+// Helper function: List droplets by prefix
+func listDroplets(doClient *DigitalOceanClient, snapshotName string, debug bool) ([]Droplet, error) {
+	if debug {
+		log.Println("List droplets by prefix:", snapshotName)
+	}
+	return doClient.ListDropletsByPrefix(context.Background(), snapshotName)
+}
+
+// Helper function: Create missing droplets
+func createMissingDroplets(doClient *DigitalOceanClient, configCloud *utils.ManagerCloudConfig, snapshot *Snapshot, droplets []Droplet, debug, verbose bool) {
 	numDroplets := len(droplets)
 	if numDroplets < configCloud.Servers {
 		missingDroplets := configCloud.Servers - numDroplets
 		if debug {
 			log.Println("Creating multiple droplets from snapshot")
 		}
-		// Create new droplets
 		ids, err := doClient.CreateXDropletsFromSnapshot(context.Background(), configCloud.SnapshotName, snapshot.ID, configCloud.Region, configCloud.Size, configCloud.SSHKeys, missingDroplets, numDroplets)
 		if err != nil {
 			log.Println("Error CreateXDropletsFromSnapshot:", err)
 		}
 
-		// Wait until all has IP
-		for _, id := range ids {
-			if debug {
-				log.Println("Waiting for:", id)
-			}
-			ip, err := doClient.WaitForDropletCreation(context.Background(), id, verbose, debug)
-			if err != nil {
-				log.Println("Error WaitForDropletCreation:", err)
-			}
-			if debug {
-				log.Println("Droplet with ID:", id, " IP: ", ip)
-			}
+		// Wait until all droplets have an IP
+		waitForDropletCreation(doClient, ids, verbose, debug)
+	}
+}
+
+// Helper function: Wait for droplet creation and log IPs
+func waitForDropletCreation(doClient *DigitalOceanClient, ids []int, verbose, debug bool) {
+	for _, id := range ids {
+		if debug {
+			log.Println("Waiting for droplet:", id)
+		}
+		ip, err := doClient.WaitForDropletCreation(context.Background(), id, verbose, debug)
+		if err != nil {
+			log.Println("Error WaitForDropletCreation:", err)
+		}
+		if debug {
+			log.Println("Droplet with ID:", id, " IP:", ip)
 		}
 	}
-	// Get all IPs and add to array
-	ips, err := doClient.GetDropletIPsByPrefix(context.Background(), configCloud.SnapshotName)
+}
+
+// Helper function: Get all IPs and update SSH config
+func updateSSHConfigWithIPs(doClient *DigitalOceanClient, snapshotName string, sshPort int, configSSH *utils.ManagerSSHConfig) {
+	ips, err := doClient.GetDropletIPsByPrefix(context.Background(), snapshotName)
 	if err != nil {
 		fmt.Println("Error:", err)
 	}
 
 	for _, ip := range ips {
 		log.Println(ip)
-		configSSH.IPPort[ip] = fmt.Sprint(configCloud.SSHPort)
+		configSSH.IPPort[ip] = fmt.Sprint(sshPort)
 	}
 }
 

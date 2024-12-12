@@ -12,6 +12,7 @@ import (
 	"github.com/r4ulcl/nTask/worker/utils"
 )
 
+// CreateWebsocket func to create the websocketrs
 func CreateWebsocket(config *utils.WorkerConfig, caCertPath string,
 	verifyAltName, verbose, debug bool) (*websocket.Conn, error) {
 
@@ -57,6 +58,7 @@ func CreateWebsocket(config *utils.WorkerConfig, caCertPath string,
 	return conn, nil
 }
 
+// SendMessage funct to send message to a websocket from a worker
 func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writeLock *sync.Mutex) error {
 	writeLock.Lock()
 	defer writeLock.Unlock()
@@ -103,7 +105,7 @@ func AddWorker(config *utils.WorkerConfig, verbose, debug bool, writeLock *sync.
 	return nil
 }
 
-// AddWorker sends a POST request to add a worker to the manager
+// DeleteWorker sends a POST request to delete a worker to the manager
 func DeleteWorker(config *utils.WorkerConfig, verbose, debug bool, writeLock *sync.Mutex) error {
 	// Create a Worker object with the provided configuration
 	worker := globalstructs.Worker{

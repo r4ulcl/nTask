@@ -31,6 +31,7 @@ func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose, debug 
 	return client, nil
 }
 
+// LoadWorkerConfig funct to load worker config file
 func LoadWorkerConfig(filename string, verbose, debug bool) (*WorkerConfig, error) {
 	var config WorkerConfig
 	content, err := os.ReadFile(filename)
@@ -81,6 +82,7 @@ func LoadWorkerConfig(filename string, verbose, debug bool) (*WorkerConfig, erro
 	return &config, nil
 }
 
+// GenerateTLSConfig Function to generate the TLS config
 func GenerateTLSConfig(caCertPath string, verifyAltName, verbose, debug bool) (*tls.Config, error) {
 	var tlsConfig *tls.Config
 

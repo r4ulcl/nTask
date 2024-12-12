@@ -15,6 +15,7 @@ import (
 	"github.com/r4ulcl/nTask/worker/websockets"
 )
 
+// StartWorker main function to start Worker
 func StartWorker(swagger bool, configFile string, verifyAltName, verbose, debug bool) {
 	log.Println("Worker Running as worker router...")
 

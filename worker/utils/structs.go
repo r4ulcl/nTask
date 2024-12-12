@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// WorkerConfig Worker Config file struct
 type WorkerConfig struct {
 	Name              string            `json:"name"`
 	DefaultThreads    int               `json:"defaultThreads"`
@@ -20,6 +21,7 @@ type WorkerConfig struct {
 	Conn              *websocket.Conn   `json:"Conn"`
 }
 
+// Task Task struct
 type Task struct {
 	ID          string
 	Module      string

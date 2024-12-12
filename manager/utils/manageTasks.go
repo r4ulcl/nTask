@@ -9,6 +9,7 @@ import (
 	"github.com/r4ulcl/nTask/manager/database"
 )
 
+// ManageTasks infinite loop to manage task
 func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
 	// infinite loop eecuted with go routine
 	for {

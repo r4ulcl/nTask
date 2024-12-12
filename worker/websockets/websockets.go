@@ -21,10 +21,15 @@ func setConn(conn *websocket.Conn, config *utils.WorkerConfig, verbose, debug bo
 	writeLock.Lock()
 	defer writeLock.Unlock()
 
+	if verbose || debug {
+		log.Println("setConn")
+	}
+
 	config.Conn = conn
 
 }
 
+// GetMessage loop to get message from the websockets
 func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, verbose, debug bool, writeLock *sync.Mutex) {
 	for {
 
@@ -88,6 +93,7 @@ func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, 
 	}
 }
 
+// RecreateConnection func to recreate connections to a websocket
 func RecreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debug bool, writeLock *sync.Mutex) {
 	// Send Ping message every 5 seconds
 
@@ -148,6 +154,7 @@ func RecreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debu
 	}
 }
 
+// CreateConnection func to create connection, loop until connects
 func CreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debug bool, writeLock *sync.Mutex) {
 	// Loop until connects
 	for {
