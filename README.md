@@ -37,6 +37,8 @@
 
 # nTask
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/6ac10caff42b49cabe1f4bba7860fbdd)](https://app.codacy.com/gh/r4ulcl/nTask?utm_source=github.com&utm_medium=referral&utm_content=r4ulcl/nTask&utm_campaign=Badge_Grade)
+
 nTask is a distributed task management program that allows you to distribute tasks, commands, or programs across multiple computers. It utilizes API communications and WebSockets to facilitate seamless communication between the manager and workers. The program consists of a manager component that handles task requests from clients and distributes them to available workers. The workers execute the tasks and send the execution results back to the manager, which then stores the results in a database. Additionally, the results can be sent to a specified URL/API for further processing.
 
 You can connect another API, Telegram bot ot a simple bash script to the manager API to process tasks. To test and see how to make API requests you can use the swagger flag to access the web server with the documentation:
