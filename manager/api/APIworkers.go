@@ -157,7 +157,7 @@ func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *u
 	}
 
 	//go
-	websockets.GetWorkerMessage(conn, config, db, verbose, debug, wg, writeLock)
+	websockets.GetWorkerMessage(conn, config, db, verbose, debug, wg)
 
 }
 

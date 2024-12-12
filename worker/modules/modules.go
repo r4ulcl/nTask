@@ -25,76 +25,83 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 	status.WorkingIDs[id] = -1
 	mutex.Unlock()
 
-	defer func() {
-		mutex.Lock()
-		delete(status.WorkingIDs, id)
-		mutex.Unlock()
-	}()
+	defer cleanupWorkerStatus(status, id)
 
-	// if command is empty, like in the example "exec" to exec any binary
-	// the first argument is the command
-	var cmd *exec.Cmd
-	if config.InsecureModules {
-		cmdStr := command + " " + arguments
-		if debug {
-			log.Println("Modules cmdStr: ", cmdStr)
-		}
-
-		if runtime.GOOS == "windows" {
-			cmd = exec.Command("cmd", "/c", cmdStr)
-		} else if runtime.GOOS == "linux" {
-			cmd = exec.Command("sh", "-c", cmdStr)
-		} else {
-			log.Fatal("Unsupported operating system")
-		}
-
-	} else {
-		// Convert arguments to array
-		argumentsArray := strings.Split(arguments, " ")
-		if command == "" && len(arguments) > 0 {
-			command = argumentsArray[0]
-			argumentsArray = argumentsArray[1:]
-		}
-
-		// Check if module has space, to separate it in command and args
-		if strings.Contains(command, " ") {
-			parts := strings.SplitN(command, " ", 2)
-			argumentsArray = append([]string{parts[1]}, argumentsArray...)
-
-			// Update the inputString to contain only the first part
-			command = parts[0]
-		}
-
-		if debug {
-			log.Println("Modules command: ", command)
-			log.Println("Modules argumentsArray: ", argumentsArray)
-		}
-
-		// Command to run the module
-		cmd = exec.Command(command, argumentsArray...)
+	cmd, err := prepareCommand(config, command, arguments, debug)
+	if err != nil {
+		return "", err
 	}
-	// Create a buffer to store the command output
-	var stdout, stderr bytes.Buffer
 
-	// Set the output and error streams to the buffers
+	output, err := executeCommand(cmd, status, id, verbose, debug)
+	return strings.TrimRight(output, "\n"), err
+}
+
+func cleanupWorkerStatus(status *globalstructs.WorkerStatus, id string) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	delete(status.WorkingIDs, id)
+}
+
+func prepareCommand(config *utils.WorkerConfig, command, arguments string, debug bool) (*exec.Cmd, error) {
+	var cmd *exec.Cmd
+
+	if config.InsecureModules {
+		cmd = createInsecureCommand(command, arguments, debug)
+	} else {
+		var err error
+		cmd, err = createSecureCommand(command, arguments, debug)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return cmd, nil
+}
+
+func createInsecureCommand(command, arguments string, debug bool) *exec.Cmd {
+	cmdStr := command + " " + arguments
+	if debug {
+		log.Println("Modules cmdStr: ", cmdStr)
+	}
+
+	if runtime.GOOS == "windows" {
+		return exec.Command("cmd", "/c", cmdStr)
+	} else if runtime.GOOS == "linux" {
+		return exec.Command("sh", "-c", cmdStr)
+	}
+
+	log.Fatal("Unsupported operating system")
+	return nil
+}
+
+func createSecureCommand(command, arguments string, debug bool) (*exec.Cmd, error) {
+	argumentsArray := strings.Split(arguments, " ")
+	if command == "" && len(arguments) > 0 {
+		command = argumentsArray[0]
+		argumentsArray = argumentsArray[1:]
+	}
+
+	if strings.Contains(command, " ") {
+		parts := strings.SplitN(command, " ", 2)
+		argumentsArray = append([]string{parts[1]}, argumentsArray...)
+		command = parts[0]
+	}
+
+	if debug {
+		log.Println("Modules command: ", command)
+		log.Println("Modules argumentsArray: ", argumentsArray)
+	}
+
+	return exec.Command(command, argumentsArray...), nil
+}
+
+func executeCommand(cmd *exec.Cmd, status *globalstructs.WorkerStatus, id string, verbose, debug bool) (string, error) {
+	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	// Start the command
-	err := cmd.Start()
-	if err != nil {
-		// Check if the error is an ExitError
-		if exitError, ok := err.(*exec.ExitError); ok {
-			// The command exited with a non-zero status
-			fmt.Printf("Command exited with error: %v\n", exitError)
-
-			// Print the captured standard error
-			log.Println("Standard Error:")
-			fmt.Print(stderr.String())
-		} else {
-			// Some other error occurred
-			fmt.Printf("Command finished with unexpected error: %v\n", err)
-		}
+	if err := cmd.Start(); err != nil {
+		logCommandError(err, &stderr, verbose, debug)
 		return "", err
 	}
 
@@ -102,53 +109,50 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 	status.WorkingIDs[id] = cmd.Process.Pid
 	mutex.Unlock()
 
-	// Create a channel to signal when the process is done
 	done := make(chan error, 1)
-
-	// Monitor the process in a goroutine
 	go func() {
-		// Wait for the command to finish
-		err := cmd.Wait()
-		done <- err
+		done <- cmd.Wait()
 	}()
 
-	// Check every 30 minutes if the process is still running
+	return monitorCommandExecution(cmd, &stdout, &stderr, done, verbose, debug)
+}
+
+func logCommandError(err error, stderr *bytes.Buffer, verbose, debug bool) {
+	if exitError, ok := err.(*exec.ExitError); ok {
+		if verbose || debug {
+			log.Printf("Command exited with error: %v", exitError)
+			log.Println("Standard Error:")
+			log.Print(stderr.String())
+		}
+	} else {
+		if verbose || debug {
+			log.Printf("Command finished with unexpected error: %v", err)
+		}
+	}
+}
+
+func monitorCommandExecution(cmd *exec.Cmd, stdout, stderr *bytes.Buffer, done chan error, verbose, debug bool) (string, error) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			// Check if the process is still running
 			if err := isProcessRunning(cmd.Process.Pid, verbose, debug); err != nil {
-				// Process is not running, break the loop
-				output := stdout.String() + stderr.String()
-				output = strings.TrimRight(output, "\n")
-				return output, err
+				return stdout.String() + stderr.String(), err
 			}
 		case err := <-done:
-			// Process has finished
-			if err != nil {
-				if debug {
-					log.Println("Modules Error waiting for command:", err)
-				}
-				output := stdout.String() + stderr.String()
-				output = strings.TrimRight(output, "\n")
-				return output, err
+			if err != nil && debug {
+				log.Println("Modules Error waiting for command:", err)
 			}
-
-			// Process completed successfully
-			// Capture the output of the script
-			output := stdout.String() + stderr.String()
-			output = strings.TrimRight(output, "\n")
-			return output, nil
+			return stdout.String() + stderr.String(), err
 		}
 	}
 }
 
 // Function to check if a process with a given PID is still running
 func isProcessRunning(pid int, verbose, debug bool) error {
-	if debug {
+	if debug || verbose {
 		log.Println("isProcessRunning", pid)
 	}
 	process, err := os.FindProcess(pid)
@@ -253,6 +257,13 @@ func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status 
 }
 
 func stringList(list []string, verbose, debug bool) string {
+	if verbose || debug {
+		log.Println("Executing stringList")
+		if debug {
+			log.Println("    with params:", list)
+
+		}
+	}
 	stringList := ""
 	for _, item := range list {
 		stringList += item + "\n"

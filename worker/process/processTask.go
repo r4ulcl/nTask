@@ -11,7 +11,7 @@ import (
 	"github.com/r4ulcl/nTask/worker/utils"
 )
 
-// processTask is a helper function that processes the given task in the background.
+// Task is a helper function that processes the given task in the background.
 // It sets the worker status to indicate that it is currently working on the task.
 // It calls the ProcessModule function to execute the task's module.
 // If an error occurs, it sets the task status to "failed".
@@ -34,7 +34,7 @@ func Task(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *
 			task.Status = "failed"
 		} else {
 			task.Status = "done"
-		}	
+		}
 	}
 
 	// While manager doesnt responds loop
