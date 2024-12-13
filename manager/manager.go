@@ -180,74 +180,136 @@ func startSwaggerWeb(router *mux.Router, verbose, debug bool) {
 }
 
 // StartManager main function to start manager
+// StartManager initializes and starts the manager application
 func StartManager(swagger bool, configFile, configSSHFile, configCloudFile string, verifyAltName, verbose, debug bool) {
 	log.Println("Manager Running as manager...")
 
-	// Set default config file if not provided
+	var wg sync.WaitGroup
+	var writeLock sync.Mutex
+
+	// Load configurations
+	config, err := loadManagerConfigurations(configFile, verbose, debug)
+	if err != nil {
+		log.Println("Error loadManagerConfigurations")
+		return
+	}
+	configSSH, err := loadSSHConfiguration(configSSHFile, verbose, debug)
+	if err != nil {
+		log.Println("Error loadSSHConfiguration")
+	}
+	configCloud, err := loadCloudConfiguration(configCloudFile, verbose, debug)
+	if err != nil {
+		log.Println("Error loadCloudConfiguration")
+	}
+
+	// Connect to database
+	db := connectToDatabase(config, debug)
+	defer db.Close()
+
+	// Handle initial task status updates
+	setInitialTaskStatus(db, verbose, debug)
+
+	// Initialize HTTP client
+	if config != nil {
+		initializeHTTPClient(config, verifyAltName, verbose, debug)
+	}
+	if config != nil {
+		startBackgroundTask(db, config, &wg, &writeLock, verbose, debug)
+	}
+	// Start SSH background task
+	if configSSH != nil {
+		startSSHBackgroundTask(configSSH, config, verbose, debug)
+	}
+
+	// Setup and start servers
+	if config != nil {
+		setupAndStartServers(swagger, config, db, &wg, &writeLock, verbose, debug)
+	}
+
+	if configCloud != nil {
+		processCloudConfiguration(configCloud, configSSH, verbose, debug)
+	}
+}
+
+func loadManagerConfigurations(configFile string, verbose, debug bool) (*utils.ManagerConfig, error) {
 	if configFile == "" {
 		configFile = "manager.conf"
 	}
 
 	config, err := loadManagerConfig(configFile, verbose, debug)
 	if err != nil {
-		log.Fatalf("Error loading config file: %v", err)
+		return nil, fmt.Errorf("Error loading config file")
+	}
+	return config, nil
+}
+
+func loadSSHConfiguration(configSSHFile string, verbose, debug bool) (*utils.ManagerSSHConfig, error) {
+	if configSSHFile == "" {
+		return nil, fmt.Errorf("no config SSH file configured")
 	}
 
-	var configSSH *utils.ManagerSSHConfig
-	if configSSHFile != "" {
-		configSSH, err = loadManagerSSHConfig(configSSHFile, verbose, debug)
-		if err != nil {
-			log.Fatalf("Error loading config SSH file: %v", err)
-		}
+	configSSH, err := loadManagerSSHConfig(configSSHFile, verbose, debug)
+	if err != nil {
+		return nil, fmt.Errorf("Error loading config SSH file")
+	}
+	return configSSH, nil
+}
+
+func loadCloudConfiguration(configCloudFile string, verbose, debug bool) (*utils.ManagerCloudConfig, error) {
+	if configCloudFile == "" {
+		return nil, fmt.Errorf("no config Cloud file configured")
 	}
 
-	var configCloud *utils.ManagerCloudConfig
-	if configCloudFile != "" {
-		configCloud, err = loadManagerCloudConfig(configCloudFile, verbose, debug)
-		if err != nil {
-			log.Fatalf("Error loading config Cloud file: %v", err)
-		}
+	configCloud, err := loadManagerCloudConfig(configCloudFile, verbose, debug)
+	if err != nil {
+		return nil, fmt.Errorf("Error loading config Cloud file")
 
-		switch configCloud.Provider {
-		case "digitalocean":
-			go cloud.ProcessDigitalOcean(configCloud, configSSH, verbose, debug)
-		default:
-			log.Fatal("Error: Unsupported cloud provider")
-		}
 	}
 
-	if debug && configSSH != nil {
-		log.Printf("configSSH.IPPort: %v", configSSH.IPPort)
+	return configCloud, nil
+}
+
+func processCloudConfiguration(configCloud *utils.ManagerCloudConfig, configSSH *utils.ManagerSSHConfig, verbose, debug bool) error {
+	switch configCloud.Provider {
+	case "digitalocean":
+		go cloud.ProcessDigitalOcean(configCloud, configSSH, verbose, debug)
+	default:
+		log.Fatal("Error: Unsupported cloud provider")
 	}
+	return nil
+}
 
-	var wg sync.WaitGroup
-	var writeLock sync.Mutex
-
-	// Attempt to connect to the database
+func connectToDatabase(config *utils.ManagerConfig, debug bool) *sql.DB {
 	var db *sql.DB
+	var err error
+
 	for {
 		if debug {
 			log.Println("Manager Trying to connect to DB")
 		}
-		db, err = database.ConnectDB(config.DBUsername, config.DBPassword, config.DBHost, config.DBPort, config.DBDatabase, verbose, debug)
+		db, err = database.ConnectDB(config.DBUsername, config.DBPassword, config.DBHost, config.DBPort, config.DBDatabase, false, debug)
 		if err != nil {
 			log.Printf("Error connecting to DB: %v", err)
 			time.Sleep(5 * time.Second)
 		} else {
-			defer db.Close()
 			break
 		}
 	}
+	return db
+}
 
+func setInitialTaskStatus(db *sql.DB, verbose, debug bool) {
 	if debug {
 		log.Println("Manager Setting tasks with running status to failed")
 	}
+	var wg sync.WaitGroup
 	if err := database.SetTasksStatusIfRunning(db, "failed", verbose, debug, &wg); err != nil {
 		log.Printf("Error setting task statuses: %v", err)
-		return
 	}
+}
 
-	// Create an HTTP client with TLS if configured
+func initializeHTTPClient(config *utils.ManagerConfig, verifyAltName, verbose, debug bool) {
+	var err error
 	if config.CertFolder != "" {
 		config.ClientHTTP, err = utils.CreateTLSClientWithCACert(config.CertFolder+"/ca-cert.pem", verifyAltName, verbose, debug)
 		if err != nil {
@@ -258,15 +320,17 @@ func StartManager(swagger bool, configFile, configSSHFile, configCloudFile strin
 		config.ClientHTTP = &http.Client{}
 	}
 	config.ClientHTTP.Timeout = 5 * time.Second
+}
 
-	// Start background tasks
-	go utils.VerifyWorkersLoop(db, config, verbose, debug, &wg, &writeLock)
-	go utils.ManageTasks(config, db, verbose, debug, &wg, &writeLock)
+func startSSHBackgroundTask(configSSH *utils.ManagerSSHConfig, config *utils.ManagerConfig, verbose, debug bool) {
+	go sshtunnel.StartSSH(configSSH, config.HTTPPort, config.HTTPSPort, verbose, debug)
+}
+func startBackgroundTask(db *sql.DB, config *utils.ManagerConfig, wg *sync.WaitGroup, writeLock *sync.Mutex, verbose, debug bool) {
+	go utils.VerifyWorkersLoop(db, config, verbose, debug, wg, writeLock)
+	go utils.ManageTasks(config, db, verbose, debug, wg, writeLock)
+}
 
-	if configSSHFile != "" {
-		go sshtunnel.StartSSH(configSSH, config.HTTPPort, config.HTTPSPort, verbose, debug)
-	}
-
+func setupAndStartServers(swagger bool, config *utils.ManagerConfig, db *sql.DB, wg *sync.WaitGroup, writeLock *sync.Mutex, verbose, debug bool) {
 	router := mux.NewRouter()
 	amw := authenticationMiddleware{
 		tokenUsers:   make(map[string]string),
@@ -279,7 +343,7 @@ func StartManager(swagger bool, configFile, configSSHFile, configCloudFile strin
 	}
 
 	// Set up routes
-	setupRoutes(router, config, db, verbose, debug, &wg, &writeLock, amw)
+	setupRoutes(router, config, db, verbose, debug, wg, writeLock, amw)
 
 	// Start servers
 	startServers(router, config, verbose, debug)
@@ -313,7 +377,7 @@ func startServers(router *mux.Router, config *utils.ManagerConfig, verbose, debu
 
 	if config.CertFolder != "" && config.HTTPSPort > 0 {
 		httpsAddr := fmt.Sprintf(":%d", config.HTTPSPort)
-		if verbose {
+		if verbose || debug {
 			log.Printf("Starting HTTPS server on port %d", config.HTTPSPort)
 		}
 		httpsServer := &http.Server{
@@ -333,7 +397,7 @@ func startServers(router *mux.Router, config *utils.ManagerConfig, verbose, debu
 
 	if config.HTTPPort > 0 {
 		httpAddr := fmt.Sprintf(":%d", config.HTTPPort)
-		if verbose {
+		if verbose || debug {
 			log.Printf("Starting HTTP server on port %d", config.HTTPPort)
 		}
 		httpServer := &http.Server{
