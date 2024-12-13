@@ -21,7 +21,7 @@ import (
 // @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /status [get]
-func HandleStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
+func HandleStatus(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
 	_, ok := r.Context().Value(utils.UsernameKey).(string)
 	if !ok {
 		// if not username is a worker

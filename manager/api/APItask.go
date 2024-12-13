@@ -41,7 +41,7 @@ import (
 // @Failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /task [get]
-func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
+func HandleTaskGet(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
 	_, ok := r.Context().Value(utils.UsernameKey).(string)
 	if !ok {
 		// if not username is a worker
@@ -94,7 +94,7 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 // @Failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /task [post]
-func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
+func HandleTaskPost(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
 	username, okUser := r.Context().Value(utils.UsernameKey).(string)
 	if !okUser {
 		if debug {
@@ -242,7 +242,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 // @Failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /task/{ID} [get]
-func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
+func HandleTaskStatus(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
 	_, ok := r.Context().Value(utils.UsernameKey).(string)
 	if !ok {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)

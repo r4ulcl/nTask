@@ -121,11 +121,11 @@ func loadManagerCloudConfig(filename string, verbose, debug bool) (*utils.Manage
 func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
 	// worker
 	workers.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerGet(w, r, config, db, verbose, debug)
+		api.HandleWorkerGet(w, r, db, verbose, debug)
 	}).Methods("GET") // get workers
 
 	workers.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerPost(w, r, config, db, verbose, debug, wg)
+		api.HandleWorkerPost(w, r, db, verbose, debug, wg)
 	}).Methods("POST") // add worker
 
 	workers.HandleFunc("/websocket", func(w http.ResponseWriter, r *http.Request) {
@@ -133,11 +133,11 @@ func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.D
 	})
 
 	workers.HandleFunc("/{NAME}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerDeleteName(w, r, config, db, verbose, debug, wg)
+		api.HandleWorkerDeleteName(w, r, db, verbose, debug, wg)
 	}).Methods("DELETE") // delete worker
 
 	workers.HandleFunc("/{NAME}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerStatus(w, r, config, db, verbose, debug)
+		api.HandleWorkerStatus(w, r, db, verbose, debug)
 	}).Methods("GET") // check status 1 worker
 
 }
@@ -145,11 +145,11 @@ func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.D
 func addHandleTask(task *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
 	// task
 	task.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskGet(w, r, config, db, verbose, debug)
+		api.HandleTaskGet(w, r, db, verbose, debug)
 	}).Methods("GET") // check tasks
 
 	task.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskPost(w, r, config, db, verbose, debug, wg)
+		api.HandleTaskPost(w, r, db, verbose, debug, wg)
 	}).Methods("POST") // Add task
 
 	task.HandleFunc("/{ID}", func(w http.ResponseWriter, r *http.Request) {
@@ -157,7 +157,7 @@ func addHandleTask(task *mux.Router, config *utils.ManagerConfig, db *sql.DB, ve
 	}).Methods("DELETE") // Delete task
 
 	task.HandleFunc("/{ID}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskStatus(w, r, config, db, verbose, debug)
+		api.HandleTaskStatus(w, r, db, verbose, debug)
 	}).Methods("GET") // get status task
 
 }
@@ -353,7 +353,7 @@ func setupRoutes(router *mux.Router, config *utils.ManagerConfig, db *sql.DB, ve
 	status := router.PathPrefix("/status").Subrouter()
 	status.Use(amw.Middleware)
 	status.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleStatus(w, r, config, db, verbose, debug)
+		api.HandleStatus(w, r, db, verbose, debug)
 	}).Methods("GET")
 
 	workers := router.PathPrefix("/worker").Subrouter()

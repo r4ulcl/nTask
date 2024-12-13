@@ -27,7 +27,7 @@ import (
 // @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /worker [get]
-func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
+func HandleWorkerGet(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
 	username, ok := r.Context().Value(utils.UsernameKey).(string)
 	if !ok {
 		log.Println("API username", username)
@@ -76,7 +76,7 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 // @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /worker [post]
-func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
+func HandleWorkerPost(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
 	_, okUser := r.Context().Value(utils.UsernameKey).(string)
 	_, okWorker := r.Context().Value(utils.WorkerKey).(string)
 	if !okUser && !okWorker {
@@ -173,7 +173,7 @@ func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *u
 // @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /worker/{NAME} [delete]
-func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
+func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
 	_, okUser := r.Context().Value(utils.UsernameKey).(string)
 	_, okWorker := r.Context().Value(utils.WorkerKey).(string)
 	if !okUser && !okWorker {
@@ -210,7 +210,7 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 // @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /worker/{NAME} [get]
-func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
+func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
 	_, ok := r.Context().Value(utils.UsernameKey).(string)
 	if !ok {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)

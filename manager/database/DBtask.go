@@ -469,7 +469,7 @@ func SetTasksStatusIfRunning(db *sql.DB, status string, verbose, debug bool, wg 
 	// Update the status column of the task table for the given ID
 	_, err := db.Exec("UPDATE task SET status = ? WHERE status = 'running'", status)
 	if err != nil {
-		if debug {
+		if debug || verbose {
 			log.Println("DB Error DBTask SetTasksStatusIfRunning: ", err)
 		}
 		return err
@@ -517,13 +517,19 @@ func GetPendingCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
 	query := "SELECT COUNT(*) FROM task where status = 'pending'"
 
+	if debug {
+		log.Println("Executing GetPendingCount")
+	}
+
 	// Execute the query
 	var count int
 	err := db.QueryRow(query).Scan(&count)
 	if err != nil {
 		return 0, err
 	}
-
+	if verbose || debug {
+		log.Println("GetPendingCount", count)
+	}
 	return count, nil
 }
 
@@ -531,14 +537,18 @@ func GetPendingCount(db *sql.DB, verbose, debug bool) (int, error) {
 func GetRunningCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
 	query := "SELECT COUNT(*) FROM task where status = 'running'"
-
+	if debug {
+		log.Println("Executing GetRunningCount")
+	}
 	// Execute the query
 	var count int
 	err := db.QueryRow(query).Scan(&count)
 	if err != nil {
 		return 0, err
 	}
-
+	if verbose || debug {
+		log.Println("GetRunningCount", count)
+	}
 	return count, nil
 }
 
@@ -546,14 +556,18 @@ func GetRunningCount(db *sql.DB, verbose, debug bool) (int, error) {
 func GetDoneCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
 	query := "SELECT COUNT(*) FROM task where status = 'done'"
-
+	if debug {
+		log.Println("Executing GetDoneCount")
+	}
 	// Execute the query
 	var count int
 	err := db.QueryRow(query).Scan(&count)
 	if err != nil {
 		return 0, err
 	}
-
+	if verbose || debug {
+		log.Println("GetDoneCount", count)
+	}
 	return count, nil
 }
 
@@ -561,14 +575,18 @@ func GetDoneCount(db *sql.DB, verbose, debug bool) (int, error) {
 func GetFailedCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
 	query := "SELECT COUNT(*) FROM task where status = 'failed'"
-
+	if debug {
+		log.Println("Executing GetFailedCount")
+	}
 	// Execute the query
 	var count int
 	err := db.QueryRow(query).Scan(&count)
 	if err != nil {
 		return 0, err
 	}
-
+	if verbose || debug {
+		log.Println("GetFailedCount", count)
+	}
 	return count, nil
 }
 
@@ -576,13 +594,17 @@ func GetFailedCount(db *sql.DB, verbose, debug bool) (int, error) {
 func GetDeletedCount(db *sql.DB, verbose, debug bool) (int, error) {
 	// Prepare the SQL query
 	query := "SELECT COUNT(*) FROM task where status = 'deleted'"
-
+	if debug {
+		log.Println("Executing GetDeletedCount")
+	}
 	// Execute the query
 	var count int
 	err := db.QueryRow(query).Scan(&count)
 	if err != nil {
 		return 0, err
 	}
-
+	if verbose || debug {
+		log.Println("GetDeletedCount", count)
+	}
 	return count, nil
 }

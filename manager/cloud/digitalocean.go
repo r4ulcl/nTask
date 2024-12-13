@@ -112,7 +112,7 @@ func createMissingDroplets(doClient *DigitalOceanClient, configCloud *utils.Mana
 // Helper function: Wait for droplet creation and log IPs
 func waitForDropletCreation(doClient *DigitalOceanClient, ids []int, verbose, debug bool) {
 	for _, id := range ids {
-		if debug {
+		if debug || verbose {
 			log.Println("Waiting for droplet:", id)
 		}
 		ip, err := doClient.WaitForDropletCreation(context.Background(), id, verbose, debug)
