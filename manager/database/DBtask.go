@@ -380,19 +380,33 @@ func SetTasksWorkerInvalid(db *sql.DB, workerName string, verbose, debug bool, w
 	return nil
 }*/
 
-// SetTasksWorkerPending set all task of worker to pending because failed
-func SetTasksWorkerPending(db *sql.DB, workerName string, verbose, debug bool, wg *sync.WaitGroup) error {
+// Generic helper function to execute a database update
+func executeDBUpdate(db *sql.DB, query string, args []interface{}, verbose, debug bool, wg *sync.WaitGroup, taskName string) error {
 	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
 	wg.Add(1)
-	_, err := db.Exec("UPDATE task SET status = 'pending' WHERE workerName = ? AND status = 'running' ", workerName)
+	_, err := db.Exec(query, args...)
 	if err != nil {
 		if debug {
-			log.Println("DB Error DBTask: ", err)
+			log.Printf("DB Error %s: %v", taskName, err)
 		}
 		return err
 	}
 	return nil
+}
+
+// SetTasksWorkerPending Function to set tasks worker status to 'pending'
+func SetTasksWorkerPending(db *sql.DB, workerName string, verbose, debug bool, wg *sync.WaitGroup) error {
+	query := "UPDATE task SET status = 'pending' WHERE workerName = ? AND status = 'running'"
+	args := []interface{}{workerName}
+	return executeDBUpdate(db, query, args, verbose, debug, wg, "DBTask: SetTasksWorkerPending")
+}
+
+// SetTaskExecutedAtNow Function to set task's executedAt timestamp to now()
+func SetTaskExecutedAtNow(db *sql.DB, id string, verbose, debug bool, wg *sync.WaitGroup) error {
+	query := "UPDATE task SET executedAt = now() WHERE ID = ?"
+	args := []interface{}{id}
+	return executeDBUpdate(db, query, args, verbose, debug, wg, "DBTask SetTaskExecutedAtNow")
 }
 
 // SetTaskWorkerName saves the worker name of the task in the database
@@ -443,31 +457,13 @@ func SetTaskStatus(db *sql.DB, id, status string, verbose, debug bool, wg *sync.
 	return nil
 }
 
-/*
-// SetTaskStatusIfPending saves the status of the task in the database if current is pending
-func SetTaskStatusIfPending(db *sql.DB, id, status string, verbose, debug bool, wg *sync.WaitGroup) error {
+// SetTasksStatusIfStatus saves the status of the task in the database if current status is currentStatus
+func SetTasksStatusIfStatus(currentStatus string, db *sql.DB, newStatus string, verbose, debug bool, wg *sync.WaitGroup) error {
 	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
 	wg.Add(1)
 	// Update the status column of the task table for the given ID
-	_, err := db.Exec("UPDATE task SET status = ? WHERE ID = ? and status = 'pending'", status, id)
-	if err != nil {
-		if debug {
-			log.Println("DB Error DBTask SetTaskStatusIfPending: ", err)
-		}
-		return err
-	}
-	return nil
-}
-*/
-
-// SetTasksStatusIfRunning saves the status of the task in the database if current is running
-func SetTasksStatusIfRunning(db *sql.DB, status string, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
-	defer wg.Done()
-	wg.Add(1)
-	// Update the status column of the task table for the given ID
-	_, err := db.Exec("UPDATE task SET status = ? WHERE status = 'running'", status)
+	_, err := db.Exec("UPDATE task SET status = ? WHERE status = ?", newStatus, currentStatus)
 	if err != nil {
 		if debug || verbose {
 			log.Println("DB Error DBTask SetTasksStatusIfRunning: ", err)
@@ -477,23 +473,6 @@ func SetTasksStatusIfRunning(db *sql.DB, status string, verbose, debug bool, wg 
 	return nil
 }
 
-// SetTaskExecutedAtNow saves current time as executedAt
-func SetTaskExecutedAtNow(db *sql.DB, id string, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
-	defer wg.Done()
-	wg.Add(1)
-	// Update the status column of the task table for the given ID
-	_, err := db.Exec("UPDATE task SET executedAt = now() WHERE ID = ?", id)
-	if err != nil {
-		if debug {
-			log.Println("DB Error DBTask SetTaskExecutedAtNow: ", err)
-		}
-		return err
-	}
-	return nil
-}
-
-/*
 // SetTaskExecutedAt saves current time as executedAt
 func SetTaskExecutedAt(executedAt string, db *sql.DB, id string, verbose, debug bool, wg *sync.WaitGroup) error {
 	// Add to the WaitGroup when the goroutine starts and done when exits
@@ -509,102 +488,28 @@ func SetTaskExecutedAt(executedAt string, db *sql.DB, id string, verbose, debug 
 	}
 	return nil
 }
-*/
+
 // Count
 
-// GetPendingCount Get count of pending tasks
-func GetPendingCount(db *sql.DB, verbose, debug bool) (int, error) {
-	// Prepare the SQL query
-	query := "SELECT COUNT(*) FROM task where status = 'pending'"
+// GetCountByStatus get count of tasks with status X
+func GetCountByStatus(status string, db *sql.DB, verbose, debug bool) (int, error) {
+	// Prepare the SQL query with a placeholder for the status
+	query := "SELECT COUNT(*) FROM task WHERE status = ?"
 
 	if debug {
-		log.Println("Executing GetPendingCount")
+		log.Println("Executing GetCountByStatus")
 	}
 
-	// Execute the query
+	// Execute the query with the provided status
 	var count int
-	err := db.QueryRow(query).Scan(&count)
+	err := db.QueryRow(query, status).Scan(&count)
 	if err != nil {
 		return 0, err
 	}
-	if verbose || debug {
-		log.Println("GetPendingCount", count)
-	}
-	return count, nil
-}
 
-// GetRunningCount count of running tasks
-func GetRunningCount(db *sql.DB, verbose, debug bool) (int, error) {
-	// Prepare the SQL query
-	query := "SELECT COUNT(*) FROM task where status = 'running'"
-	if debug {
-		log.Println("Executing GetRunningCount")
-	}
-	// Execute the query
-	var count int
-	err := db.QueryRow(query).Scan(&count)
-	if err != nil {
-		return 0, err
-	}
 	if verbose || debug {
-		log.Println("GetRunningCount", count)
+		log.Printf("GetCountByStatus for status '%s': %d\n", status, count)
 	}
-	return count, nil
-}
 
-// GetDoneCount count of done tasks
-func GetDoneCount(db *sql.DB, verbose, debug bool) (int, error) {
-	// Prepare the SQL query
-	query := "SELECT COUNT(*) FROM task where status = 'done'"
-	if debug {
-		log.Println("Executing GetDoneCount")
-	}
-	// Execute the query
-	var count int
-	err := db.QueryRow(query).Scan(&count)
-	if err != nil {
-		return 0, err
-	}
-	if verbose || debug {
-		log.Println("GetDoneCount", count)
-	}
-	return count, nil
-}
-
-// GetFailedCount count of failed tasks
-func GetFailedCount(db *sql.DB, verbose, debug bool) (int, error) {
-	// Prepare the SQL query
-	query := "SELECT COUNT(*) FROM task where status = 'failed'"
-	if debug {
-		log.Println("Executing GetFailedCount")
-	}
-	// Execute the query
-	var count int
-	err := db.QueryRow(query).Scan(&count)
-	if err != nil {
-		return 0, err
-	}
-	if verbose || debug {
-		log.Println("GetFailedCount", count)
-	}
-	return count, nil
-}
-
-// GetDeletedCount count of deleted tasks
-func GetDeletedCount(db *sql.DB, verbose, debug bool) (int, error) {
-	// Prepare the SQL query
-	query := "SELECT COUNT(*) FROM task where status = 'deleted'"
-	if debug {
-		log.Println("Executing GetDeletedCount")
-	}
-	// Execute the query
-	var count int
-	err := db.QueryRow(query).Scan(&count)
-	if err != nil {
-		return 0, err
-	}
-	if verbose || debug {
-		log.Println("GetDeletedCount", count)
-	}
 	return count, nil
 }

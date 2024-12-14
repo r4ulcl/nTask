@@ -31,6 +31,22 @@ services:
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
+  
+  worker2:
+    build: 
+      context: .
+      dockerfile: ./worker/Dockerfile
+#    image:  ghcr.io/r4ulcl/ntask-worker:dev
+    restart: unless-stopped
+    container_name: nTask-worker2
+    depends_on:
+      - manager
+    env_file: .env
+    command: worker --verbose --debug
+    volumes:
+      - ./worker.conf:/config/worker.conf
+      - ./certs/:/config/certs/
+
 
   db:
     image: mysql

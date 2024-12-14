@@ -55,57 +55,8 @@ func RmWorkerName(db *sql.DB, name string, verbose, debug bool, wg *sync.WaitGro
 
 // GetWorkers retrieves all workers from the database.
 func GetWorkers(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
-	// Slice to store all workers
-	var workers []globalstructs.Worker
-
-	// Query all workers from the worker table
-	rows, err := db.Query("SELECT name, defaultThreads, iddleThreads, up, downCount FROM worker")
-	if err != nil {
-		if debug {
-			log.Println("DB Error DBworkers: ", err)
-		}
-		return workers, err
-	}
-	defer rows.Close()
-
-	// Iterate over the rows
-	for rows.Next() {
-		// Declare variables to store JSON data
-		var name string
-		var defaultThreads, iddleThreads int
-		var up bool
-		var downCount int
-
-		// Scan the values from the row into variables
-		err := rows.Scan(&name, &defaultThreads, &iddleThreads, &up, &downCount)
-		if err != nil {
-			if debug {
-				log.Println("DB Error DBworkers: ", err)
-			}
-			return workers, err
-		}
-
-		// Data into a Worker struct
-		var worker globalstructs.Worker
-		worker.Name = name
-		worker.DefaultThreads = defaultThreads
-		worker.IddleThreads = iddleThreads
-		worker.UP = up
-		worker.DownCount = downCount
-
-		// Append the worker to the slice
-		workers = append(workers, worker)
-	}
-
-	// Check for errors from iterating over rows
-	if err := rows.Err(); err != nil {
-		if debug {
-			log.Println("DB Error DBworkers: ", err)
-		}
-		return workers, err
-	}
-
-	return workers, nil
+	sql := "SELECT name, defaultThreads, iddleThreads, up, downCount FROM worker;"
+	return GetWorkerSQL(sql, db, verbose, debug)
 }
 
 // GetWorker retrieves a worker from the database by its name.

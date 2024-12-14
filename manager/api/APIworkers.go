@@ -211,41 +211,7 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, db *sql.DB, 
 // @security ApiKeyAuth
 // @router /worker/{NAME} [get]
 func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
-	_, ok := r.Context().Value(utils.UsernameKey).(string)
-	if !ok {
-		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
-		return
-	}
-
-	vars := mux.Vars(r)
-	name := vars["NAME"]
-
-	worker, err := database.GetWorker(db, name, verbose, debug)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid GetWorker body: "+err.Error()+"\"}", http.StatusBadRequest)
-
-		return
-	}
-
-	jsonData, err := json.Marshal(worker)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid Marshal body: "+err.Error()+"\"}", http.StatusBadRequest)
-
-		return
-	}
-
-	if debug {
-		// Print the JSON data
-		log.Println("API HandleWorkerStatus", string(jsonData))
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	// Use json.NewEncoder for safe encoding
-	err = json.NewEncoder(w).Encode(worker)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid workers encode body:"+err.Error()+"\"}", http.StatusBadRequest)
-	}
+	handleEntityStatus(w, r, db, verbose, debug, database.GetWorker, "NAME")
 }
 
 // Other functions

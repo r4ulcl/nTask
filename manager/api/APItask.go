@@ -243,42 +243,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 // @security ApiKeyAuth
 // @router /task/{ID} [get]
 func HandleTaskStatus(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
-	_, ok := r.Context().Value(utils.UsernameKey).(string)
-	if !ok {
-		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
-		return
-	}
-
-	vars := mux.Vars(r)
-	id := vars["ID"]
-
-	// Access worker to update info if status running
-	// get task from ID
-	task, err := database.GetTask(db, id, verbose, debug)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid GetTask body: "+err.Error()+"\"}", http.StatusBadRequest)
-
-		return
-	}
-
-	jsonData, err := json.Marshal(task)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid Marshal body: "+err.Error()+"\"}", http.StatusBadRequest)
-		return
-	}
-
-	if debug {
-		// Print the JSON data
-		log.Println("API get task: ", string(jsonData))
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	// Use json.NewEncoder for safe encoding
-	err = json.NewEncoder(w).Encode(task)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid task encode body:"+err.Error()+"\"}", http.StatusBadRequest)
-	}
+	handleEntityStatus(w, r, db, verbose, debug, database.GetTask, "ID")
 }
 
 // generateRandomID generates a random ID of the specified length
