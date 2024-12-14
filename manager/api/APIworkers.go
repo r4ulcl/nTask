@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	globalstructs "github.com/r4ulcl/nTask/globalstructs"
 	"github.com/r4ulcl/nTask/manager/database"
@@ -109,29 +108,10 @@ func addWorker(worker globalstructs.Worker, db *sql.DB, verbose, debug bool, wg 
 
 	err := database.AddWorker(db, &worker, verbose, debug, wg)
 	if err != nil {
-		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
-			if mysqlErr.Number == 1062 { // MySQL error number for duplicate entry
-				// Set as 'pending' all workers tasks to REDO
-				err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
-				if err != nil {
-					return err
-				}
-
-				// set worker up
-				err = database.SetWorkerUPto(true, db, &worker, verbose, debug, wg)
-				if err != nil {
-					return err
-				}
-
-				// reset down count
-				err = database.SetWorkerDownCount(0, db, &worker, verbose, debug, wg)
-				if err != nil {
-					return err
-				}
-			}
+		err = utils.HandleAddWorkerError(err, db, &worker, verbose, debug, wg)
+		if err != nil {
 			return err
 		}
-
 	}
 
 	return nil

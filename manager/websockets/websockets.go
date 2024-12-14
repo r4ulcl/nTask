@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/websocket"
 	"github.com/r4ulcl/nTask/globalstructs"
 	"github.com/r4ulcl/nTask/manager/database"
@@ -107,33 +106,36 @@ func handleMessage(msg globalstructs.WebsocketMessage, conn *websocket.Conn, con
 }
 
 func handleAddWorker(msg globalstructs.WebsocketMessage, conn *websocket.Conn, config *utils.ManagerConfig, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) {
-	if debug {
-		log.Println("Handling addWorker message")
-	}
-	if err := json.Unmarshal([]byte(msg.JSON), worker); err != nil {
-		log.Println("Error unmarshaling addWorker message:", err)
-		return
-	}
-	if err := addWorker(*worker, db, verbose, debug, wg); err != nil {
-		log.Println("Error adding worker:", err)
-	} else {
+	if err := handleWorkerMessage(msg, worker, db, verbose, debug, wg, func() error {
 		config.WebSockets[worker.Name] = conn
+		return addWorker(*worker, db, verbose, debug, wg)
+	}); err != nil {
+		log.Println("Error handling addWorker:", err)
 	}
 }
 
 func handleDeleteWorker(msg globalstructs.WebsocketMessage, config *utils.ManagerConfig, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) {
+	if err := handleWorkerMessage(msg, worker, db, verbose, debug, wg, func() error {
+		return database.RmWorkerName(db, worker.Name, verbose, debug, wg)
+	}); err != nil {
+		log.Println("Error handling deleteWorker:", err)
+	}
+}
+
+func handleWorkerMessage(msg globalstructs.WebsocketMessage, worker *globalstructs.Worker, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, workerAction func() error) error {
 	if debug {
-		log.Println("Handling deleteWorker message")
+		log.Println("Handling worker message")
 	}
 	if err := json.Unmarshal([]byte(msg.JSON), worker); err != nil {
-		log.Println("Error unmarshaling deleteWorker message:", err)
-		return
+		log.Println("Error unmarshaling worker message:", err)
+		return err
 	}
-	if err := database.RmWorkerName(db, worker.Name, verbose, debug, wg); err != nil {
-		log.Println("Error removing worker:", err)
-	} else {
-		delete(config.WebSockets, worker.Name)
+
+	if err := workerAction(); err != nil {
+		return err
 	}
+
+	return nil
 }
 
 func handleCallbackTask(msg globalstructs.WebsocketMessage, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
@@ -182,30 +184,10 @@ func addWorker(worker globalstructs.Worker, db *sql.DB, verbose, debug bool, wg 
 
 	err := database.AddWorker(db, &worker, verbose, debug, wg)
 	if err != nil {
-		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
-			if mysqlErr.Number == 1062 { // MySQL error number for duplicate entry
-				// Set as 'pending' all workers tasks to REDO
-				err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
-				if err != nil {
-					return err
-				}
-
-				// set worker up
-				err = database.UpdateWorker(db, &worker, verbose, debug, wg)
-				if err != nil {
-					return err
-				}
-
-				// reset down count
-				err = database.SetWorkerDownCount(0, db, &worker, verbose, debug, wg)
-				if err != nil {
-					return err
-				}
-			}
+		err = utils.HandleAddWorkerError(err, db, &worker, verbose, debug, wg)
+		if err != nil {
 			return err
-
 		}
-
 	}
 
 	return nil
