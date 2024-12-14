@@ -24,40 +24,6 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-func loadManagerConfig(filename string, verbose, debug bool) (*utils.ManagerConfig, error) {
-	var config utils.ManagerConfig
-	if debug || verbose {
-		log.Println("Manager Loading manager config from file", filename)
-	}
-
-	// Validate filename
-	if filename == "" {
-		return nil, errors.New("filename cannot be empty")
-	}
-
-	// Check if file exists
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		return nil, fmt.Errorf("config file does not exist")
-	}
-
-	content, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	// Use specific error message for json.Unmarshal failure
-	err = json.Unmarshal(content, &config)
-	if err != nil {
-		return nil, fmt.Errorf("error unmarshaling JSON: %w", err)
-	}
-
-	// init WebSockets map
-	config.WebSockets = make(map[string]*websocket.Conn)
-
-	// Return nil instead of &config when error occurs
-	return &config, nil
-}
-
 // Helper function to load and parse JSON config files
 func loadConfigFile[T any](filename string, verbose, debug bool, configType string) (*T, error) {
 	if debug || verbose {
@@ -87,6 +53,17 @@ func loadConfigFile[T any](filename string, verbose, debug bool, configType stri
 	}
 
 	return &config, nil
+}
+
+// Specific function to load nTask config
+func loadManagerConfig(filename string, verbose, debug bool) (*utils.ManagerConfig, error) {
+	configFile, err := loadConfigFile[utils.ManagerConfig](filename, verbose, debug, "nTask")
+	if err != nil {
+		return nil, err
+	}
+	// init WebSockets map
+	configFile.WebSockets = make(map[string]*websocket.Conn)
+	return configFile, nil
 }
 
 // Specific function to load SSH config
