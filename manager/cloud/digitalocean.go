@@ -154,26 +154,28 @@ func (c *DigitalOceanClient) ListDropletByID(ctx context.Context, id int) (*Drop
 	return nil, fmt.Errorf("Droplet with ID %d not found", id)
 }
 
+// ListSnapshots retrieves all snapshots associated with the account
+func (c *DigitalOceanClient) ListSnapshots(ctx context.Context) ([]Snapshot, error) {
+	var snapshots struct {
+		Snapshots []Snapshot `json:"snapshots"`
+	}
+
+	err := c.fetchResources(ctx, "/snapshots", &snapshots)
+	if err != nil {
+		return nil, err
+	}
+
+	return snapshots.Snapshots, nil
+}
+
 // ListDroplets retrieves all droplets associated with the account
 func (c *DigitalOceanClient) ListDroplets(ctx context.Context) ([]Droplet, error) {
-	req, err := http.NewRequest("GET", digitalOceanBaseURL+"/droplets", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Authorization", "Bearer "+c.Token)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var droplets struct {
 		Droplets []Droplet `json:"droplets"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&droplets); err != nil {
+
+	err := c.fetchResources(ctx, "/droplets", &droplets)
+	if err != nil {
 		return nil, err
 	}
 
@@ -247,32 +249,6 @@ type Snapshot struct {
 	Name string `json:"name"`
 }
 
-// ListSnapshots retrieves all snapshots associated with the account
-func (c *DigitalOceanClient) ListSnapshots(ctx context.Context) ([]Snapshot, error) {
-	req, err := http.NewRequest("GET", digitalOceanBaseURL+"/snapshots", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Authorization", "Bearer "+c.Token)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var snapshots struct {
-		Snapshots []Snapshot `json:"snapshots"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&snapshots); err != nil {
-		return nil, err
-	}
-
-	return snapshots.Snapshots, nil
-}
-
 // GetSnapshotByName retrieves a snapshot by its exact name
 func (c *DigitalOceanClient) GetSnapshotByName(ctx context.Context, snapshotName string) (*Snapshot, error) {
 	snapshots, err := c.ListSnapshots(ctx)
@@ -329,15 +305,55 @@ type DigitalOceanResponse struct {
 	Droplets []DropletResponse `json:"droplets"`
 }
 
-// CreateXDropletsFromSnapshot Create X Droplets From a Snapshot
-func (c *DigitalOceanClient) CreateXDropletsFromSnapshot(ctx context.Context, name, snapshotID, region, size, sshKey string, count, startNumber int) ([]int, error) {
-	// Create the payload for the request
-	names := make([]string, count)
+// sendRequest is a reusable helper function to handle HTTP requests.
+// It supports different HTTP methods and payloads, and parses the response.
+func (c *DigitalOceanClient) sendRequest(ctx context.Context, method, endpoint string, payload interface{}, result interface{}) error {
+	var body io.Reader
+	if payload != nil {
+		payloadBytes, err := json.Marshal(payload)
+		if err != nil {
+			return err
+		}
+		body = bytes.NewBuffer(payloadBytes)
+	}
 
+	req, err := http.NewRequest(method, digitalOceanBaseURL+endpoint, body)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		responseBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("unexpected status: %s, response: %s", resp.Status, string(responseBody))
+	}
+
+	if result != nil {
+		if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// CreateXDropletsFromSnapshot creates multiple droplets from a snapshot.
+func (c *DigitalOceanClient) CreateXDropletsFromSnapshot(ctx context.Context, name, snapshotID, region, size, sshKey string, count, startNumber int) ([]int, error) {
+	// Prepare the names for the droplets
+	names := make([]string, count)
 	for i := 0; i < count; i++ {
 		names[i] = name + "-" + strconv.Itoa(i+1+startNumber)
 	}
 
+	// Create the payload
 	payload := RequestPayload{
 		Names:      names,
 		Region:     region,
@@ -350,55 +366,33 @@ func (c *DigitalOceanClient) CreateXDropletsFromSnapshot(ctx context.Context, na
 		Tags:       []string{"nTask", "worker"},
 	}
 
-	// Convert the payload to JSON
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Println(string(payloadBytes))
-
-	// Send the request to create the droplets
-	url := digitalOceanBaseURL + "/droplets"
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	// Set your DigitalOcean API token here
-	req.Header.Set("Authorization", "Bearer "+c.Token)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	// Read the response body
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusAccepted {
-		return nil, fmt.Errorf("failed to create droplets: %s", body)
-	}
-
-	// Parse the response
+	// Response structure for droplet creation
 	var dropletsResponse DigitalOceanResponse
-	err = json.Unmarshal(body, &dropletsResponse)
-	if err != nil {
+
+	// Send POST request to create droplets
+	if err := c.sendRequest(ctx, "POST", "/droplets", payload, &dropletsResponse); err != nil {
 		return nil, err
 	}
 
-	// Collect the IDs of the new droplets
+	// Collect and return the droplet IDs
 	ids := make([]int, len(dropletsResponse.Droplets))
 	for i, droplet := range dropletsResponse.Droplets {
 		ids[i] = droplet.ID
 	}
 
 	return ids, nil
+}
+
+// DeleteDroplet deletes a droplet by its ID.
+func (c *DigitalOceanClient) DeleteDroplet(ctx context.Context, dropletID int) error {
+	// Send DELETE request to delete the droplet
+	return c.sendRequest(ctx, "DELETE", fmt.Sprintf("/droplets/%d", dropletID), nil, nil)
+}
+
+// fetchResources fetches resources using a GET request and parses the response.
+func (c *DigitalOceanClient) fetchResources(ctx context.Context, endpoint string, result interface{}) error {
+	// Reuse sendRequest for GET requests
+	return c.sendRequest(ctx, "GET", endpoint, nil, result)
 }
 
 //-----------------
@@ -434,29 +428,6 @@ func (c *DigitalOceanClient) WaitForDropletCreation(ctx context.Context, droplet
 			return "", ctx.Err()
 		}
 	}
-}
-
-// DeleteDroplet deletes a Droplet by its ID
-func (c *DigitalOceanClient) DeleteDroplet(ctx context.Context, dropletID int) error {
-	req, err := http.NewRequest("DELETE", digitalOceanBaseURL+"/droplets/"+fmt.Sprint(dropletID), nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+c.Token)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("unexpected status: %s", resp.Status)
-	}
-
-	return nil
 }
 
 // DeleteDropletsByPrefix deletes all Droplets with the specified prefix
