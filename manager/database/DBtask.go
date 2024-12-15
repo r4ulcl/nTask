@@ -14,73 +14,58 @@ import (
 	globalstructs "github.com/r4ulcl/nTask/globalstructs"
 )
 
-// AddTask adds a task to the database
-func AddTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
-	defer wg.Done()
-	wg.Add(1)
-	// Convert []command to string and insert
-	structJSON, err := json.Marshal(task.Commands)
+// serializeToJSON marshals a slice into a JSON string.
+func serializeToJSON(data interface{}) (string, error) {
+	structJSON, err := json.Marshal(data)
+	if err != nil {
+		return "", err
+	}
+	return string(structJSON), nil
+}
+
+// executeTaskQuery handles task insertion or update in the database.
+func executeTaskQuery(db *sql.DB, query string, task globalstructs.Task, debug bool) error {
+	commandJSON, err := serializeToJSON(task.Commands)
 	if err != nil {
 		return err
 	}
-	commandJSON := string(structJSON)
 
-	// Convert []files to string and insert
-	structJSON, err = json.Marshal(task.Files)
+	filesJSON, err := serializeToJSON(task.Files)
 	if err != nil {
 		return err
 	}
-	filesJSON := string(structJSON)
 
-	// Insert the JSON data into the MySQL table
-	_, err = db.Exec("INSERT INTO task (ID, notes, commands, files, name, status, WorkerName, username, priority, callbackURL, callbackToken) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+	_, err = db.Exec(query,
 		task.ID, task.Notes, commandJSON, filesJSON, task.Name, task.Status, task.WorkerName, task.Username, task.Priority, task.CallbackURL, task.CallbackToken)
 	if err != nil {
 		if debug {
-			log.Println("DB Error DBTask AddTask: ", err)
+			log.Println("DB Error DBTask Query Execution: ", err)
 		}
 		return err
 	}
 	return nil
+}
+
+// AddTask adds a task to the database.
+func AddTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup) error {
+	defer wg.Done()
+	wg.Add(1)
+
+	query := "INSERT INTO task (ID, notes, commands, files, name, status, WorkerName, username, priority, callbackURL, callbackToken) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	return executeTaskQuery(db, query, task, debug)
 }
 
 // UpdateTask updates all fields of a task in the database.
 func UpdateTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
 	wg.Add(1)
 
-	// Convert []command to string and insert
-	structJSON, err := json.Marshal(task.Commands)
-	if err != nil {
-		return err
-	}
-	commandJSON := string(structJSON)
-
-	// Convert []files to string and insert
-	structJSON, err = json.Marshal(task.Files)
-	if err != nil {
-		return err
-	}
-	filesJSON := string(structJSON)
-
-	// Update all fields in the MySQL table
-	_, err = db.Exec("UPDATE task SET notes=?, commands=?, files=?, name=?, status=?, WorkerName=?, priority=?, callbackURL=?, callbackToken=? WHERE ID=?",
-		task.Notes, commandJSON, filesJSON, task.Name, task.Status, task.WorkerName, task.Priority, task.CallbackURL, task.CallbackToken, task.ID)
-	if err != nil {
-		if debug {
-			log.Println("DB Error DBTask UpdateTask: ", err)
-		}
-		return err
-	}
-
-	return nil
+	query := "UPDATE task SET notes=?, commands=?, files=?, name=?, status=?, WorkerName=?, priority=?, callbackURL=?, callbackToken=? WHERE ID=?"
+	return executeTaskQuery(db, query, task, debug)
 }
 
 // RmTask deletes a task from the database.
 func RmTask(db *sql.DB, id string, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
 	wg.Add(1)
 	// Worker exists, proceed with deletion
@@ -355,7 +340,6 @@ func GetTaskWorker(db *sql.DB, id string, verbose, debug bool) (string, error) {
 
 // SetTasksWorkerFailed set to failed all task running worker workerName
 func SetTasksWorkerFailed(db *sql.DB, workerName string, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
 	wg.Add(1)
 	_, err := db.Exec("UPDATE task SET status = 'failed' WHERE workerName = ? AND status = 'running' ", workerName)
@@ -370,7 +354,6 @@ func SetTasksWorkerFailed(db *sql.DB, workerName string, verbose, debug bool, wg
 
 // SetTasksWorkerInvalid set to invalid all task running worker workerName
 func SetTasksWorkerInvalid(db *sql.DB, workerName string, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
 	wg.Add(1)
 	_, err := db.Exec("UPDATE task SET status = 'invalid' WHERE workerName = ? AND status = 'running' ", workerName)
@@ -385,7 +368,6 @@ func SetTasksWorkerInvalid(db *sql.DB, workerName string, verbose, debug bool, w
 
 // Generic helper function to execute a database update
 func executeDBUpdate(db *sql.DB, query string, args []interface{}, verbose, debug bool, wg *sync.WaitGroup, taskName string) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
 	wg.Add(1)
 	_, err := db.Exec(query, args...)
@@ -414,7 +396,6 @@ func SetTaskExecutedAtNow(db *sql.DB, id string, verbose, debug bool, wg *sync.W
 
 // SetTaskWorkerName saves the worker name of the task in the database
 func SetTaskWorkerName(db *sql.DB, id, workerName string, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
 	wg.Add(1)
 	// Update the workerName column of the task table for the given ID
@@ -430,7 +411,6 @@ func SetTaskWorkerName(db *sql.DB, id, workerName string, verbose, debug bool, w
 
 // setTasksWorkerEmpty remove the worker name of the task in the database
 func setTasksWorkerEmpty(db *sql.DB, workerName string, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
 	wg.Add(1)
 	// Update the workerName column of the task table for the given ID
@@ -446,7 +426,6 @@ func setTasksWorkerEmpty(db *sql.DB, workerName string, verbose, debug bool, wg 
 
 // SetTaskStatus saves the status of the task in the database
 func SetTaskStatus(db *sql.DB, id, status string, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
 	wg.Add(1)
 	// Update the status column of the task table for the given ID
@@ -462,7 +441,6 @@ func SetTaskStatus(db *sql.DB, id, status string, verbose, debug bool, wg *sync.
 
 // SetTasksStatusIfStatus saves the status of the task in the database if current status is currentStatus
 func SetTasksStatusIfStatus(currentStatus string, db *sql.DB, newStatus string, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
 	wg.Add(1)
 	// Update the status column of the task table for the given ID
@@ -478,7 +456,6 @@ func SetTasksStatusIfStatus(currentStatus string, db *sql.DB, newStatus string, 
 
 // SetTaskExecutedAt saves current time as executedAt
 func SetTaskExecutedAt(executedAt string, db *sql.DB, id string, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
 	defer wg.Done()
 	wg.Add(1)
 	// Update the status column of the task table for the given ID
