@@ -98,9 +98,13 @@ func handleMessage(msg globalstructs.WebsocketMessage, conn *websocket.Conn, con
 		handleCallbackTask(msg, config, db, verbose, debug, wg)
 	case "status":
 		handleWorkerStatus(msg, db, verbose, debug, wg)
+	case "OK;addTask":
+		if debug {
+			log.Println("Receive message OK;addTask from worker")
+		}
 	default:
 		if debug {
-			log.Printf("Unhandled message type: %s\n", msg.Type)
+			log.Printf("--------- Unhandled message type: %s\n", msg.Type)
 		}
 	}
 }

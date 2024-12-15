@@ -60,7 +60,7 @@ func UpdateTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sy
 	defer wg.Done()
 	wg.Add(1)
 
-	query := "UPDATE task SET notes=?, commands=?, files=?, name=?, status=?, WorkerName=?, priority=?, callbackURL=?, callbackToken=? WHERE ID=?"
+	query := "UPDATE task SET notes=?, commands=?, files=?, name=?, status=?, WorkerName=?, username=?, priority=?, callbackURL=?, callbackToken=? WHERE ID=?"
 	return executeTaskQuery(db, query, task, debug)
 }
 
