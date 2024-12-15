@@ -23,18 +23,35 @@ func serializeToJSON(data interface{}) (string, error) {
 	return string(structJSON), nil
 }
 
-// executeTaskQuery handles task insertion or update in the database.
-func executeTaskQuery(db *sql.DB, query string, task globalstructs.Task, debug bool) error {
+// prepareTaskQuery prepare task insertion or update in the database.
+func prepareTaskQuery(task globalstructs.Task, verbose, debug bool) (string, string, error) {
 	commandJSON, err := serializeToJSON(task.Commands)
 	if err != nil {
-		return err
+		return "", "", err
 	}
 
 	filesJSON, err := serializeToJSON(task.Files)
 	if err != nil {
-		return err
+		return "", "", err
 	}
 
+	if debug || verbose {
+		log.Println("prepareTaskQuery: filesJSON - ", filesJSON, " - commandJSON", commandJSON)
+	}
+
+	return commandJSON, filesJSON, nil
+}
+
+// AddTask adds a task to the database.
+func AddTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup) error {
+	defer wg.Done()
+	wg.Add(1)
+
+	query := "INSERT INTO task (ID, notes, commands, files, name, status, WorkerName, username, priority, callbackURL, callbackToken) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	commandJSON, filesJSON, err := prepareTaskQuery(task, verbose, debug)
+	if err != nil {
+		return err
+	}
 	_, err = db.Exec(query,
 		task.ID, task.Notes, commandJSON, filesJSON, task.Name, task.Status, task.WorkerName, task.Username, task.Priority, task.CallbackURL, task.CallbackToken)
 	if err != nil {
@@ -46,22 +63,28 @@ func executeTaskQuery(db *sql.DB, query string, task globalstructs.Task, debug b
 	return nil
 }
 
-// AddTask adds a task to the database.
-func AddTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup) error {
-	defer wg.Done()
-	wg.Add(1)
-
-	query := "INSERT INTO task (ID, notes, commands, files, name, status, WorkerName, username, priority, callbackURL, callbackToken) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-	return executeTaskQuery(db, query, task, debug)
-}
-
 // UpdateTask updates all fields of a task in the database.
 func UpdateTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup) error {
 	defer wg.Done()
 	wg.Add(1)
+	if debug {
+		log.Println("updating Task", task)
+	}
 
-	query := "UPDATE task SET notes=?, commands=?, files=?, name=?, status=?, WorkerName=?, username=?, priority=?, callbackURL=?, callbackToken=? WHERE ID=?"
-	return executeTaskQuery(db, query, task, debug)
+	query := "UPDATE task SET notes=?, commands=?, files=?, name=?, status=?, WorkerName=?, priority=?, callbackURL=?, callbackToken=? WHERE ID=?"
+	commandJSON, filesJSON, err := prepareTaskQuery(task, verbose, debug)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(query,
+		task.Notes, commandJSON, filesJSON, task.Name, task.Status, task.WorkerName, task.Priority, task.CallbackURL, task.CallbackToken, task.ID)
+	if err != nil {
+		if debug {
+			log.Println("DB Error DBTask Query Execution: ", err)
+		}
+		return err
+	}
+	return nil
 }
 
 // RmTask deletes a task from the database.

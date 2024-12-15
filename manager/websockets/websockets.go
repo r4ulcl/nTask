@@ -207,7 +207,7 @@ func callback(result globalstructs.Task, config *utils.ManagerConfig, db *sql.DB
 	// Update task with the worker one
 	err := database.UpdateTask(db, result, verbose, debug, wg)
 	if err != nil {
-		if verbose {
+		if debug || verbose {
 			log.Println("WebSockets HandleCallback { \"error\" : \"Error UpdateTask: " + err.Error() + "\"}")
 		}
 
