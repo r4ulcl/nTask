@@ -103,3 +103,15 @@ func handleEntityStatus[T any](w http.ResponseWriter, r *http.Request, db *sql.D
 		http.Error(w, "{ \"error\" : \"Invalid "+entityName+" encode body: "+err.Error()+"\"}", http.StatusBadRequest)
 	}
 }
+
+func getUsername(r *http.Request, verbose, debug bool) (bool, string) {
+	username, ok := r.Context().Value(utils.UsernameKey).(string)
+	if debug {
+		log.Println("getUsername", username)
+	}
+	if !ok && (debug || verbose) {
+		log.Println("API { \"error\" : \"Unauthorized\" }")
+	}
+
+	return ok, username
+}

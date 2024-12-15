@@ -42,9 +42,8 @@ import (
 // @security ApiKeyAuth
 // @router /task [get]
 func HandleTaskGet(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
-	_, ok := r.Context().Value(utils.UsernameKey).(string)
+	ok, _ := getUsername(r, verbose, debug)
 	if !ok {
-		// if not username is a worker
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
@@ -95,11 +94,8 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, 
 // @security ApiKeyAuth
 // @router /task [post]
 func HandleTaskPost(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
-	username, okUser := r.Context().Value(utils.UsernameKey).(string)
-	if !okUser {
-		if debug {
-			log.Println("API { \"error\" : \"Unauthorized\" }")
-		}
+	ok, username := getUsername(r, verbose, debug)
+	if !ok {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
