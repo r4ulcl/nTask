@@ -34,8 +34,8 @@ func AddTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sync.
 	filesJSON := string(structJSON)
 
 	// Insert the JSON data into the MySQL table
-	_, err = db.Exec("INSERT INTO task (ID, commands, files, name, status, WorkerName, username, priority, callbackURL, callbackToken) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		task.ID, commandJSON, filesJSON, task.Name, task.Status, task.WorkerName, task.Username, task.Priority, task.CallbackURL, task.CallbackToken)
+	_, err = db.Exec("INSERT INTO task (ID, notes, commands, files, name, status, WorkerName, username, priority, callbackURL, callbackToken) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		task.ID, task.Notes, commandJSON, filesJSON, task.Name, task.Status, task.WorkerName, task.Username, task.Priority, task.CallbackURL, task.CallbackToken)
 	if err != nil {
 		if debug {
 			log.Println("DB Error DBTask AddTask: ", err)
@@ -66,8 +66,8 @@ func UpdateTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sy
 	filesJSON := string(structJSON)
 
 	// Update all fields in the MySQL table
-	_, err = db.Exec("UPDATE task SET commands=?, files=?, name=?, status=?, WorkerName=?, priority=?, callbackURL=?, callbackToken=? WHERE ID=?",
-		commandJSON, filesJSON, task.Name, task.Status, task.WorkerName, task.Priority, task.CallbackURL, task.CallbackToken, task.ID)
+	_, err = db.Exec("UPDATE task SET notes=?, commands=?, files=?, name=?, status=?, WorkerName=?, priority=?, callbackURL=?, callbackToken=? WHERE ID=?",
+		task.Notes, commandJSON, filesJSON, task.Name, task.Status, task.WorkerName, task.Priority, task.CallbackURL, task.CallbackToken, task.ID)
 	if err != nil {
 		if debug {
 			log.Println("DB Error DBTask UpdateTask: ", err)
@@ -117,6 +117,7 @@ func buildFiltersWithParams(queryParams url.Values) (string, []interface{}) {
 
 	// Apply filters for various fields
 	addFilter("ID", "ID LIKE ?")
+	addFilter("notes", "notes LIKE ?")
 	addFilter("commands", "commands LIKE ?")
 	addFilter("files", "files LIKE ?")
 	addFilter("name", "name LIKE ?")
@@ -155,7 +156,7 @@ func GetTasks(r *http.Request, db *sql.DB, verbose, debug bool) ([]globalstructs
 	orderBy, limit, offset := buildOrderByAndLimit(getPage(queryParams), getLimit(queryParams))
 
 	// Base SQL query
-	sql := "SELECT ID, commands, files, name, createdAt, updatedAt, executedAt, status, workerName, username, priority, callbackURL, callbackToken FROM task WHERE 1=1"
+	sql := "SELECT ID, notes, commands, files, name, createdAt, updatedAt, executedAt, status, workerName, username, priority, callbackURL, callbackToken FROM task WHERE 1=1"
 
 	// Append filters
 	if filters != "" {
@@ -200,7 +201,7 @@ func getLimit(queryParams url.Values) int {
 
 // GetTasksPending Get Tasks  with status = Pending
 func GetTasksPending(limit int, db *sql.DB, verbose, debug bool) ([]globalstructs.Task, error) {
-	sql := "SELECT ID, commands, files, name, createdAt, updatedAt, executedAt, status, WorkerName, username, priority, callbackURL, callbackToken FROM task WHERE status = 'pending' ORDER BY priority DESC, createdAt ASC LIMIT ?"
+	sql := "SELECT ID, notes, commands, files, name, createdAt, updatedAt, executedAt, status, WorkerName, username, priority, callbackURL, callbackToken FROM task WHERE status = 'pending' ORDER BY priority DESC, createdAt ASC LIMIT ?"
 	return GetTasksSQL(sql, []interface{}{limit}, db, verbose, debug)
 }
 
@@ -225,7 +226,7 @@ func GetTasksSQL(sqlQuery string, args []interface{}, db *sql.DB, verbose, debug
 
 		// Scan row values into variables
 		err := rows.Scan(
-			&task.ID, &commandsAux, &filesAux, &task.Name,
+			&task.ID, &task.Notes, &commandsAux, &filesAux, &task.Name,
 			&task.CreatedAt, &task.UpdatedAt, &task.ExecutedAt, &task.Status,
 			&task.WorkerName, &task.Username, &task.Priority, &task.CallbackURL,
 			&task.CallbackToken,
@@ -264,6 +265,7 @@ func GetTasksSQL(sqlQuery string, args []interface{}, db *sql.DB, verbose, debug
 func GetTask(db *sql.DB, id string, verbose, debug bool) (globalstructs.Task, error) {
 	var task globalstructs.Task
 	// Retrieve the JSON data from the MySQL table
+	var notes string
 	var commandsAux string
 	var filesAux string
 	var name string
@@ -277,8 +279,8 @@ func GetTask(db *sql.DB, id string, verbose, debug bool) (globalstructs.Task, er
 	var callbackURL string
 	var callbackToken string
 
-	err := db.QueryRow("SELECT ID, createdAt, updatedAt, executedAt, commands, files, name, status, WorkerName, username, priority, callbackURL, callbackToken FROM task WHERE ID = ?",
-		id).Scan(&id, &createdAt, &updatedAt, &executedAt, &commandsAux, &filesAux, &name, &status, &workerName, &username, &priority, &callbackURL, &callbackToken)
+	err := db.QueryRow("SELECT ID, notes, createdAt, updatedAt, executedAt, commands, files, name, status, WorkerName, username, priority, callbackURL, callbackToken FROM task WHERE ID = ?",
+		id).Scan(&id, &notes, &createdAt, &updatedAt, &executedAt, &commandsAux, &filesAux, &name, &status, &workerName, &username, &priority, &callbackURL, &callbackToken)
 	if err != nil {
 		if debug {
 			log.Println("DB Error DBTask GetTask: ", err)
@@ -303,6 +305,7 @@ func GetTask(db *sql.DB, id string, verbose, debug bool) (globalstructs.Task, er
 	}
 	task.Files = files
 	task.Name = name
+	task.Notes = notes
 	task.CreatedAt = createdAt
 	task.UpdatedAt = updatedAt
 	task.ExecutedAt = executedAt
@@ -387,7 +390,7 @@ func executeDBUpdate(db *sql.DB, query string, args []interface{}, verbose, debu
 	wg.Add(1)
 	_, err := db.Exec(query, args...)
 	if err != nil {
-		if debug {
+		if debug || verbose {
 			log.Printf("DB Error %s: %v", taskName, err)
 		}
 		return err

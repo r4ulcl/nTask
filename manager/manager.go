@@ -170,18 +170,13 @@ func StartManager(swagger bool, configFile, configSSHFile, configCloudFile strin
 	// Initialize HTTP client
 	if config != nil {
 		initializeHTTPClient(config, verifyAltName, verbose, debug)
-	}
-	if config != nil {
 		startBackgroundTask(db, config, &wg, &writeLock, verbose, debug)
+		setupAndStartServers(swagger, config, db, &wg, &writeLock, verbose, debug)
 	}
+
 	// Start SSH background task
 	if configSSH != nil {
 		startSSHBackgroundTask(configSSH, config, verbose, debug)
-	}
-
-	// Setup and start servers
-	if config != nil {
-		setupAndStartServers(swagger, config, db, &wg, &writeLock, verbose, debug)
 	}
 
 	if configCloud != nil {
@@ -198,6 +193,33 @@ func loadManagerConfigurations(configFile string, verbose, debug bool) (*utils.M
 	if err != nil {
 		return nil, fmt.Errorf("Error loading config file")
 	}
+
+	// Load default values
+	if config.APIIdleTimeout <= 0 {
+		config.APIIdleTimeout = 60
+	}
+	if config.APIReadTimeout <= 0 {
+		config.APIIdleTimeout = 60
+	}
+	if config.APIWriteTimeout <= 0 {
+		config.APIIdleTimeout = 60
+	}
+	if config.APIIdleTimeout <= 0 {
+		config.APIIdleTimeout = 60
+	}
+	if config.HTTPPort <= 0 {
+		config.APIIdleTimeout = 8080
+	}
+	if config.HTTPSPort <= 0 {
+		config.APIIdleTimeout = 8443
+	}
+	if config.StatusCheckSeconds <= 0 {
+		config.StatusCheckSeconds = 10
+	}
+	if config.StatusCheckDown <= 0 {
+		config.StatusCheckDown = 360
+	}
+
 	return config, nil
 }
 
@@ -341,9 +363,9 @@ func startServers(router *mux.Router, config *utils.ManagerConfig, verbose, debu
 		httpsServer := &http.Server{
 			Addr:         httpsAddr,
 			Handler:      router,
-			ReadTimeout:  10 * time.Second,
-			WriteTimeout: 10 * time.Second,
-			IdleTimeout:  15 * time.Second,
+			ReadTimeout:  time.Duration(config.APIReadTimeout) * time.Second,
+			WriteTimeout: time.Duration(config.APIWriteTimeout) * time.Second,
+			IdleTimeout:  time.Duration(config.APIIdleTimeout) * time.Second,
 		}
 		go func() {
 			if err := httpsServer.ListenAndServeTLS(config.CertFolder+"/cert.pem", config.CertFolder+"/key.pem"); err != nil {

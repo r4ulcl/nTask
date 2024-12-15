@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS worker (
 
 CREATE TABLE IF NOT EXISTS task (
     ID VARCHAR(255) PRIMARY KEY,
+    notes LONGTEXT,
     commands LONGTEXT,
     files LONGTEXT,
     name TEXT,

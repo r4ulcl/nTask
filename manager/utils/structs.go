@@ -12,6 +12,9 @@ type ManagerConfig struct {
 	Workers            map[string]string          `json:"workers"`
 	HTTPPort           int                        `json:"httpPort"`
 	HTTPSPort          int                        `json:"httpsPort"`
+	APIReadTimeout     int                        `json:"apiReadTimeout"`
+	APIWriteTimeout    int                        `json:"apiWriteTimeout"`
+	APIIdleTimeout     int                        `json:"apiIdleTimeout"`
 	DBUsername         string                     `json:"dbUsername"`
 	DBPassword         string                     `json:"dbPassword"`
 	DBHost             string                     `json:"dbHost"`

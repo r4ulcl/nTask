@@ -623,6 +623,9 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "notes": {
+                    "type": "string"
+                },
                 "priority": {
                     "type": "integer"
                 },
@@ -657,6 +660,9 @@ const docTemplate = `{
                     }
                 },
                 "name": {
+                    "type": "string"
+                },
+                "notes": {
                     "type": "string"
                 },
                 "priority": {

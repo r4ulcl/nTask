@@ -8,6 +8,7 @@ import "github.com/gorilla/websocket"
 // Task Struct to store all Task information.
 type Task struct {
 	ID            string    `json:"id"`
+	Notes         string    `json:"notes"`
 	Commands      []Command `json:"commands"`
 	Files         []File    `json:"files"`
 	Name          string    `json:"name"`
@@ -40,6 +41,7 @@ type TaskSwagger struct {
 	Commands []CommandSwagger `json:"commands"`
 	Files    []File           `json:"files"`
 	Name     string           `json:"name"`
+	Notes    string           `json:"notes"`
 	Priority int              `json:"priority"`
 }
 
