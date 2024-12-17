@@ -516,3 +516,66 @@ func GetCountByStatus(status string, db *sql.DB, verbose, debug bool) (int, erro
 
 	return count, nil
 }
+
+// DeleteMaxEntriesHistory Delete Database Entries if entries number > maxEntries
+func DeleteMaxEntriesHistory(db *sql.DB, maxEntries int, tableName string, verbose, debug bool, wg *sync.WaitGroup) error {
+	defer wg.Done()
+	wg.Add(1)
+	// Step 1: Count total entries in the table
+	countQuery := "SELECT COUNT(*) FROM " + tableName + " WHERE status = 'done'"
+	var totalEntries int
+	if err := db.QueryRow(countQuery).Scan(&totalEntries); err != nil {
+		return fmt.Errorf("failed to count entries in table %s: %w", tableName, err)
+	}
+	if verbose || debug {
+		log.Printf("DeleteMaxEntriesHistory - Table %s has %d entries\n", tableName, totalEntries)
+	}
+
+	// Step 2: If total entries are within the limit, return
+	if totalEntries <= maxEntries {
+		if debug {
+			log.Printf("DeleteMaxEntriesHistory - No deletion needed; %d <= %d\n", totalEntries, maxEntries)
+		}
+		return nil
+	}
+
+	// Step 3: Calculate the number of entries to delete
+	entriesToDelete := totalEntries - maxEntries
+	if debug {
+		log.Printf("DeleteMaxEntriesHistory - Need to delete %d entries from table %s\n", entriesToDelete, tableName)
+	}
+
+	// Step 4: Delete the oldest entries
+	// Assuming the table has columns `id` and `created_at`. Adjust as needed.
+	deleteQuery := fmt.Sprintf(`
+	WITH cte AS (
+		SELECT ID
+		FROM %s
+		WHERE status = "done"
+		ORDER BY createdAt ASC
+		LIMIT ?
+	)
+	DELETE FROM %s
+	WHERE ID IN (SELECT ID FROM cte)
+`, tableName, tableName)
+
+	result, err := db.Exec(deleteQuery, entriesToDelete)
+	if err != nil {
+		return fmt.Errorf("DeleteMaxEntriesHistory - failed to delete old entries from table %s: %w", tableName, err)
+	}
+
+	if debug {
+		log.Println("DeleteMaxEntriesHistory - db.Exec", result, err)
+	}
+
+	// Step 5: Log the number of rows affected
+	rowsDeleted, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("DeleteMaxEntriesHistory - failed to fetch rows affected: %w", err)
+	}
+	if verbose || debug {
+		log.Printf("DeleteMaxEntriesHistory - Deleted %d old entries from table %s\n", rowsDeleted, tableName)
+	}
+
+	return nil
+}

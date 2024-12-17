@@ -26,6 +26,7 @@ type ManagerConfig struct {
 	CertFolder         string                     `json:"certFolder"`
 	ClientHTTP         *http.Client               `json:"clientHTTP"`
 	WebSockets         map[string]*websocket.Conn `json:"webSockets"`
+	MaxTaskHistory     int                        `json:"maxTaskHistory"`
 }
 
 // ManagerSSHConfig manager SSH config struct

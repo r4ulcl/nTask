@@ -220,6 +220,10 @@ func loadManagerConfigurations(configFile string, verbose, debug bool) (*utils.M
 		config.StatusCheckDown = 360
 	}
 
+	if config.MaxTaskHistory < 0 {
+		config.MaxTaskHistory = 0
+	}
+
 	return config, nil
 }
 
@@ -308,6 +312,7 @@ func startSSHBackgroundTask(configSSH *utils.ManagerSSHConfig, config *utils.Man
 func startBackgroundTask(db *sql.DB, config *utils.ManagerConfig, wg *sync.WaitGroup, writeLock *sync.Mutex, verbose, debug bool) {
 	go utils.VerifyWorkersLoop(db, config, verbose, debug, wg, writeLock)
 	go utils.ManageTasks(config, db, verbose, debug, wg, writeLock)
+	go utils.DeleteMaxTaskHistoryLoop(db, config, verbose, debug, wg)
 }
 
 func setupAndStartServers(swagger bool, config *utils.ManagerConfig, db *sql.DB, wg *sync.WaitGroup, writeLock *sync.Mutex, verbose, debug bool) {

@@ -14,7 +14,8 @@ func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *syn
 	// infinite loop eecuted with go routine
 	for {
 		// Get all tasks in order and if priority
-		tasks, err := database.GetTasksPending(100, db, verbose, debug)
+		workersThreads := getWorkersThreads(db, verbose, debug) + 10
+		tasks, err := database.GetTasksPending(workersThreads, db, verbose, debug)
 		if err != nil {
 			log.Println(err.Error())
 		}
@@ -57,8 +58,9 @@ func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *syn
 		} else {
 			if len(tasks) == 0 {
 				time.Sleep(time.Second * 1)
+			} else if len(workers) == 0 {
+				time.Sleep(time.Millisecond * 500)
 			}
 		}
-		time.Sleep(time.Millisecond * 500)
 	}
 }

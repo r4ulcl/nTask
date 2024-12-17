@@ -43,12 +43,49 @@ func VerifyWorkersLoop(db *sql.DB, config *ManagerConfig, verbose, debug bool, w
 	}
 }
 
-// verifyWorkers checks and sets if the workers are UP.
-func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
-	// Get all UP workers from the database
+// DeleteMaxTaskHistoryLoop Loop and Delete Database Entries if num tasks > config.MaxTaskHistory
+func DeleteMaxTaskHistoryLoop(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup) {
+	maxEntries := config.MaxTaskHistory
+	tableName := "task"
+	if maxEntries > 0 {
+		for {
+			err := database.DeleteMaxEntriesHistory(db, maxEntries, tableName, verbose, debug, wg)
+			if err != nil && (verbose || debug) {
+				log.Println("Error DeleteMaxEntriesHistory:", err)
+			}
+			time.Sleep(1 * time.Hour)
+		}
+	}
+}
+
+// getWorkersThreads get DefaultThreads of all workers
+func getWorkersThreads(db *sql.DB, verbose, debug bool) int {
+
+	workersThreads := 0
+	// Get all workers from the database
 	workers, err := database.GetWorkers(db, verbose, debug)
 	if err != nil {
-		log.Print("GetWorkerUP", err)
+		log.Print("GetWorker", err)
+	}
+
+	// Verify each worker
+	for _, worker := range workers {
+		workersThreads += worker.DefaultThreads
+	}
+
+	if debug {
+		log.Println("getWorkersThreads workersThreads", workersThreads)
+	}
+
+	return workersThreads
+}
+
+// verifyWorkers checks and sets if the workers are UP.
+func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
+	// Get all workers from the database
+	workers, err := database.GetWorkers(db, verbose, debug)
+	if err != nil {
+		log.Print("GetWorker", err)
 	}
 
 	// Verify each worker
