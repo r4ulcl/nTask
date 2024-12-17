@@ -383,9 +383,9 @@ func startServers(router *mux.Router, config *utils.ManagerConfig, verbose, debu
 		httpServer := &http.Server{
 			Addr:         httpAddr,
 			Handler:      router,
-			ReadTimeout:  10 * time.Second,
-			WriteTimeout: 10 * time.Second,
-			IdleTimeout:  15 * time.Second,
+			ReadTimeout:  time.Duration(config.APIReadTimeout) * time.Second,
+			WriteTimeout: time.Duration(config.APIWriteTimeout) * time.Second,
+			IdleTimeout:  time.Duration(config.APIIdleTimeout) * time.Second,
 		}
 		go func() {
 			if err := httpServer.ListenAndServe(); err != nil {

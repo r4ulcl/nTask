@@ -28,12 +28,13 @@ CREATE TABLE IF NOT EXISTS task (
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     executedAt TIMESTAMP NOT NULL DEFAULT '1970-01-01 00:00:01',
-    status VARCHAR(255), 
+    status VARCHAR(255),
     workerName VARCHAR(255),
     username VARCHAR(255),
     priority INT DEFAULT 0,
     callbackURL TEXT,
-    callbackToken TEXT
+    callbackToken TEXT,
+    INDEX idx_status (status)
 );
 `
 
