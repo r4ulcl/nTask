@@ -79,6 +79,8 @@ You can connect another API, Telegram bot ot a simple bash script to the manager
 
 - **Logging**: Output logging to file is supported, facilitating easy tracking and analysis of task execution.
 
+- **Timeout**: Timeout on tasks.
+
 - **Documentation and Web Interface**: nTask provides Swagger documentation for easy integration and interaction with the API, along with an optional web interface for a more user-friendly experience.
 
 ## Installation
@@ -493,6 +495,8 @@ The diagram above illustrates the architecture of the nTask Manager and its inte
 
 ## TODO
 - [ ] Code tests
+- [x] Timeouts
+- [x] Notes in tasks
 - [x] DigitalOcean API
   - [x] Get list of droplets to SSH connect
   - [x] Create droplets from snapshot

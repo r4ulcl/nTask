@@ -19,6 +19,7 @@ type Task struct {
 	WorkerName    string    `json:"workerName"`
 	Username      string    `json:"username"`
 	Priority      int       `json:"priority"`
+	Timeout       int       `json:"timeout"` // timeout in seconds
 	CallbackURL   string    `json:"callbackURL"`
 	CallbackToken string    `json:"callbackToken"`
 }
@@ -43,6 +44,7 @@ type TaskSwagger struct {
 	Name     string           `json:"name"`
 	Notes    string           `json:"notes"`
 	Priority int              `json:"priority"`
+	Timeout  int              `json:"timeout"` // timeout in seconds
 }
 
 // CommandSwagger Command struct for swagger documentation

@@ -633,6 +633,10 @@ const docTemplate = `{
                     "description": "pending, running, done, failed, deleted",
                     "type": "string"
                 },
+                "timeout": {
+                    "description": "timeout in seconds",
+                    "type": "integer"
+                },
                 "updatedAt": {
                     "type": "string"
                 },
@@ -666,6 +670,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "priority": {
+                    "type": "integer"
+                },
+                "timeout": {
+                    "description": "timeout in seconds",
                     "type": "integer"
                 }
             }

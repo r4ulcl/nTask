@@ -2,6 +2,7 @@ package modules
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"log"
@@ -223,37 +224,71 @@ func getDirectory(filePath string) string {
 
 // ProcessModule processes a task by iterating through its commands and executing corresponding modules
 func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status *globalstructs.WorkerStatus, id string, verbose, debug bool) error {
-	for num, command := range task.Commands {
-		module := command.Module
-		arguments := command.Args
-
-		// Check if the module exists in the worker configuration
-		commandAux, found := config.Modules[module]
-		if !found {
-			// Return an error if the module is not found
-			return fmt.Errorf("unknown command: %s", module)
-		}
-
-		if verbose {
-			log.Println("Modules commandAux: ", commandAux)
-			log.Println("Modules arguments: ", arguments)
-		}
-
-		// Execute the module and get the output and any error
-		outputCommand, err := runModule(config, commandAux, arguments, status, id, verbose, debug)
-		if err != nil {
-			// Save the text error in the task output to review
-			task.Commands[num].Output = outputCommand + ";" + err.Error()
-			// Return an error if there is an issue running the module
-			return fmt.Errorf("error running %s task: %v", commandAux, err)
-		}
-
-		// Store the output in the task struct for the current command
-		task.Commands[num].Output = outputCommand
+	// Define a context with timeout for the entire task
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if task.Timeout > 0 {
+		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(task.Timeout)*time.Second)
+	} else {
+		ctx, cancel = context.WithCancel(context.Background())
 	}
+	defer cancel()
 
-	// Return nil if the task is processed successfully
-	return nil
+	// Channel to signal a timeout or completion
+	done := make(chan error, 1)
+
+	// Run the task processing in a separate goroutine
+	go func() {
+		for num, command := range task.Commands {
+			module := command.Module
+			arguments := command.Args
+
+			// Check if the module exists in the worker configuration
+			commandAux, found := config.Modules[module]
+			if !found {
+				// Send an error if the module is not found
+				done <- fmt.Errorf("unknown command: %s", module)
+				return
+			}
+
+			if verbose {
+				log.Println("Modules commandAux: ", commandAux)
+				log.Println("Modules arguments: ", arguments)
+			}
+
+			// Execute the module and get the output and any error
+			outputCommand, err := runModule(config, commandAux, arguments, status, id, verbose, debug)
+			if err != nil {
+				// Save the text error in the task output to review
+				task.Commands[num].Output = outputCommand + ";" + err.Error()
+				// Send an error if there is an issue running the module
+				done <- fmt.Errorf("error running %s task: %v", commandAux, err)
+				return
+			}
+
+			// Store the output in the task struct for the current command
+			task.Commands[num].Output = outputCommand
+		}
+
+		// Signal successful completion
+		done <- nil
+	}()
+
+	// Wait for the task to complete or timeout
+	select {
+	case err := <-done:
+		if err != nil {
+			return err
+		}
+		// Return nil if the task is processed successfully
+		return nil
+	case <-ctx.Done():
+		// Set a timeout error for all commands if the context times out
+		for i := range task.Commands {
+			task.Commands[i].Output = "Timeout error: task exceeded the time limit"
+		}
+		return fmt.Errorf("timeout processing task: exceeded %d seconds", task.Timeout)
+	}
 }
 
 func stringList(list []string, verbose, debug bool) string {

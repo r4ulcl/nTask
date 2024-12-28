@@ -57,6 +57,9 @@ definitions:
       status:
         description: pending, running, done, failed, deleted
         type: string
+      timeout:
+        description: timeout in seconds
+        type: integer
       updatedAt:
         type: string
       username:
@@ -79,6 +82,9 @@ definitions:
       notes:
         type: string
       priority:
+        type: integer
+      timeout:
+        description: timeout in seconds
         type: integer
     type: object
   globalstructs.Worker:

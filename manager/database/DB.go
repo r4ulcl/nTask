@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS task (
     workerName VARCHAR(255),
     username VARCHAR(255),
     priority INT DEFAULT 0,
+    timeout INT DEFAULT 0,
     callbackURL TEXT,
     callbackToken TEXT,
     INDEX idx_status (status)

@@ -32,6 +32,7 @@ import (
 // @param workerName query string false "Task workerName"
 // @param username query string false "Task username"
 // @param priority query string false "Task priority"
+// @param timeout query string false "Task timeout"
 // @param callbackURL query string false "Task callbackURL"
 // @param callbackToken query string false "Task callbackToken"
 // @param limit query int false "limit output DB"
