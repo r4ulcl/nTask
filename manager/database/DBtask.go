@@ -187,7 +187,7 @@ func GetTasks(r *http.Request, db *sql.DB, verbose, debug bool) ([]globalstructs
 	}
 
 	// Fetch tasks using the constructed SQL query
-	return GetTasksSQL(sql, args, db, verbose, debug)
+	return getTasksSQL(sql, args, db, verbose, debug)
 }
 
 func getPage(queryParams url.Values) int {
@@ -211,18 +211,18 @@ func getLimit(queryParams url.Values) int {
 // GetTasksPending Get Tasks  with status = Pending
 func GetTasksPending(limit int, db *sql.DB, verbose, debug bool) ([]globalstructs.Task, error) {
 	sql := "SELECT ID, notes, commands, files, name, createdAt, updatedAt, executedAt, status, WorkerName, username, priority, timeout, callbackURL, callbackToken FROM task WHERE status = 'pending' ORDER BY priority DESC, createdAt ASC LIMIT ?"
-	return GetTasksSQL(sql, []interface{}{limit}, db, verbose, debug)
+	return getTasksSQL(sql, []interface{}{limit}, db, verbose, debug)
 }
 
-// GetTasksSQL executes a parameterized SQL query to fetch tasks.
-func GetTasksSQL(sqlQuery string, args []interface{}, db *sql.DB, verbose, debug bool) ([]globalstructs.Task, error) {
+// getTasksSQL executes a parameterized SQL query to fetch tasks.
+func getTasksSQL(sqlQuery string, args []interface{}, db *sql.DB, verbose, debug bool) ([]globalstructs.Task, error) {
 	var tasks []globalstructs.Task
 
 	// Execute the parameterized query
 	rows, err := db.Query(sqlQuery, args...)
 	if err != nil {
 		if debug {
-			log.Println("DB Error DBTask GetTasksSQL:", sqlQuery, err)
+			log.Println("DB Error DBTask getTasksSQL:", sqlQuery, err)
 		}
 		return tasks, err
 	}
@@ -242,7 +242,7 @@ func GetTasksSQL(sqlQuery string, args []interface{}, db *sql.DB, verbose, debug
 		)
 		if err != nil {
 			if debug {
-				log.Println("DB Error DBTask GetTasksSQL: Row Scan", err)
+				log.Println("DB Error DBTask getTasksSQL: Row Scan", err)
 			}
 			return tasks, err
 		}
@@ -262,7 +262,7 @@ func GetTasksSQL(sqlQuery string, args []interface{}, db *sql.DB, verbose, debug
 	// Check for errors during row iteration
 	if err := rows.Err(); err != nil {
 		if debug {
-			log.Println("DB Error DBTask GetTasksSQL: Rows Iteration", err)
+			log.Println("DB Error DBTask getTasksSQL: Rows Iteration", err)
 		}
 		return tasks, err
 	}
@@ -330,15 +330,15 @@ func GetTask(db *sql.DB, id string, verbose, debug bool) (globalstructs.Task, er
 	return task, nil
 }
 
-// GetTaskExecutedAt Get Task ExecutedAt by id
-func GetTaskExecutedAt(db *sql.DB, id string, verbose, debug bool) (string, error) {
+// getTaskExecutedAt Get Task ExecutedAt by id
+func getTaskExecutedAt(db *sql.DB, id string, verbose, debug bool) (string, error) {
 	// Retrieve the workerName from the task table
 	var executedAt string
 	err := db.QueryRow("SELECT executedAt FROM task WHERE ID = ?",
 		id).Scan(&executedAt)
 	if err != nil {
 		if debug {
-			log.Println("DB Error DBTask GetTaskExecutedAt: ", err)
+			log.Println("DB Error DBTask getTaskExecutedAt: ", err)
 		}
 		return executedAt, err
 	}
@@ -347,16 +347,16 @@ func GetTaskExecutedAt(db *sql.DB, id string, verbose, debug bool) (string, erro
 }
 
 /*
-// GetTaskWorker gets task workerName from an ID
+// getTaskWorker gets task workerName from an ID
 // This is the worker executing the task
-func GetTaskWorker(db *sql.DB, id string, verbose, debug bool) (string, error) {
+func getTaskWorker(db *sql.DB, id string, verbose, debug bool) (string, error) {
 	// Retrieve the workerName from the task table
 	var workerName string
 	err := db.QueryRow("SELECT WorkerName FROM task WHERE ID = ?",
 		id).Scan(&workerName)
 	if err != nil {
 		if debug {
-			log.Println("DB Error DBTask GetTaskWorker: ", err)
+			log.Println("DB Error DBTask getTaskWorker: ", err)
 		}
 		return workerName, err
 	}
@@ -364,28 +364,28 @@ func GetTaskWorker(db *sql.DB, id string, verbose, debug bool) (string, error) {
 	return workerName, nil
 }
 
-// SetTasksWorkerFailed set to failed all task running worker workerName
-func SetTasksWorkerFailed(db *sql.DB, workerName string, verbose, debug bool, wg *sync.WaitGroup) error {
+// setTasksWorkerFailed set to failed all task running worker workerName
+func setTasksWorkerFailed(db *sql.DB, workerName string, verbose, debug bool, wg *sync.WaitGroup) error {
 	defer wg.Done()
 	wg.Add(1)
 	_, err := db.Exec("UPDATE task SET status = 'failed' WHERE workerName = ? AND status = 'running' ", workerName)
 	if err != nil {
 		if debug {
-			log.Println("DB Error DBTask SetTasksWorkerFailed: ", err)
+			log.Println("DB Error DBTask setTasksWorkerFailed: ", err)
 		}
 		return err
 	}
 	return nil
 }
 
-// SetTasksWorkerInvalid set to invalid all task running worker workerName
-func SetTasksWorkerInvalid(db *sql.DB, workerName string, verbose, debug bool, wg *sync.WaitGroup) error {
+// setTasksWorkerInvalid set to invalid all task running worker workerName
+func setTasksWorkerInvalid(db *sql.DB, workerName string, verbose, debug bool, wg *sync.WaitGroup) error {
 	defer wg.Done()
 	wg.Add(1)
 	_, err := db.Exec("UPDATE task SET status = 'invalid' WHERE workerName = ? AND status = 'running' ", workerName)
 	if err != nil {
 		if debug {
-			log.Println("DB Error DBTask SetTasksWorkerInvalid: ", err)
+			log.Println("DB Error DBTask setTasksWorkerInvalid: ", err)
 		}
 		return err
 	}

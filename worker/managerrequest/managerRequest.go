@@ -72,8 +72,8 @@ func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writ
 	return nil
 }
 
-// SendWebSocketMessage is a helper function to send a WebSocket message to the manager
-func SendWebSocketMessage(config *utils.WorkerConfig, messageType string, payload interface{}, verbose, debug bool, writeLock *sync.Mutex) error {
+// sendWebSocketMessage is a helper function to send a WebSocket message to the manager
+func sendWebSocketMessage(config *utils.WorkerConfig, messageType string, payload interface{}, verbose, debug bool, writeLock *sync.Mutex) error {
 	// Marshal the payload into JSON
 	payloadData, err := json.Marshal(payload)
 	if err != nil {
@@ -113,7 +113,7 @@ func AddWorker(config *utils.WorkerConfig, verbose, debug bool, writeLock *sync.
 		DownCount:      0,
 	}
 
-	return SendWebSocketMessage(config, "addWorker", worker, verbose, debug, writeLock)
+	return sendWebSocketMessage(config, "addWorker", worker, verbose, debug, writeLock)
 }
 
 // DeleteWorker sends a POST request to delete a worker from the manager
@@ -125,10 +125,10 @@ func DeleteWorker(config *utils.WorkerConfig, verbose, debug bool, writeLock *sy
 		DownCount:    0,
 	}
 
-	return SendWebSocketMessage(config, "deleteWorker", worker, verbose, debug, writeLock)
+	return sendWebSocketMessage(config, "deleteWorker", worker, verbose, debug, writeLock)
 }
 
 // CallbackTaskMessage sends a POST request to the manager with a task message
 func CallbackTaskMessage(config *utils.WorkerConfig, task *globalstructs.Task, verbose, debug bool, writeLock *sync.Mutex) error {
-	return SendWebSocketMessage(config, "callbackTask", task, verbose, debug, writeLock)
+	return sendWebSocketMessage(config, "callbackTask", task, verbose, debug, writeLock)
 }

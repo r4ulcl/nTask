@@ -54,7 +54,7 @@ func RmWorkerName(db *sql.DB, name string, verbose, debug bool, wg *sync.WaitGro
 // GetWorkers retrieves all workers from the database.
 func GetWorkers(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
 	sql := "SELECT name, defaultThreads, iddleThreads, up, downCount FROM worker;"
-	return GetWorkerSQL(sql, db, verbose, debug)
+	return getWorkerSQL(sql, db, verbose, debug)
 }
 
 // GetWorker retrieves a worker from the database by its name.
@@ -145,17 +145,17 @@ func SetIddleThreadsTo(IddleThreads int, db *sql.DB, worker string, verbose, deb
 // GetWorkerIddle retrieves all workers that are iddle.
 func GetWorkerIddle(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
 	sql := "SELECT name, defaultThreads, iddleThreads, up, downCount FROM worker WHERE up = true AND IddleThreads > 0 ORDER BY RAND();"
-	return GetWorkerSQL(sql, db, verbose, debug)
+	return getWorkerSQL(sql, db, verbose, debug)
 }
 
-// GetWorkerUP retrieves all workers that are up.
-func GetWorkerUP(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
+// getWorkerUP retrieves all workers that are up.
+func getWorkerUP(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
 	sql := "SELECT name, defaultThreads, iddleThreads, up, downCount FROM worker WHERE up = true;"
-	return GetWorkerSQL(sql, db, verbose, debug)
+	return getWorkerSQL(sql, db, verbose, debug)
 }
 
-// GetWorkerSQL retrieves workers information based on a SQL statement.
-func GetWorkerSQL(sql string, db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
+// getWorkerSQL retrieves workers information based on a SQL statement.
+func getWorkerSQL(sql string, db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
 	// Slice to store all workers
 	var workers []globalstructs.Worker
 
@@ -293,25 +293,6 @@ func GetDownCount(db *sql.DB, verbose, debug bool) (int, error) {
 
 	return count, nil
 }
-
-/*
-// AddWorkerIddleThreads1 sets the status of a worker to the specified working value using the worker's name.
-func AddWorkerIddleThreads2222(db *sql.DB, worker string, verbose, debug bool, wg *sync.WaitGroup) error {
-	defer wg.Done()
-	wg.Add(1)
-	if debug {
-		log.Println("DB AddWorkerIddleThreads1 worker name:", worker)
-	}
-	_, err := db.Exec("UPDATE worker SET IddleThreads = IddleThreads + 1 WHERE name = ?;",
-		worker)
-	if err != nil {
-		if debug {
-			log.Println("DB Error DBworkers: ", err)
-		}
-		return err
-	}
-	return nil
-}*/
 
 // SubtractWorkerIddleThreads1 Subtract WorkerIddleThreads 1 if >0
 func SubtractWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool, wg *sync.WaitGroup) error {
