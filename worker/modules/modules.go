@@ -68,7 +68,8 @@ func createInsecureCommand(command, arguments string, debug bool) *exec.Cmd {
 	if runtime.GOOS == "windows" {
 		return exec.Command("cmd", "/c", cmdStr)
 	} else if runtime.GOOS == "linux" {
-		return exec.Command("bash", "-c", cmdStr)
+		// use --login to load bashrc
+		return exec.Command("bash", "--login", "-c", cmdStr)
 	}
 
 	log.Fatal("Unsupported operating system")
