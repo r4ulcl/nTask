@@ -37,6 +37,13 @@ func Task(status *globalstructs.WorkerStatus, config *utils.WorkerConfig, task *
 		}
 	}
 
+	if config.DeleteFiles {
+		err = modules.DeleteFiles(task, verbose, debug)
+		if err != nil {
+			log.Println("Process Error DeleteFiles:", err)
+		}
+	}
+
 	// While manager doesnt responds loop
 	for {
 		err = managerrequest.CallbackTaskMessage(config, task, verbose, debug, writeLock)

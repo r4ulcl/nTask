@@ -14,6 +14,7 @@ type WorkerConfig struct {
 	ManagerIP         string            `json:"managerIP"`
 	ManagerPort       int               `json:"managerPort"`
 	ManagerOauthToken string            `json:"managerOauthToken"`
+	DeleteFiles       bool              `json:"deleteFiles"`
 	CA                string            `json:"ca"`
 	InsecureModules   bool              `json:"insecureModules"`
 	Modules           map[string]string `json:"modules"`

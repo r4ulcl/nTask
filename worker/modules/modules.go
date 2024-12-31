@@ -218,6 +218,31 @@ func ProcessFiles(task *globalstructs.Task, config *utils.WorkerConfig, status *
 	return nil
 }
 
+// DeleteFiles delete files send
+func DeleteFiles(task *globalstructs.Task, verbose, debug bool) error {
+	for num, file := range task.Files {
+		path := file.RemoteFilePath
+
+		// Attempt to delete the file
+		err := os.Remove(path)
+		if err != nil {
+			fmt.Printf("Error deleting file: %v\n", err)
+		}
+
+		// Verbose logging
+		if verbose {
+			fmt.Printf("Deleted file %d to %s\n", num+1, path)
+		}
+
+		// Debug logging
+		if debug {
+			fmt.Printf("Debug: File %d details - Path: %s, Content\n", num+1, path)
+		}
+	}
+
+	return nil
+}
+
 // getDirectory extracts the directory part from a file path using filepath.Dir
 func getDirectory(filePath string) string {
 	return filepath.Dir(filePath)
