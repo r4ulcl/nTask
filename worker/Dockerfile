@@ -2,6 +2,13 @@
 # STEP 1 build executable binary
 FROM golang:alpine as builder
 
+# Copy go.mod and go.sum first to cache dependencies
+COPY ./go.mod ./go.sum $GOPATH/src/github.com/r4ulcl/nTask/
+WORKDIR $GOPATH/src/github.com/r4ulcl/nTask
+
+# Download dependencies
+RUN go mod download 
+
 # copy files for compile
 COPY ./certs $GOPATH/src/github.com/r4ulcl/nTask/certs
 COPY ./docs $GOPATH/src/github.com/r4ulcl/nTask/docs
@@ -12,7 +19,6 @@ COPY ./main.go $GOPATH/src/github.com/r4ulcl/nTask/main.go
 COPY ./manager $GOPATH/src/github.com/r4ulcl/nTask/manager
 COPY ./worker $GOPATH/src/github.com/r4ulcl/nTask/worker
 
-WORKDIR $GOPATH/src/github.com/r4ulcl/nTask
 #get dependancies
 #RUN apk -U add alpine-sdk
 #RUN go get -d -v
