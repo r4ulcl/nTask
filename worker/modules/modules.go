@@ -265,6 +265,8 @@ func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status 
 
 	// Run the task processing in a separate goroutine
 	go func() {
+		// Start timer to measure the command execution time
+		startTime := time.Now()
 		for num, command := range task.Commands {
 			module := command.Module
 			arguments := command.Args
@@ -295,6 +297,9 @@ func ProcessModule(task *globalstructs.Task, config *utils.WorkerConfig, status 
 			// Store the output in the task struct for the current command
 			task.Commands[num].Output = outputCommand
 		}
+		// Calculate and save the duration in seconds
+		duration := time.Since(startTime).Seconds()
+		task.Duration = duration
 
 		// Signal successful completion
 		done <- nil

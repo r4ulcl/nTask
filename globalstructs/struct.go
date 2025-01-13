@@ -16,6 +16,7 @@ type Task struct {
 	UpdatedAt     string    `json:"updatedAt"`
 	ExecutedAt    string    `json:"executedAt"`
 	Status        string    `json:"status"` // pending, running, done, failed, deleted
+	Duration      float64   `json:"duration"`
 	WorkerName    string    `json:"workerName"`
 	Username      string    `json:"username"`
 	Priority      int       `json:"priority"`
