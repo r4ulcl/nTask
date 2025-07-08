@@ -333,6 +333,7 @@ func GetTask(db *sql.DB, id string, verbose, debug bool) (globalstructs.Task, er
 	return task, nil
 }
 
+/*
 // getTaskExecutedAt Get Task ExecutedAt by id
 func getTaskExecutedAt(db *sql.DB, id string, verbose, debug bool) (string, error) {
 	// Retrieve the workerName from the task table
@@ -349,7 +350,7 @@ func getTaskExecutedAt(db *sql.DB, id string, verbose, debug bool) (string, erro
 	return executedAt, nil
 }
 
-/*
+
 // getTaskWorker gets task workerName from an ID
 // This is the worker executing the task
 func getTaskWorker(db *sql.DB, id string, verbose, debug bool) (string, error) {
@@ -457,6 +458,10 @@ func setTasksWorkerEmpty(db *sql.DB, workerName string, verbose, debug bool, wg 
 func SetTaskStatus(db *sql.DB, id, status string, verbose, debug bool, wg *sync.WaitGroup) error {
 	defer wg.Done()
 	wg.Add(1)
+	if debug {
+		log.Println("SetTaskStatus", status, id)
+	}
+
 	// Update the status column of the task table for the given ID
 	_, err := db.Exec("UPDATE task SET status = ? WHERE ID = ?", status, id)
 	if err != nil {

@@ -37,9 +37,10 @@ func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writ
 
 // VerifyWorkersLoop checks and sets if the workers are UP infinitely.
 func VerifyWorkersLoop(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
-	for {
-		go verifyWorkers(db, config, verbose, debug, wg, writeLock)
-		time.Sleep(time.Duration(config.StatusCheckSeconds) * time.Second)
+	ticker := time.NewTicker(time.Duration(config.StatusCheckSeconds) * time.Second)
+	defer ticker.Stop()
+	for range ticker.C {
+		verifyWorkers(db, config, verbose, debug, wg, writeLock)
 	}
 }
 
@@ -63,7 +64,7 @@ func getWorkersThreads(db *sql.DB, verbose, debug bool) int {
 
 	workersThreads := 0
 	// Get all workers from the database
-	workers, err := database.GetWorkers(db, verbose, debug)
+	workers, err := database.GetWorkerUP(db, verbose, debug)
 	if err != nil {
 		log.Print("GetWorker", err)
 	}
@@ -140,23 +141,19 @@ func handleMissingWebSocket(worker *globalstructs.Worker, db *sql.DB, config *Ma
 	}
 
 	if downCount >= config.StatusCheckDown {
-		return setTasksToPending(worker, db, verbose, debug, wg)
+		err := database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
+		if err != nil {
+			return err
+		}
+
+		err = database.RmWorkerName(db, worker.Name, verbose, debug, wg)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
+
 	err = database.AddWorkerDownCount(db, worker, verbose, debug, wg)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func setTasksToPending(worker *globalstructs.Worker, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) error {
-	err := database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
-	if err != nil {
-		return err
-	}
-
-	err = database.RmWorkerName(db, worker.Name, verbose, debug, wg)
 	if err != nil {
 		return err
 	}

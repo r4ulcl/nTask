@@ -17,17 +17,34 @@ import (
 func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
 	var worker globalstructs.Worker
 
+	// 1) Pong handler stays the same:
 	setPongHandler(conn, &worker, debug)
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
+	// 2) Launch a background ping loop every 5s:
+	pingTicker := time.NewTicker(5 * time.Second)
+	defer pingTicker.Stop()
+	go func() {
+		for range pingTicker.C {
 			sendPing(conn, &worker, debug)
-		default:
-			processIncomingMessage(conn, config, db, &worker, verbose, debug, wg)
 		}
+	}()
+
+	// 3) Block on ReadMessage; on error, clean up and return
+	for {
+		_, p, err := conn.ReadMessage()
+		if err != nil {
+			// connection broken — unregister and stop
+			handleConnectionError(err, db, config, &worker, verbose, debug, wg)
+			return
+		}
+
+		msg, err := parseMessage(p, debug)
+		if err != nil {
+			// bad JSON; ignore and continue
+			continue
+		}
+
+		handleMessage(msg, conn, config, db, &worker, verbose, debug, wg)
 	}
 }
 
@@ -49,7 +66,7 @@ func sendPing(conn *websocket.Conn, worker *globalstructs.Worker, debug bool) {
 	}
 }
 
-func processIncomingMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) {
+func processIncomingMessage111(conn *websocket.Conn, config *utils.ManagerConfig, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) {
 	_, p, err := conn.ReadMessage()
 	if err != nil {
 		handleConnectionError(err, db, config, worker, verbose, debug, wg)

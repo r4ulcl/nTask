@@ -148,8 +148,8 @@ func GetWorkerIddle(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, er
 	return getWorkerSQL(sql, db, verbose, debug)
 }
 
-// getWorkerUP retrieves all workers that are up.
-func getWorkerUP(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
+// GetWorkerUP retrieves all workers that are up.
+func GetWorkerUP(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
 	sql := "SELECT name, defaultThreads, iddleThreads, up, downCount FROM worker WHERE up = true;"
 	return getWorkerSQL(sql, db, verbose, debug)
 }
