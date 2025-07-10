@@ -10,9 +10,33 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/go-sql-driver/mysql"
 	globalstructs "github.com/r4ulcl/nTask/globalstructs"
 )
+
+// execWithRetry wraps db.Exec to retry on MySQL deadlock (Error 1213).
+func execWithRetry(db *sql.DB, wg *sync.WaitGroup, query string, args ...interface{}) (sql.Result, error) {
+	wg.Add(1)
+	defer wg.Done()
+	const maxRetries = 3
+	var err error
+	for i := 0; i < maxRetries; i++ {
+		var result sql.Result
+		result, err = db.Exec(query, args...)
+		if err == nil {
+			return result, nil
+		}
+		// Retry on deadlock
+		if merr, ok := err.(*mysql.MySQLError); ok && merr.Number == 1213 {
+			time.Sleep(50 * time.Millisecond)
+			continue
+		}
+		return nil, err
+	}
+	return nil, fmt.Errorf("deadlock after %d retries for query %q: %q", maxRetries, query, err)
+}
 
 // serializeToJSON marshals a slice into a JSON string.
 func serializeToJSON(data interface{}) (string, error) {
@@ -44,16 +68,12 @@ func prepareTaskQuery(task globalstructs.Task, verbose, debug bool) (string, str
 
 // AddTask adds a task to the database.
 func AddTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup) error {
-	defer wg.Done()
-	wg.Add(1)
-
 	query := "INSERT INTO task (ID, notes, commands, files, name, status, duration, WorkerName, username, priority, timeout, callbackURL, callbackToken) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	commandJSON, filesJSON, err := prepareTaskQuery(task, verbose, debug)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(query,
-		task.ID, task.Notes, commandJSON, filesJSON, task.Name, task.Status, task.Duration, task.WorkerName, task.Username, task.Priority, task.Timeout, task.CallbackURL, task.CallbackToken)
+	_, err = execWithRetry(db, wg, query, task.ID, task.Notes, commandJSON, filesJSON, task.Name, task.Status, task.Duration, task.WorkerName, task.Username, task.Priority, task.Timeout, task.CallbackURL, task.CallbackToken)
 	if err != nil {
 		if debug {
 			log.Println("DB Error DBTask Query Execution: ", err)
@@ -65,8 +85,7 @@ func AddTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sync.
 
 // UpdateTask updates all fields of a task in the database.
 func UpdateTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup) error {
-	defer wg.Done()
-	wg.Add(1)
+
 	if debug {
 		log.Println("updating Task", task)
 	}
@@ -76,8 +95,14 @@ func UpdateTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sy
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(query,
-		task.Notes, commandJSON, filesJSON, task.Name, task.Status, task.Duration, task.WorkerName, task.Priority, task.Timeout, task.CallbackURL, task.CallbackToken, task.ID)
+
+	_, err = execWithRetry(db, wg, query,
+		task.Notes, commandJSON, filesJSON, task.Name,
+		task.Status, task.Duration, task.WorkerName,
+		task.Priority, task.Timeout, task.CallbackURL,
+		task.CallbackToken, task.ID,
+	)
+
 	if err != nil {
 		if debug {
 			log.Println("DB Error DBTask Query Execution: ", err)
@@ -89,14 +114,14 @@ func UpdateTask(db *sql.DB, task globalstructs.Task, verbose, debug bool, wg *sy
 
 // RmTask deletes a task from the database.
 func RmTask(db *sql.DB, id string, verbose, debug bool, wg *sync.WaitGroup) error {
-	defer wg.Done()
-	wg.Add(1)
+
 	// Worker exists, proceed with deletion
 	sqlStatement := "DELETE FROM task WHERE ID LIKE ?"
 	if debug {
 		log.Println("DB Delete ID: ", id)
 	}
-	result, err := db.Exec(sqlStatement, id)
+
+	result, err := execWithRetry(db, wg, sqlStatement, id)
 	if err != nil {
 		return err
 	}
@@ -398,9 +423,7 @@ func setTasksWorkerInvalid(db *sql.DB, workerName string, verbose, debug bool, w
 
 // Generic helper function to execute a database update
 func executeDBUpdate(db *sql.DB, query string, args []interface{}, verbose, debug bool, wg *sync.WaitGroup, taskName string) error {
-	defer wg.Done()
-	wg.Add(1)
-	_, err := db.Exec(query, args...)
+	_, err := execWithRetry(db, wg, query, args...)
 	if err != nil {
 		if debug || verbose {
 			log.Printf("DB Error %s: %v", taskName, err)
@@ -426,10 +449,10 @@ func SetTaskExecutedAtNow(db *sql.DB, id string, verbose, debug bool, wg *sync.W
 
 // SetTaskWorkerName saves the worker name of the task in the database
 func SetTaskWorkerName(db *sql.DB, id, workerName string, verbose, debug bool, wg *sync.WaitGroup) error {
-	defer wg.Done()
-	wg.Add(1)
+
 	// Update the workerName column of the task table for the given ID
-	_, err := db.Exec("UPDATE task SET workerName = ? WHERE ID = ?", workerName, id)
+	query := "UPDATE task SET workerName = ? WHERE ID = ?"
+	_, err := execWithRetry(db, wg, query, workerName, id)
 	if err != nil {
 		if debug {
 			log.Println("DB Error DBTask SetTaskWorkerName: ", err)
@@ -441,10 +464,10 @@ func SetTaskWorkerName(db *sql.DB, id, workerName string, verbose, debug bool, w
 
 // setTasksWorkerEmpty remove the worker name of the task in the database
 func setTasksWorkerEmpty(db *sql.DB, workerName string, verbose, debug bool, wg *sync.WaitGroup) error {
-	defer wg.Done()
-	wg.Add(1)
+
 	// Update the workerName column of the task table for the given ID
-	_, err := db.Exec("UPDATE task SET workerName = '' WHERE  workerName = ?", workerName)
+	query := "UPDATE task SET workerName = '' WHERE  workerName = ?"
+	_, err := execWithRetry(db, wg, query, workerName)
 	if err != nil {
 		if debug || verbose {
 			log.Println("DB Error DBTask SetTaskWorkerName: ", err)
@@ -456,14 +479,14 @@ func setTasksWorkerEmpty(db *sql.DB, workerName string, verbose, debug bool, wg 
 
 // SetTaskStatus saves the status of the task in the database
 func SetTaskStatus(db *sql.DB, id, status string, verbose, debug bool, wg *sync.WaitGroup) error {
-	defer wg.Done()
-	wg.Add(1)
+
 	if debug {
 		log.Println("SetTaskStatus", status, id)
 	}
 
 	// Update the status column of the task table for the given ID
-	_, err := db.Exec("UPDATE task SET status = ? WHERE ID = ?", status, id)
+	query := "UPDATE task SET status = ? WHERE ID = ?"
+	_, err := execWithRetry(db, wg, query, status, id)
 	if err != nil {
 		if debug {
 			log.Println("DB Error DBTask SetTaskStatus: ", err)
@@ -475,10 +498,10 @@ func SetTaskStatus(db *sql.DB, id, status string, verbose, debug bool, wg *sync.
 
 // SetTasksStatusIfStatus saves the status of the task in the database if current status is currentStatus
 func SetTasksStatusIfStatus(currentStatus string, db *sql.DB, newStatus string, verbose, debug bool, wg *sync.WaitGroup) error {
-	defer wg.Done()
-	wg.Add(1)
+
 	// Update the status column of the task table for the given ID
-	_, err := db.Exec("UPDATE task SET status = ? WHERE status = ?", newStatus, currentStatus)
+	query := "UPDATE task SET status = ? WHERE status = ?"
+	_, err := execWithRetry(db, wg, query, newStatus, currentStatus)
 	if err != nil {
 		if debug || verbose {
 			log.Println("DB Error DBTask SetTasksStatusIfRunning: ", err)
@@ -490,10 +513,10 @@ func SetTasksStatusIfStatus(currentStatus string, db *sql.DB, newStatus string, 
 
 // SetTaskExecutedAt saves current time as executedAt
 func SetTaskExecutedAt(executedAt string, db *sql.DB, id string, verbose, debug bool, wg *sync.WaitGroup) error {
-	defer wg.Done()
-	wg.Add(1)
+
 	// Update the status column of the task table for the given ID
-	_, err := db.Exec("UPDATE task SET executedAt = ? WHERE ID = ?", executedAt, id)
+	query := "UPDATE task SET executedAt = ? WHERE status = ?"
+	_, err := execWithRetry(db, wg, query, executedAt, id)
 	if err != nil {
 		if debug {
 			log.Println("DB Error DBTask SetTaskExecutedAt: ", err)
@@ -570,13 +593,14 @@ func DeleteMaxEntriesHistory(db *sql.DB, maxEntries int, tableName string, verbo
 	WHERE ID IN (SELECT ID FROM cte)
 `, tableName, tableName)
 
-	result, err := db.Exec(deleteQuery, entriesToDelete)
+	result, err := execWithRetry(db, wg, deleteQuery, entriesToDelete)
+
 	if err != nil {
 		return fmt.Errorf("DeleteMaxEntriesHistory - failed to delete old entries from table %s: %w", tableName, err)
 	}
 
 	if debug {
-		log.Println("DeleteMaxEntriesHistory - db.Exec", result, err)
+		log.Println("DeleteMaxEntriesHistory - execWithRetry", result, err)
 	}
 
 	// Step 5: Log the number of rows affected

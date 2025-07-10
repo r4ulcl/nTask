@@ -287,7 +287,8 @@ func setInitialTaskStatus(db *sql.DB, verbose, debug bool) {
 		log.Println("Manager Setting tasks with running status to failed")
 	}
 	var wg sync.WaitGroup
-	if err := database.SetTasksStatusIfStatus("running", db, "failed", verbose, debug, &wg); err != nil {
+	// if the manager app restarst, set al running to pending to launch again
+	if err := database.SetTasksStatusIfStatus("running", db, "pending", verbose, debug, &wg); err != nil {
 		log.Printf("Error setting task statuses: %v", err)
 	}
 }
