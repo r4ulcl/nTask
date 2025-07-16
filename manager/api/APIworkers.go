@@ -171,8 +171,6 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, db *sql.DB, 
 	vars := mux.Vars(r)
 	name := vars["NAME"]
 
-	// TODO
-
 	err := database.RmWorkerName(db, name, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \"RmWorkerName: "+err.Error()+"\"}", http.StatusBadRequest)
