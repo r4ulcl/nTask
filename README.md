@@ -32,6 +32,13 @@
     <a href="https://hub.docker.com/r/r4ulcl/ntask-worker">
     <img src="https://github.com/r4ulcl/nTask/actions/workflows/build-worker.yml/badge.svg" alt="ntask-worker Docker Image ">
   </a>
+    <br>
+      <a href="https://hub.docker.com/r/r4ulcl/ntask-manager">
+    <img src="https://github.com/r4ulcl/nTask/actions/workflows/build-worker-dev.yml/badge.svg" alt="ntask-worker Docker Image ">
+  </a>
+      <a href="https://hub.docker.com/r/r4ulcl/ntask-worker">
+    <img src="https://github.com/r4ulcl/nTask/actions/workflows/build-manager-dev.yml/badge.svg" alt="ntask-worker Docker Image ">
+  </a>
   
   </p>
 
