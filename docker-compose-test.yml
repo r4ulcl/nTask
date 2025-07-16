@@ -19,7 +19,7 @@ services:
       - ./certs/:/config/certs/
 
   worker:
-    build: 
+    build:
       context: .
       dockerfile: ./worker/Dockerfile
     restart: unless-stopped
@@ -31,12 +31,11 @@ services:
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
-  
+
   worker2:
-    build: 
+    build:
       context: .
       dockerfile: ./worker/Dockerfile
-#    image:  ghcr.io/r4ulcl/ntask-worker:dev
     restart: unless-stopped
     container_name: nTask-worker2
     depends_on:
@@ -47,6 +46,117 @@ services:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
 
+  worker3:
+    build:
+      context: .
+      dockerfile: ./worker/Dockerfile
+    restart: unless-stopped
+    container_name: nTask-worker3
+    depends_on:
+      - manager
+    env_file: .env
+    command: worker --verbose --debug
+    volumes:
+      - ./worker.conf:/config/worker.conf
+      - ./certs/:/config/certs/
+
+  worker4:
+    build:
+      context: .
+      dockerfile: ./worker/Dockerfile
+    restart: unless-stopped
+    container_name: nTask-worker4
+    depends_on:
+      - manager
+    env_file: .env
+    command: worker --verbose --debug
+    volumes:
+      - ./worker.conf:/config/worker.conf
+      - ./certs/:/config/certs/
+
+  worker5:
+    build:
+      context: .
+      dockerfile: ./worker/Dockerfile
+    restart: unless-stopped
+    container_name: nTask-worker5
+    depends_on:
+      - manager
+    env_file: .env
+    command: worker --verbose --debug
+    volumes:
+      - ./worker.conf:/config/worker.conf
+      - ./certs/:/config/certs/
+
+  worker6:
+    build:
+      context: .
+      dockerfile: ./worker/Dockerfile
+    restart: unless-stopped
+    container_name: nTask-worker6
+    depends_on:
+      - manager
+    env_file: .env
+    command: worker --verbose --debug
+    volumes:
+      - ./worker.conf:/config/worker.conf
+      - ./certs/:/config/certs/
+
+  worker7:
+    build:
+      context: .
+      dockerfile: ./worker/Dockerfile
+    restart: unless-stopped
+    container_name: nTask-worker7
+    depends_on:
+      - manager
+    env_file: .env
+    command: worker --verbose --debug
+    volumes:
+      - ./worker.conf:/config/worker.conf
+      - ./certs/:/config/certs/
+
+  worker8:
+    build:
+      context: .
+      dockerfile: ./worker/Dockerfile
+    restart: unless-stopped
+    container_name: nTask-worker8
+    depends_on:
+      - manager
+    env_file: .env
+    command: worker --verbose --debug
+    volumes:
+      - ./worker.conf:/config/worker.conf
+      - ./certs/:/config/certs/
+
+  worker9:
+    build:
+      context: .
+      dockerfile: ./worker/Dockerfile
+    restart: unless-stopped
+    container_name: nTask-worker9
+    depends_on:
+      - manager
+    env_file: .env
+    command: worker --verbose --debug
+    volumes:
+      - ./worker.conf:/config/worker.conf
+      - ./certs/:/config/certs/
+
+  worker10:
+    build:
+      context: .
+      dockerfile: ./worker/Dockerfile
+    restart: unless-stopped
+    container_name: nTask-worker10
+    depends_on:
+      - manager
+    env_file: .env
+    command: worker --verbose --debug
+    volumes:
+      - ./worker.conf:/config/worker.conf
+      - ./certs/:/config/certs/
 
   db:
     image: mysql

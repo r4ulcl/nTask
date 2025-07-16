@@ -8,7 +8,7 @@ MAX_ITER=10000
 
 for ((i=1; i<=MAX_ITER; i++)); do
   # Pick a random integer 1-20
-  X=$(( RANDOM % 20 + 1 ))
+  X=$(( RANDOM % 50 + 1 ))
 
   # Compose the JSON payload with that X
   read -r -d '' payload <<EOF
@@ -31,8 +31,8 @@ EOF
        -H 'accept: application/json' \
        -H "Authorization: $AUTH" \
        -H 'Content-Type: application/json' \
-       -d "$payload" 
+       -d "$payload"   > /dev/null &
 
-  echo        # newline after each response
-  sleep 0     # brief pause so you don’t hammer the endpoint too hard
+  #echo        # newline after each response
+  #sleep 0     # brief pause so you don’t hammer the endpoint too hard
 done

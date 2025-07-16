@@ -1,0 +1,16 @@
+# .dockerignore: exclude files/directories from build context
+.git
+.gitignore
+.dockerignore
+Dockerfile
+vendor/
+*.md
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.swp
+*~
+.DS_Store
+db/

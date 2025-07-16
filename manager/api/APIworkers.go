@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/mux"
 	globalstructs "github.com/r4ulcl/nTask/globalstructs"
@@ -75,7 +77,7 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose
 // @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /worker [post]
-func HandleWorkerPost(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
+func HandleWorkerPost(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
 	_, okUser := r.Context().Value(utils.UsernameKey).(string)
 	_, okWorker := r.Context().Value(utils.WorkerKey).(string)
 	if !okUser && !okWorker {
@@ -90,7 +92,7 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, db *sql.DB, verbos
 		http.Error(w, "{ \"error\" : \"Invalid Decode body: "+err.Error()+"\"}", http.StatusBadRequest)
 	}
 
-	err = addWorker(worker, db, verbose, debug, wg)
+	err = addWorker(worker, db, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \"Invalid Decode body: "+err.Error()+"\"}", http.StatusBadRequest)
 	}
@@ -100,15 +102,15 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, db *sql.DB, verbos
 	w.WriteHeader(http.StatusOK)
 }
 
-func addWorker(worker globalstructs.Worker, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) error {
+func addWorker(worker globalstructs.Worker, db *sql.DB, verbose, debug bool) error {
 
 	if debug {
 		log.Println("API worker.Name", worker.Name)
 	}
 
-	err := database.AddWorker(db, &worker, verbose, debug, wg)
+	err := database.AddWorker(db, &worker, verbose, debug)
 	if err != nil {
-		err = utils.HandleAddWorkerError(err, db, &worker, verbose, debug, wg)
+		err = utils.HandleAddWorkerError(err, db, &worker, verbose, debug)
 		if err != nil {
 			return err
 		}
@@ -118,7 +120,7 @@ func addWorker(worker globalstructs.Worker, db *sql.DB, verbose, debug bool, wg 
 }
 
 // HandleWorkerPostWebsocket HandleWorkerPostWebsocket
-func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
+func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, writeLock *sync.Mutex) {
 	_, okWorker := r.Context().Value(utils.WorkerKey).(string)
 	if !okWorker {
 		if verbose {
@@ -136,8 +138,13 @@ func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *u
 		return
 	}
 
+	if tcpConn, ok := conn.UnderlyingConn().(*net.TCPConn); ok {
+		tcpConn.SetKeepAlive(true)
+		tcpConn.SetKeepAlivePeriod(30 * time.Second)
+	}
+
 	//go
-	websockets.GetWorkerMessage(conn, config, db, verbose, debug, wg)
+	websockets.GetWorkerMessage(conn, config, db, verbose, debug)
 
 }
 
@@ -153,7 +160,7 @@ func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *u
 // @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /worker/{NAME} [delete]
-func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
+func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
 	_, okUser := r.Context().Value(utils.UsernameKey).(string)
 	_, okWorker := r.Context().Value(utils.WorkerKey).(string)
 	if !okUser && !okWorker {
@@ -166,7 +173,7 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, db *sql.DB, 
 
 	// TODO
 
-	err := database.RmWorkerName(db, name, verbose, debug, wg)
+	err := database.RmWorkerName(db, name, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \"RmWorkerName: "+err.Error()+"\"}", http.StatusBadRequest)
 

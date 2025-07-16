@@ -1,6 +1,10 @@
 package globalstructs
 
-import "github.com/gorilla/websocket"
+import (
+	"time"
+
+	"github.com/gorilla/websocket"
+)
 
 // package for structs used in manager and workers
 // in case I want to separate the project one day
@@ -62,6 +66,7 @@ type Worker struct {
 	IddleThreads   int    `json:"iddleThreads"`
 	UP             bool   `json:"up"`
 	DownCount      int    `json:"downCount"`
+	UpdatedAt      string `json:"updatedAt"`
 }
 
 // WorkerStatus struct to process the worker status response.
@@ -89,3 +94,10 @@ type WebsocketMessage struct {
 	Type string `json:"type"`
 	JSON string `json:"json"`
 }
+
+const (
+	WriteWait      = 10 * time.Second
+	PongWait       = 60 * time.Second
+	PingPeriod     = (PongWait * 9) / 10 // 54 s
+	MaxMessageSize = 1 << 20             // 1 MiB
+)

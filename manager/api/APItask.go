@@ -94,7 +94,7 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, 
 // @Failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /task [post]
-func HandleTaskPost(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
+func HandleTaskPost(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
 	ok, username := getUsername(r, verbose, debug)
 	if !ok {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
@@ -134,7 +134,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose,
 		}
 	}
 
-	err = database.AddTask(db, request, verbose, debug, wg)
+	err = database.AddTask(db, request, verbose, debug)
 	if err != nil {
 		message := "{ \"error\" : \"Invalid task info: " + err.Error() + "\" }"
 		http.Error(w, message, http.StatusBadRequest)
@@ -174,7 +174,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose,
 // @Failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /task/{ID} [delete]
-func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
+func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, writeLock *sync.Mutex) {
 	_, ok := r.Context().Value(utils.UsernameKey).(string)
 	if !ok {
 		http.Error(w, "{ \"error\" : \"Username not found\" }", http.StatusUnauthorized)
@@ -195,7 +195,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 		// Has a worker set, check if its running
 		if task.Status == "running" {
 			// If its runing send stop signal to worker
-			err = utils.SendDeleteTask(db, config, &worker, &task, verbose, debug, wg, writeLock)
+			err = utils.SendDeleteTask(db, config, &worker, &task, verbose, debug, writeLock)
 			if err != nil {
 				http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
 				return
@@ -210,7 +210,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 		return
 	}*/
 	// Set task as running
-	err = database.SetTaskStatus(db, id, "deleted", verbose, debug, wg)
+	err = database.SetTaskStatus(db, id, "deleted", verbose, debug)
 	if err != nil {
 		log.Println("Utils Error SetTaskStatus in request:", err)
 	}

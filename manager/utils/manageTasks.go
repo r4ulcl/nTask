@@ -10,7 +10,7 @@ import (
 )
 
 // ManageTasks infinite loop to manage task
-func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
+func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, writeLock *sync.Mutex) {
 	// infinite loop eecuted with go routine
 	for {
 		// Get all tasks in order and if priority
@@ -37,7 +37,7 @@ func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *syn
 				for _, worker := range workers {
 					// if WorkerName not send or set this worker, just sendAddTask
 					if task.WorkerName == "" || task.WorkerName == worker.Name {
-						err = sendAddTask(db, config, &worker, &task, verbose, debug, wg, writeLock)
+						err = sendAddTask(db, config, &worker, &task, verbose, debug, writeLock)
 						if err != nil {
 							log.Println("Utils Error sendAddTask", err.Error())
 							//time.Sleep(time.Second * 1)

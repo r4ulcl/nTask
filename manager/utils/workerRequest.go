@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,7 +25,8 @@ func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writ
 	if debug {
 		log.Println("Utils SendMessage", string(message))
 	}
-
+	writeTimeout := 10 * time.Second
+	conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 	err := conn.WriteMessage(websocket.TextMessage, message)
 	if err != nil {
 		return err
@@ -36,21 +38,21 @@ func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writ
 }
 
 // VerifyWorkersLoop checks and sets if the workers are UP infinitely.
-func VerifyWorkersLoop(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
+func VerifyWorkersLoop(db *sql.DB, config *ManagerConfig, verbose, debug bool, writeLock *sync.Mutex) {
 	ticker := time.NewTicker(time.Duration(config.StatusCheckSeconds) * time.Second)
 	defer ticker.Stop()
 	for range ticker.C {
-		verifyWorkers(db, config, verbose, debug, wg, writeLock)
+		verifyWorkers(db, config, verbose, debug, writeLock)
 	}
 }
 
 // DeleteMaxTaskHistoryLoop Loop and Delete Database Entries if num tasks > config.MaxTaskHistory
-func DeleteMaxTaskHistoryLoop(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup) {
+func DeleteMaxTaskHistoryLoop(db *sql.DB, config *ManagerConfig, verbose, debug bool) {
 	maxEntries := config.MaxTaskHistory
 	tableName := "task"
 	if maxEntries > 0 {
 		for {
-			err := database.DeleteMaxEntriesHistory(db, maxEntries, tableName, verbose, debug, wg)
+			err := database.DeleteMaxEntriesHistory(db, maxEntries, tableName, verbose, debug)
 			if err != nil && (verbose || debug) {
 				log.Println("Error DeleteMaxEntriesHistory:", err)
 			}
@@ -82,7 +84,7 @@ func getWorkersThreads(db *sql.DB, verbose, debug bool) int {
 }
 
 // verifyWorkers checks and sets if the workers are UP.
-func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
+func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool, writeLock *sync.Mutex) {
 	// Get all workers from the database
 	workers, err := database.GetWorkers(db, verbose, debug)
 	if err != nil {
@@ -91,7 +93,7 @@ func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *s
 
 	// Verify each worker
 	for _, worker := range workers {
-		err := verifyWorker(db, config, &worker, verbose, debug, wg, writeLock)
+		err := verifyWorker(db, config, &worker, verbose, debug, writeLock)
 		if err != nil {
 			log.Print("verifyWorker ", err)
 		}
@@ -99,15 +101,16 @@ func verifyWorkers(db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *s
 }
 
 // verifyWorker checks and sets if the worker is UP.
-func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) error {
+func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, verbose, debug bool, writeLock *sync.Mutex) error {
 	if debug {
 		log.Println("Utils verifyWorker", worker.Name)
 	}
 
 	conn := config.WebSockets[worker.Name]
 	if conn == nil {
-		return handleMissingWebSocket(worker, db, config, verbose, debug, wg)
+		return handleMissingWebSocket(worker, db, config, verbose, debug)
 	}
+
 	msg := globalstructs.WebsocketMessage{
 		Type: "status",
 		JSON: "{}",
@@ -123,52 +126,62 @@ func verifyWorker(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worke
 	return SendMessage(conn, jsonData, verbose, debug, writeLock)
 }
 
-func handleMissingWebSocket(worker *globalstructs.Worker, db *sql.DB, config *ManagerConfig, verbose, debug bool, wg *sync.WaitGroup) error {
+// handleMissingWebSocket marks a worker down (or removes it) when its WS is gone.
+// It tolerates “not found” from SetWorkerUPto in case the row was already deleted.
+func handleMissingWebSocket(
+	worker *globalstructs.Worker,
+	db *sql.DB,
+	config *ManagerConfig,
+	verbose, debug bool,
+) error {
 	if debug {
-		log.Println("Utils Error: The worker doesnt have a websocket", worker.Name)
+		log.Println("Utils Error: no websocket for worker", worker.Name)
 	}
 
+	// Remove from in-memory map
 	delete(config.WebSockets, worker.Name)
 
-	err := database.SetWorkerUPto(false, db, worker, verbose, debug, wg)
-	if err != nil {
-		return err
-	}
-
-	downCount, err := database.GetWorkerDownCount(db, worker, verbose, debug)
-	if err != nil {
-		return err
-	}
-
-	if downCount >= config.StatusCheckDown {
-		err := database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
-		if err != nil {
+	// Mark as down
+	if err := database.SetWorkerUPto(db, worker.Name, false, verbose, debug); err != nil {
+		// ignore “not found” since it may have been removed already
+		if !strings.Contains(err.Error(), "not found") {
 			return err
 		}
-
-		err = database.RmWorkerName(db, worker.Name, verbose, debug, wg)
-		if err != nil {
-			return err
+		if debug {
+			log.Printf("Utils handleMissingWebSocket: %v", err)
 		}
-		return nil
 	}
 
-	err = database.AddWorkerDownCount(db, worker, verbose, debug, wg)
+	// Increment down-count
+	downCount, err := database.GetWorkerDownCount(db, worker.Name, verbose, debug)
 	if err != nil {
 		return err
+	}
+	if err := database.AddWorkerDownCount(db, worker.Name, verbose, debug); err != nil {
+		return err
+	}
+
+	// If exceeded retries, orphan tasks and delete the worker
+	if downCount+1 >= config.StatusCheckDown {
+		if err := database.SetTasksWorkerPending(db, worker.Name, verbose, debug); err != nil {
+			return err
+		}
+		if err := database.RmWorkerName(db, worker.Name, verbose, debug); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 // sendAddTask sends a request to a worker to add a task.
-func sendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) error {
+func sendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose, debug bool, writeLock *sync.Mutex) error {
 	if debug {
 		log.Println("Utils sendAddTask")
 	}
 
 	// Subtract Iddle thread in DB, in the next status to worker it will update to real data
-	err := database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug, wg)
+	err := database.SubtractWorkerIddleThreads1(db, worker.Name, verbose, debug)
 	if err != nil {
 		return err
 	}
@@ -206,22 +219,19 @@ func sendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 		return err
 	}
 
+	task.Status = "running"
+	task.WorkerName = worker.Name
+
 	// Set task as running
-	err = database.SetTaskStatus(db, task.ID, "running", verbose, debug, wg)
+	err = database.UpdateTask(db, *task, verbose, debug)
 	if err != nil {
-		log.Println("Utils Error SetTaskStatus in request:", err)
+		return fmt.Errorf("Utils Error SetTaskStatus in request: %s", err)
 	}
 
 	// Set task as executed
-	err = database.SetTaskExecutedAtNow(db, task.ID, verbose, debug, wg)
+	err = database.SetTaskExecutedAtNow(db, task.ID, verbose, debug)
 	if err != nil {
 		return fmt.Errorf("Error SetTaskExecutedAt in request: %s", err)
-	}
-
-	// Set workerName in DB and in object
-	err = database.SetTaskWorkerName(db, task.ID, worker.Name, verbose, debug, wg)
-	if err != nil {
-		return fmt.Errorf("Error SetWorkerNameTask in request: %s", err)
 	}
 
 	if verbose {
@@ -232,7 +242,7 @@ func sendAddTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker
 }
 
 // SendDeleteTask sends a request to a worker to stop and delete a task.
-func SendDeleteTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) error {
+func SendDeleteTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, task *globalstructs.Task, verbose, debug bool, writeLock *sync.Mutex) error {
 	conn := config.WebSockets[worker.Name]
 	if conn == nil {
 		return fmt.Errorf("Error, websocket not found")
@@ -264,7 +274,7 @@ func SendDeleteTask(db *sql.DB, config *ManagerConfig, worker *globalstructs.Wor
 	}
 
 	// Set the task and worker as not working
-	err = database.SetTaskStatus(db, task.ID, "deleted", verbose, debug, wg)
+	err = database.SetTaskStatus(db, task.ID, "deleted", verbose, debug)
 	if err != nil {
 		return err
 	}
@@ -343,29 +353,38 @@ func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose, debug 
 	return client, nil
 }
 
-// WorkerDisconnected Disconnect worker
-func WorkerDisconnected(db *sql.DB, config *ManagerConfig, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
+// WorkerDisconnected is called when a live connection error occurs.
+// It closes the socket, marks the worker down, and re-queues its tasks.
+// It tolerates “not found” from SetWorkerUPto.
+func WorkerDisconnected(
+	db *sql.DB,
+	config *ManagerConfig,
+	worker *globalstructs.Worker,
+	verbose, debug bool,
+) error {
 	if debug {
-		log.Println("Utils Error WorkerDisconnected: WriteControl cant connect", worker.Name)
+		log.Println("Utils WorkerDisconnected: closing websocket for", worker.Name)
 	}
-	// Close connection
-	if websocket, ok := config.WebSockets[worker.Name]; ok {
-		err := websocket.Close()
-		if err != nil {
+
+	// Close the socket if still present
+	if ws, ok := config.WebSockets[worker.Name]; ok {
+		ws.Close()
+	}
+	delete(config.WebSockets, worker.Name)
+
+	// Mark as down
+	if err := database.SetWorkerUPto(db, worker.Name, false, verbose, debug); err != nil {
+		// ignore “not found” since it may have been removed already
+		if !strings.Contains(err.Error(), "not found") {
 			return err
+		}
+		if debug {
+			log.Printf("Utils WorkerDisconnected: %v", err)
 		}
 	}
 
-	delete(config.WebSockets, worker.Name)
-
-	err := database.SetWorkerUPto(false, db, worker, verbose, debug, wg)
-	if err != nil {
-		return err
-	}
-
-	// Set as 'pending' all workers tasks to REDO
-	err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
-	if err != nil {
+	// Re-queue any in-flight tasks
+	if err := database.SetTasksWorkerPending(db, worker.Name, verbose, debug); err != nil {
 		return err
 	}
 

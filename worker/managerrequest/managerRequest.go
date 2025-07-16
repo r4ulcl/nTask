@@ -63,13 +63,13 @@ func SendMessage(conn *websocket.Conn, message []byte, verbose, debug bool, writ
 	writeLock.Lock()
 	defer writeLock.Unlock()
 	if debug {
-		log.Println("sendMessage:", string(message))
+		log.Println("SendMessage:", string(message))
 	}
 	err := conn.WriteMessage(websocket.TextMessage, message)
-	if err != nil {
-		return err
+	if err != nil && (verbose || debug) {
+		log.Println("SendMessage error:", err)
 	}
-	return nil
+	return err
 }
 
 // sendWebSocketMessage is a helper function to send a WebSocket message to the manager
@@ -77,7 +77,9 @@ func sendWebSocketMessage(config *utils.WorkerConfig, messageType string, payloa
 	// Marshal the payload into JSON
 	payloadData, err := json.Marshal(payload)
 	if err != nil {
-		log.Println("Error encoding JSON payload:", err)
+		if verbose || debug {
+			log.Println("Error encoding JSON payload:", err)
+		}
 		return err
 	}
 
@@ -87,15 +89,16 @@ func sendWebSocketMessage(config *utils.WorkerConfig, messageType string, payloa
 		JSON: string(payloadData),
 	}
 
-	// Debug logging
 	if debug {
-		log.Printf("ManagerRequest msg (%s): %v", messageType, msg)
+		log.Printf("ManagerRequest message [%s]: %+v", messageType, msg)
 	}
 
-	// Marshal the WebSocket message into JSON
+	// Marshal WebsocketMessage
 	jsonData, err := json.Marshal(msg)
 	if err != nil {
-		log.Println("Error encoding WebSocket message:", err)
+		if verbose || debug {
+			log.Println("Error encoding WebSocket message:", err)
+		}
 		return err
 	}
 

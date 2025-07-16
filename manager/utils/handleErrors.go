@@ -2,7 +2,6 @@ package utils
 
 import (
 	"database/sql"
-	"sync"
 
 	"github.com/r4ulcl/nTask/globalstructs"
 	"github.com/r4ulcl/nTask/manager/database"
@@ -11,24 +10,24 @@ import (
 )
 
 // HandleAddWorkerError func to handle error adding workers
-func HandleAddWorkerError(err error, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
+func HandleAddWorkerError(err error, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool) error {
 	if mysqlErr, ok := err.(*mysql.MySQLError); ok {
 		// Handle the MySQL duplicate entry error
 		if mysqlErr.Number == 1062 { // MySQL error number for duplicate entry
 			// Set all worker tasks to 'pending' with REDO status
-			err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
+			err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug)
 			if err != nil {
 				return err
 			}
 
 			// Update worker record
-			err = database.UpdateWorker(db, worker, verbose, debug, wg)
+			err = database.UpdateWorker(db, worker, verbose, debug)
 			if err != nil {
 				return err
 			}
 
 			// Reset the worker's down count
-			err = database.SetWorkerDownCount(0, db, worker, verbose, debug, wg)
+			err = database.SetWorkerDownCount(db, worker.Name, 0, verbose, debug)
 			if err != nil {
 				return err
 			}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"os/exec"
 	"strconv"
 	"sync"
@@ -17,174 +18,164 @@ import (
 	"github.com/r4ulcl/nTask/worker/utils"
 )
 
+func initConnDeadlines(c *websocket.Conn) {
+	c.SetReadLimit(globalstructs.MaxMessageSize)
+	c.SetReadDeadline(time.Now().Add(globalstructs.PongWait))
+}
+
+// attachPongHandler resets deadlines and signals when a Pong arrives
+func attachPongHandler(conn *websocket.Conn, pongRec chan struct{}, debug bool) {
+	conn.SetPongHandler(func(appData string) error {
+		if debug {
+			log.Println("Received Pong:", appData)
+		}
+		conn.SetReadDeadline(time.Now().Add(globalstructs.PongWait))
+		// non-blocking notify
+		select {
+		case pongRec <- struct{}{}:
+		default:
+		}
+		return nil
+	})
+}
+
+// update the conn reference inside config under lock
 func setConn(conn *websocket.Conn, config *utils.WorkerConfig, verbose, debug bool, writeLock *sync.Mutex) {
 	writeLock.Lock()
 	defer writeLock.Unlock()
-
 	if verbose || debug {
-		log.Println("setConn")
+		log.Println("setConn – new websocket connection stored in config")
 	}
-
 	config.Conn = conn
-
 }
 
-// GetMessage loop to get message from the websockets
 func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, verbose, debug bool, writeLock *sync.Mutex) {
 	for {
-
-		response := globalstructs.WebsocketMessage{
-			Type: "",
-			JSON: "",
-		}
-
-		_, p, err := config.Conn.ReadMessage() //messageType
+		// blocking read → any error bubbles up
+		_, p, err := config.Conn.ReadMessage()
 		if err != nil {
-			log.Println("WebSockets config.Conn.ReadMessage()", err)
-			time.Sleep(time.Second * 5)
-
+			log.Println("Conn.ReadMessage error:", err)
+			time.Sleep(5 * time.Second)
 			continue
 		}
 
 		var msg globalstructs.WebsocketMessage
-		err = json.Unmarshal(p, &msg)
-		if err != nil {
-			log.Println("WebSockets Error decoding JSON:", err)
+		if err := json.Unmarshal(p, &msg); err != nil {
+			log.Println("JSON decode error:", err)
 			continue
 		}
 
-		switch msg.Type {
-
-		case "status":
-			if debug {
-				log.Println("Status message recieve")
-			}
-			response, err = messageStatusTask(config, status, msg, verbose, debug)
-			if err != nil {
-				log.Println("status error: ", err)
-			}
-		case "addTask":
-			response, err = messageAddTask(config, status, msg, verbose, debug, writeLock)
-			if err != nil {
-				log.Println("addTask error: ", err)
-			}
-		case "deleteTask":
-			response, err = messageDeleteTask(status, msg, verbose, debug)
-			if err != nil {
-				log.Println("deleteTask error: ", err)
-			}
+		if debug {
+			log.Printf("Received message type=%q json=%s\n", msg.Type, msg.JSON)
 		}
 
-		if debug {
-			log.Printf("Received message type: %s\n", msg.Type)
-			log.Printf("Received message json: %s\n", msg.JSON)
+		var (
+			response   globalstructs.WebsocketMessage
+			handlerErr error
+		)
+		switch msg.Type {
+		case "status":
+			response, handlerErr = messageStatusTask(config, status, msg, verbose, debug)
+		case "addTask":
+			response, handlerErr = messageAddTask(config, status, msg, verbose, debug, writeLock)
+		case "deleteTask":
+			response, handlerErr = messageDeleteTask(status, msg, verbose, debug)
+		default:
+			if debug {
+				log.Printf("Unhandled message type: %s", msg.Type)
+			}
+		}
+		if handlerErr != nil {
+			log.Println("Handler error:", handlerErr)
 		}
 
 		if response.Type != "" {
-			jsonData, err := json.Marshal(response)
-			if err != nil {
-				log.Println("WebSockets Marshal error: ", err)
-			}
-			err = managerrequest.SendMessage(config.Conn, jsonData, verbose, debug, writeLock)
-			if err != nil {
-				log.Println("WebSockets SendMessage error: ", err)
+			jsonData, _ := json.Marshal(response)
+			if err := managerrequest.SendMessage(config.Conn, jsonData, verbose, debug, writeLock); err != nil {
+				log.Println("SendMessage error:", err)
 			}
 		}
 	}
 }
 
-// RecreateConnection func to recreate connections to a websocket
+// RecreateConnection keeps the connection healthy: it sends pings every 5 s and
+// reconnects if a Pong is not received within 5 s.
 func RecreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debug bool, writeLock *sync.Mutex) {
-	// Send Ping message every 5 seconds
-
-	// Set Pong handler
-	pongReceived := make(chan struct{})
-
-	config.Conn.SetPongHandler(func(appData string) error {
-		if debug {
-			log.Println("Received Pong:", appData)
-		}
-		// Notify that Pong has been received
-		pongReceived <- struct{}{}
-		return nil
-	})
+	pongReceived := make(chan struct{}, 1)
+	// ensure handler on first conn
+	attachPongHandler(config.Conn, pongReceived, debug)
 
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			if debug {
-				log.Println("Checking RecreateConnection")
-			}
-
-			// Use a channel to handle the timeout
-			timeout := time.After(5 * time.Second)
-
-			err := config.Conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second))
-			if err != nil {
-				log.Println("Error sending Ping err:", err)
-				CreateConnection(config, verifyAltName, verbose, debug, writeLock)
-			} else {
-				if debug {
-					log.Println("RecreateConnection - Connection ok")
-				}
-			}
-
-			// Wait for Pong or timeout
-			select {
-			case <-pongReceived:
-				if debug {
-					log.Println("pongReceived")
-				}
-				// Pong received, continue the loop
-			case <-timeout:
-				// Pong not received within the timeout, close the connection
-				log.Println("Pong not received within the timeout. Closing the connection.")
-				err := config.Conn.Close()
-				if err != nil {
-					log.Println("Error closing connection:", err)
-				}
-				CreateConnection(config, verifyAltName, verbose, debug, writeLock)
-
-			}
-
+	for range ticker.C {
+		if debug {
+			log.Println("Heartbeat check")
 		}
+		// send Ping under lock
+		writeLock.Lock()
+		err := config.Conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second))
+		writeLock.Unlock()
+		if err != nil {
+			log.Println("Error sending Ping, reconnecting:", err)
+			config.Conn.Close()
+			CreateConnection(config, verifyAltName, verbose, debug, writeLock)
+			attachPongHandler(config.Conn, pongReceived, debug)
+			continue
+		}
+
+		// wait for Pong or timeout
+		timeout := time.NewTimer(5 * time.Second)
+		select {
+		case <-pongReceived:
+			if debug {
+				log.Println("pongReceived – connection healthy")
+			}
+		case <-timeout.C:
+			log.Println("Pong timeout – reconnecting")
+			config.Conn.Close()
+			CreateConnection(config, verifyAltName, verbose, debug, writeLock)
+			attachPongHandler(config.Conn, pongReceived, debug)
+		}
+		timeout.Stop()
 	}
 }
 
-// CreateConnection func to create connection, loop until connects
+// CreateConnection dials the manager, stores it in config.Conn, installs
+// deadlines, and registers the worker.
 func CreateConnection(config *utils.WorkerConfig, verifyAltName, verbose, debug bool, writeLock *sync.Mutex) {
-	// Loop until connects
 	for {
 		if debug {
-			log.Println("Worker Trying to conenct to manager")
+			log.Println("Attempting to connect...")
 		}
-
 		conn, err := managerrequest.CreateWebsocket(config, config.CA, verifyAltName, verbose, debug)
 		if err != nil {
-			log.Println("Worker Error worker CreateWebsocket: ", err)
-		} else {
-			setConn(conn, config, verbose, debug, writeLock)
-
-			err = managerrequest.AddWorker(config, verbose, debug, writeLock)
-			if err != nil {
-				if verbose {
-					log.Println("Worker Error worker AddWorker: ", err)
-				}
-			} else {
-				if verbose {
-					log.Println("Worker connected to manager. ")
-				}
-				break
-			}
+			log.Println("CreateWebsocket error:", err)
+			time.Sleep(5 * time.Second)
+			continue
 		}
-		time.Sleep(time.Second * 5)
-	}
 
-	if debug {
-		log.Println("Connection created successfully")
+		initConnDeadlines(conn)
+		writeLock.Lock()
+		config.Conn = conn
+		writeLock.Unlock()
+
+		// optional TCP keep-alive
+		if tcpConn, ok := conn.UnderlyingConn().(*net.TCPConn); ok {
+			tcpConn.SetKeepAlive(true)
+			tcpConn.SetKeepAlivePeriod(30 * time.Second)
+		}
+
+		if err := managerrequest.AddWorker(config, verbose, debug, writeLock); err != nil {
+			log.Println("AddWorker error:", err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		if verbose {
+			log.Println("Connected to manager ✓")
+		}
+		return
 	}
 }
 
@@ -207,8 +198,6 @@ func messageAddTask(config *utils.WorkerConfig, status *globalstructs.WorkerStat
 	if (config.DefaultThreads - len(status.WorkingIDs)) <= 0 {
 		response.Type = "FAILED;addTask"
 		response.JSON = msg.JSON
-
-		requestTask.Status = "failed"
 	} else {
 		// Process task in background
 		if debug {

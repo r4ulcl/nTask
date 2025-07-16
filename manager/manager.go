@@ -76,22 +76,22 @@ func loadManagerCloudConfig(filename string, verbose, debug bool) (*utils.Manage
 	return loadConfigFile[utils.ManagerCloudConfig](filename, verbose, debug, "Cloud")
 }
 
-func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
+func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, writeLock *sync.Mutex) {
 	// worker
 	workers.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleWorkerGet(w, r, db, verbose, debug)
 	}).Methods("GET") // get workers
 
 	workers.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerPost(w, r, db, verbose, debug, wg)
+		api.HandleWorkerPost(w, r, db, verbose, debug)
 	}).Methods("POST") // add worker
 
 	workers.HandleFunc("/websocket", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerPostWebsocket(w, r, config, db, verbose, debug, wg, writeLock)
+		api.HandleWorkerPostWebsocket(w, r, config, db, verbose, debug, writeLock)
 	})
 
 	workers.HandleFunc("/{NAME}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleWorkerDeleteName(w, r, db, verbose, debug, wg)
+		api.HandleWorkerDeleteName(w, r, db, verbose, debug)
 	}).Methods("DELETE") // delete worker
 
 	workers.HandleFunc("/{NAME}", func(w http.ResponseWriter, r *http.Request) {
@@ -100,18 +100,18 @@ func addHandleWorker(workers *mux.Router, config *utils.ManagerConfig, db *sql.D
 
 }
 
-func addHandleTask(task *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
+func addHandleTask(task *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, writeLock *sync.Mutex) {
 	// task
 	task.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
 		api.HandleTaskGet(w, r, db, verbose, debug)
 	}).Methods("GET") // check tasks
 
 	task.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskPost(w, r, db, verbose, debug, wg)
+		api.HandleTaskPost(w, r, db, verbose, debug)
 	}).Methods("POST") // Add task
 
 	task.HandleFunc("/{ID}", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleTaskDelete(w, r, config, db, verbose, debug, wg, writeLock)
+		api.HandleTaskDelete(w, r, config, db, verbose, debug, writeLock)
 	}).Methods("DELETE") // Delete task
 
 	task.HandleFunc("/{ID}", func(w http.ResponseWriter, r *http.Request) {
@@ -142,7 +142,6 @@ func startSwaggerWeb(router *mux.Router, verbose, debug bool) {
 func StartManager(swagger bool, configFile, configSSHFile, configCloudFile string, verifyAltName, verbose, debug bool) {
 	log.Println("Manager Running as manager...")
 
-	var wg sync.WaitGroup
 	var writeLock sync.Mutex
 
 	// Load configurations
@@ -170,8 +169,8 @@ func StartManager(swagger bool, configFile, configSSHFile, configCloudFile strin
 	// Initialize HTTP client
 	if config != nil {
 		initializeHTTPClient(config, verifyAltName, verbose, debug)
-		startBackgroundTask(db, config, &wg, &writeLock, verbose, debug)
-		setupAndStartServers(swagger, config, db, &wg, &writeLock, verbose, debug)
+		startBackgroundTask(db, config, &writeLock, verbose, debug)
+		setupAndStartServers(swagger, config, db, &writeLock, verbose, debug)
 	}
 
 	// Start SSH background task
@@ -286,9 +285,8 @@ func setInitialTaskStatus(db *sql.DB, verbose, debug bool) {
 	if debug {
 		log.Println("Manager Setting tasks with running status to failed")
 	}
-	var wg sync.WaitGroup
 	// if the manager app restarst, set al running to pending to launch again
-	if err := database.SetTasksStatusIfStatus("running", db, "pending", verbose, debug, &wg); err != nil {
+	if err := database.SetTasksStatusIfStatus("running", db, "pending", verbose, debug); err != nil {
 		log.Printf("Error setting task statuses: %v", err)
 	}
 }
@@ -310,13 +308,13 @@ func initializeHTTPClient(config *utils.ManagerConfig, verifyAltName, verbose, d
 func startSSHBackgroundTask(configSSH *utils.ManagerSSHConfig, config *utils.ManagerConfig, verbose, debug bool) {
 	go sshtunnel.StartSSH(configSSH, config.HTTPPort, config.HTTPSPort, verbose, debug)
 }
-func startBackgroundTask(db *sql.DB, config *utils.ManagerConfig, wg *sync.WaitGroup, writeLock *sync.Mutex, verbose, debug bool) {
-	go utils.VerifyWorkersLoop(db, config, verbose, debug, wg, writeLock)
-	go utils.ManageTasks(config, db, verbose, debug, wg, writeLock)
-	go utils.DeleteMaxTaskHistoryLoop(db, config, verbose, debug, wg)
+func startBackgroundTask(db *sql.DB, config *utils.ManagerConfig, writeLock *sync.Mutex, verbose, debug bool) {
+	go utils.VerifyWorkersLoop(db, config, verbose, debug, writeLock)
+	go utils.ManageTasks(config, db, verbose, debug, writeLock)
+	go utils.DeleteMaxTaskHistoryLoop(db, config, verbose, debug)
 }
 
-func setupAndStartServers(swagger bool, config *utils.ManagerConfig, db *sql.DB, wg *sync.WaitGroup, writeLock *sync.Mutex, verbose, debug bool) {
+func setupAndStartServers(swagger bool, config *utils.ManagerConfig, db *sql.DB, writeLock *sync.Mutex, verbose, debug bool) {
 	router := mux.NewRouter()
 	amw := authenticationMiddleware{
 		tokenUsers:   make(map[string]string),
@@ -329,13 +327,13 @@ func setupAndStartServers(swagger bool, config *utils.ManagerConfig, db *sql.DB,
 	}
 
 	// Set up routes
-	setupRoutes(router, config, db, verbose, debug, wg, writeLock, amw)
+	setupRoutes(router, config, db, verbose, debug, writeLock, amw)
 
 	// Start servers
 	startServers(router, config, verbose, debug)
 }
 
-func setupRoutes(router *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex, amw authenticationMiddleware) {
+func setupRoutes(router *mux.Router, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, writeLock *sync.Mutex, amw authenticationMiddleware) {
 	status := router.PathPrefix("/status").Subrouter()
 	status.Use(amw.Middleware)
 	status.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
@@ -344,11 +342,11 @@ func setupRoutes(router *mux.Router, config *utils.ManagerConfig, db *sql.DB, ve
 
 	workers := router.PathPrefix("/worker").Subrouter()
 	workers.Use(amw.Middleware)
-	addHandleWorker(workers, config, db, verbose, debug, wg, writeLock)
+	addHandleWorker(workers, config, db, verbose, debug, writeLock)
 
 	task := router.PathPrefix("/task").Subrouter()
 	task.Use(amw.Middleware)
-	addHandleTask(task, config, db, verbose, debug, wg, writeLock)
+	addHandleTask(task, config, db, verbose, debug, writeLock)
 
 	router.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

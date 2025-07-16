@@ -21,11 +21,26 @@ import (
 
 var mutex sync.Mutex
 
-func runModule(config *utils.WorkerConfig, command string, arguments string, status *globalstructs.WorkerStatus, id string, verbose, debug bool) (string, error) {
+// setWorkingID ensures the map is initialized and sets the PID
+func setWorkingID(status *globalstructs.WorkerStatus, id string, pid int) {
 	mutex.Lock()
-	status.WorkingIDs[id] = -1
-	mutex.Unlock()
+	defer mutex.Unlock()
+	if status.WorkingIDs == nil {
+		status.WorkingIDs = make(map[string]int)
+	}
+	status.WorkingIDs[id] = pid
+}
 
+// deleteWorkingID removes the entry for id
+func deleteWorkingID(status *globalstructs.WorkerStatus, id string) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	delete(status.WorkingIDs, id)
+}
+
+func runModule(config *utils.WorkerConfig, command string, arguments string, status *globalstructs.WorkerStatus, id string, verbose, debug bool) (string, error) {
+	// mark as starting (-1)
+	setWorkingID(status, id, -1)
 	defer cleanupWorkerStatus(status, id)
 
 	cmd, err := prepareCommand(config, command, arguments, debug)
@@ -38,9 +53,7 @@ func runModule(config *utils.WorkerConfig, command string, arguments string, sta
 }
 
 func cleanupWorkerStatus(status *globalstructs.WorkerStatus, id string) {
-	mutex.Lock()
-	defer mutex.Unlock()
-	delete(status.WorkingIDs, id)
+	deleteWorkingID(status, id)
 }
 
 func prepareCommand(config *utils.WorkerConfig, command, arguments string, debug bool) (*exec.Cmd, error) {
@@ -107,9 +120,8 @@ func executeCommand(cmd *exec.Cmd, status *globalstructs.WorkerStatus, id string
 		return "", err
 	}
 
-	mutex.Lock()
-	status.WorkingIDs[id] = cmd.Process.Pid
-	mutex.Unlock()
+	// update with actual PID
+	setWorkingID(status, id, cmd.Process.Pid)
 
 	done := make(chan error, 1)
 	go func() {
