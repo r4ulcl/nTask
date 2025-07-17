@@ -1,69 +1,56 @@
+version: '3.4'
+
 services:
+
+  db:
+    image: mysql:${MYSQL_VERSION:-8.0}
+    container_name: nTask_db
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - ./db:/var/lib/mysql
+
   manager:
-#    image: ghcr.io/r4ulcl/ntask-manager:dev
+    image: ${MANAGER_IMAGE:-ntask_manager:latest}
     build:
       context: .
       dockerfile: ./manager/Dockerfile
-    restart: unless-stopped
     container_name: nTask_manager
+    restart: unless-stopped
+    env_file:
+      - .env
     ports:
-      - 8080:8080
-      - 8443:8443
+      - "${MANAGER_HTTP_PORT:-8080}:8080"
+      - "${MANAGER_HTTPS_PORT:-8443}:8443"
     depends_on:
       - db
-    env_file: .env
-    command: manager --swagger --verbose --debug #--configSSHFile ./ssh.conf
+    command: manager --swagger --verbose --debug
     volumes:
       - ./manager.conf:/config/manager.conf
       - ./output/:/config/output/
       - ./certs/:/config/certs/
-#      - ./ssh.conf:/config/ssh.conf
-#      - ./ssh_key:/config/ssh_key
 
-  db:
-    image: mysql
-    restart: unless-stopped
-#    ports:
-#      - 3306:3306
-    tmpfs:
-      - /tmp  # Mount temporary directories in memory (non-persistent)
-    security_opt:
-      - no-new-privileges:true  # Prevent privilege escalation within the container
-    environment:
-      MYSQL_ROOT_PASSWORD: your_password_root
-      MYSQL_USER: your_username
-      MYSQL_PASSWORD: your_password
-      MYSQL_DATABASE: manager
-    volumes:
-      - ./db:/var/lib/mysql
-
-
-  worker1:
-    build: 
+  worker:
+    image: ${WORKER_IMAGE:-ntask_worker:latest}
+    build:
       context: .
       dockerfile: ./worker/Dockerfile
-#    image:  ghcr.io/r4ulcl/ntask-worker:dev
     restart: unless-stopped
-    container_name: nTask-worker1
+    env_file:
+      - .env
     depends_on:
       - manager
-    env_file: .env
     command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
+    # If you’re on Swarm, this will give you N replicas out of the box:
+    deploy:
+      replicas: ${WORKER_REPLICAS:-2}
+      restart_policy:
+        condition: any
 
-  worker2:
-    build: 
-      context: .
-      dockerfile: ./worker/Dockerfile
-#    image:  ghcr.io/r4ulcl/ntask-worker:dev
-    restart: unless-stopped
-    container_name: nTask-worker2
-    depends_on:
-      - manager
-    env_file: .env
-    command: worker --verbose --debug
-    volumes:
-      - ./worker.conf:/config/worker.conf
-      - ./certs/:/config/certs/
+ 

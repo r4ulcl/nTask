@@ -1,17 +1,30 @@
 version: '3.4'
+
 services:
+  db:
+    image: mysql:${MYSQL_VERSION:-8.0}
+    container_name: nTask_db
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - ./db:/var/lib/mysql
   manager:
-    build: 
+    image: ${MANAGER_IMAGE:-ntask_manager:latest}
+    build:
       context: .
       dockerfile: ./manager/Dockerfile
-    restart: unless-stopped
     container_name: nTask_manager
+    restart: unless-stopped
+    env_file:
+      - .env
     ports:
-      - 8080:8080
-      - 8443:8443
+      - "${MANAGER_HTTP_PORT:-8080}:8080"
+      - "${MANAGER_HTTPS_PORT:-8443}:8443"
     depends_on:
       - db
-    env_file: .env
     command: manager --swagger --verbose --debug
     volumes:
       - ./manager.conf:/config/manager.conf
@@ -19,156 +32,23 @@ services:
       - ./certs/:/config/certs/
 
   worker:
+    image: ${WORKER_IMAGE:-ntask_worker:latest}
     build:
       context: .
       dockerfile: ./worker/Dockerfile
     restart: unless-stopped
-    container_name: nTask-worker
+    env_file:
+      - .env
     depends_on:
       - manager
-    env_file: .env
     command: worker --verbose --debug
     volumes:
       - ./worker.conf:/config/worker.conf
       - ./certs/:/config/certs/
+    # If you’re on Swarm, this will give you N replicas out of the box:
+    deploy:
+      replicas: ${WORKER_REPLICAS:-10}
+      restart_policy:
+        condition: any
 
-  worker2:
-    build:
-      context: .
-      dockerfile: ./worker/Dockerfile
-    restart: unless-stopped
-    container_name: nTask-worker2
-    depends_on:
-      - manager
-    env_file: .env
-    command: worker --verbose --debug
-    volumes:
-      - ./worker.conf:/config/worker.conf
-      - ./certs/:/config/certs/
 
-  worker3:
-    build:
-      context: .
-      dockerfile: ./worker/Dockerfile
-    restart: unless-stopped
-    container_name: nTask-worker3
-    depends_on:
-      - manager
-    env_file: .env
-    command: worker --verbose --debug
-    volumes:
-      - ./worker.conf:/config/worker.conf
-      - ./certs/:/config/certs/
-
-  worker4:
-    build:
-      context: .
-      dockerfile: ./worker/Dockerfile
-    restart: unless-stopped
-    container_name: nTask-worker4
-    depends_on:
-      - manager
-    env_file: .env
-    command: worker --verbose --debug
-    volumes:
-      - ./worker.conf:/config/worker.conf
-      - ./certs/:/config/certs/
-
-  worker5:
-    build:
-      context: .
-      dockerfile: ./worker/Dockerfile
-    restart: unless-stopped
-    container_name: nTask-worker5
-    depends_on:
-      - manager
-    env_file: .env
-    command: worker --verbose --debug
-    volumes:
-      - ./worker.conf:/config/worker.conf
-      - ./certs/:/config/certs/
-
-  worker6:
-    build:
-      context: .
-      dockerfile: ./worker/Dockerfile
-    restart: unless-stopped
-    container_name: nTask-worker6
-    depends_on:
-      - manager
-    env_file: .env
-    command: worker --verbose --debug
-    volumes:
-      - ./worker.conf:/config/worker.conf
-      - ./certs/:/config/certs/
-
-  worker7:
-    build:
-      context: .
-      dockerfile: ./worker/Dockerfile
-    restart: unless-stopped
-    container_name: nTask-worker7
-    depends_on:
-      - manager
-    env_file: .env
-    command: worker --verbose --debug
-    volumes:
-      - ./worker.conf:/config/worker.conf
-      - ./certs/:/config/certs/
-
-  worker8:
-    build:
-      context: .
-      dockerfile: ./worker/Dockerfile
-    restart: unless-stopped
-    container_name: nTask-worker8
-    depends_on:
-      - manager
-    env_file: .env
-    command: worker --verbose --debug
-    volumes:
-      - ./worker.conf:/config/worker.conf
-      - ./certs/:/config/certs/
-
-  worker9:
-    build:
-      context: .
-      dockerfile: ./worker/Dockerfile
-    restart: unless-stopped
-    container_name: nTask-worker9
-    depends_on:
-      - manager
-    env_file: .env
-    command: worker --verbose --debug
-    volumes:
-      - ./worker.conf:/config/worker.conf
-      - ./certs/:/config/certs/
-
-  worker10:
-    build:
-      context: .
-      dockerfile: ./worker/Dockerfile
-    restart: unless-stopped
-    container_name: nTask-worker10
-    depends_on:
-      - manager
-    env_file: .env
-    command: worker --verbose --debug
-    volumes:
-      - ./worker.conf:/config/worker.conf
-      - ./certs/:/config/certs/
-
-  db:
-    image: mysql
-    #command: --default-authentication-plugin=caching_sha2_password
-    restart: unless-stopped
-    ports:
-      - 3306:3306
-    environment:
-      MYSQL_ROOT_PASSWORD: your_password_root
-      MYSQL_USER: your_username
-      MYSQL_PASSWORD: your_password
-      MYSQL_DATABASE: manager
-      MYSQL_ROOT_HOST: "0.0.0.0"
-    volumes:
-      - ./db:/var/lib/mysql
