@@ -36,7 +36,7 @@ func RmWorkerName(db *sql.DB, name string, verbose, debug bool) error {
 	if err := SetTasksWorkerPending(db, name, verbose, debug); err != nil {
 		return err
 	}
-	if err := ClearWorkerName(db, name, verbose, debug); err != nil {
+	if err := clearWorkerName(db, name, verbose, debug); err != nil {
 		return err
 	}
 	return nil

@@ -271,19 +271,7 @@ func SetTaskExecutedAtNow(db *sql.DB, id string, verbose, debug bool) error {
 	return nil
 }
 
-// SetTaskWorkerName saves the worker name of the task in the database
-func SetTaskWorkerName(db *sql.DB, id, workerName string, verbose, debug bool) error {
-	res, err := execWithRetry(db, false, "UPDATE task SET WorkerName = ?, updatedAt = NOW() WHERE ID = ?", workerName, id)
-	if err != nil {
-		return err
-	}
-	if n, _ := res.RowsAffected(); n == 0 {
-		return fmt.Errorf("SetTaskWorkerName: task %s not found", id)
-	}
-	return nil
-}
-
-func ClearWorkerName(db *sql.DB, workerName string, verbose, debug bool) error {
+func clearWorkerName(db *sql.DB, workerName string, verbose, debug bool) error {
 	_, err := execWithRetry(db, false, "UPDATE task SET WorkerName = '', updatedAt = NOW() WHERE WorkerName = ?", workerName)
 	return err
 }
@@ -300,14 +288,6 @@ func SetTaskStatus(db *sql.DB, id, status string, verbose, debug bool) error {
 		log.Println("SetTaskStatus", id, status)
 	}
 	return nil
-}
-
-func TransitionTasks(db *sql.DB, fromStatus, toStatus string, verbose, debug bool) (int64, error) {
-	res, err := execWithRetry(db, false, "UPDATE task SET status = ?, updatedAt = NOW() WHERE status = ?", toStatus, fromStatus)
-	if err != nil {
-		return 0, err
-	}
-	return res.RowsAffected()
 }
 
 // ---------------- Statistics & housekeeping ------------------------------
@@ -375,20 +355,3 @@ func SetTasksStatusIfStatus(currentStatus string, db *sql.DB, newStatus string, 
 	}
 	return nil
 }
-
-// SetTaskExecutedAt saves current time as executedAt
-func SetTaskExecutedAt(executedAt string, db *sql.DB, id string, verbose, debug bool) error {
-
-	// Update the status column of the task table for the given ID
-	query := "UPDATE task SET executedAt = ?, updatedAt = NOW() WHERE status = ?"
-	_, err := execWithRetry(db, false, query, executedAt, id)
-	if err != nil {
-		if debug {
-			log.Println("DB Error DBTask SetTaskExecutedAt: ", err)
-		}
-		return err
-	}
-	return nil
-}
-
-// Count
