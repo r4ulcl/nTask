@@ -1,4 +1,3 @@
-// manager.go
 // Package database provides functions for managing database connections and executing SQL statements.
 
 package database

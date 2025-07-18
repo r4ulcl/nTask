@@ -49,7 +49,7 @@ services:
       - ./certs/:/config/certs/
     # If you’re on Swarm, this will give you N replicas out of the box:
     deploy:
-      replicas: ${WORKER_REPLICAS:-2}
+      replicas: ${WORKER_REPLICAS_DEV:-2}
       restart_policy:
         condition: any
 

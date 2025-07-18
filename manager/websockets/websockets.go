@@ -18,10 +18,11 @@ func GetWorkerMessage(conn *websocket.Conn, config *utils.ManagerConfig, db *sql
 	var worker globalstructs.Worker
 	// configure timing and retries
 	const (
-		pingInterval    = 5 * time.Second
-		maxRecovery     = 3
-		recoveryBackoff = pingInterval
-		writeTimeout    = 30 * time.Second
+		pongWait        = 120 * time.Second
+		pingInterval    = 30 * time.Second
+		maxRecovery     = 5
+		recoveryBackoff = pingInterval * 2
+		writeTimeout    = 60 * time.Second
 	)
 
 	// protect writes

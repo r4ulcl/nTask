@@ -8,7 +8,7 @@ MAX_ITER=10000
 
 for ((i=1; i<=MAX_ITER; i++)); do
   # Pick a random integer 1-20
-  X=$(( RANDOM % 50 + 1 ))
+  X=$(( RANDOM % 60 + 1 ))
 
   # Compose the JSON payload with that X
   read -r -d '' payload <<EOF
@@ -36,3 +36,5 @@ EOF
   #echo        # newline after each response
   #sleep 0     # brief pause so you don’t hammer the endpoint too hard
 done
+
+wait 

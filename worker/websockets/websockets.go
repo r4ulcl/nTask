@@ -39,16 +39,6 @@ func attachPongHandler(conn *websocket.Conn, pongRec chan struct{}, debug bool) 
 	})
 }
 
-// update the conn reference inside config under lock
-func setConn(conn *websocket.Conn, config *utils.WorkerConfig, verbose, debug bool, writeLock *sync.Mutex) {
-	writeLock.Lock()
-	defer writeLock.Unlock()
-	if verbose || debug {
-		log.Println("setConn – new websocket connection stored in config")
-	}
-	config.Conn = conn
-}
-
 func GetMessage(config *utils.WorkerConfig, status *globalstructs.WorkerStatus, verbose, debug bool, writeLock *sync.Mutex) {
 	for {
 		// blocking read → any error bubbles up
