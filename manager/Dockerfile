@@ -1,55 +1,37 @@
+# STEP 1: Compile a static Go binary
+FROM golang:1.23-alpine AS builder
 
-# STEP 1 build executable binary
-FROM golang:alpine as builder
+# Install ca-certificates only
+RUN apk add --no-cache ca-certificates
 
-# Install ca-certificates
-RUN apk update && apk add --no-cache ca-certificates
+WORKDIR /go/src/github.com/r4ulcl/nTask
 
-# Copy go.mod and go.sum first to cache dependencies
-COPY ./go.mod ./go.sum $GOPATH/src/github.com/r4ulcl/nTask/
-WORKDIR $GOPATH/src/github.com/r4ulcl/nTask
-
-# Download dependencies
+# Cache modules
+COPY go.mod go.sum ./
 RUN go mod download
 
-# copy files for compile
-COPY ./certs $GOPATH/src/github.com/r4ulcl/nTask/certs
-COPY ./docs $GOPATH/src/github.com/r4ulcl/nTask/docs
-COPY ./globalstructs $GOPATH/src/github.com/r4ulcl/nTask/globalstructs
-COPY ./go.mod $GOPATH/src/github.com/r4ulcl/nTask/go.mod
-COPY ./go.sum $GOPATH/src/github.com/r4ulcl/nTask/go.sum
-COPY ./main.go $GOPATH/src/github.com/r4ulcl/nTask/main.go
-COPY ./manager $GOPATH/src/github.com/r4ulcl/nTask/manager
-COPY ./worker $GOPATH/src/github.com/r4ulcl/nTask/worker
+# Copy source (dockerignore limits context)
+COPY . .
 
-#get dependancies
-#RUN apk -U add alpine-sdk
-#RUN go get -d -v
-#build the binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags '-w -s' -o /go/bin/nTask
+# Build static binary with optimizations
+RUN CGO_ENABLED=0 \
+    GOOS=linux GOARCH=amd64 \
+    go build -trimpath -ldflags="-s -w" -o /nTask ./main.go
 
-#create config folder 
-RUN mkdir /config
-
-# STEP 2 build a small image
-# start from scratch for manager
+# STEP 2: Minimal runtime image
 FROM scratch
-#GOPATH doesn-t exists in scratch
-ENV GOPATH='/go' 
 
-# Add certs for API digitalocean
-# Copy the CA certificates from the builder stage
+# Add CA certificates for TLS
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-# Copy our static executable
-COPY --from=builder $GOPATH/bin/nTask $GOPATH/bin/nTask
-#Copy SQL file
-COPY --from=builder /config/ /config/
-# Copy swagger
-COPY --from=builder $GOPATH/src/github.com/r4ulcl/nTask/docs/ /config/docs/
+# Copy binary
+COPY --from=builder /nTask /nTask
 
+# Copy configuration and assets
+COPY --from=builder /go/src/github.com/r4ulcl/nTask/worker/modules /config/modules
+COPY --from=builder /go/src/github.com/r4ulcl/nTask/docs /config/docs
 
-# Set config folder
-WORKDIR  /config
+# Set working directory
+WORKDIR /config
 
-ENTRYPOINT ["/go/bin/nTask"]
+ENTRYPOINT ["/nTask"]
