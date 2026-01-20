@@ -6,6 +6,7 @@ import (
 	"github.com/r4ulcl/nTask/manager/database"
 )
 
+// GetStatusTask function to get task status, pending, running, etc
 func GetStatusTask(db *sql.DB, verbose, debug bool) (StatusTask, error) {
 	task := StatusTask{
 		Pending: 0,
@@ -15,31 +16,31 @@ func GetStatusTask(db *sql.DB, verbose, debug bool) (StatusTask, error) {
 		Deleted: 0,
 	}
 
-	pending, err := database.GetPendingCount(db, verbose, debug)
+	pending, err := database.GetCountByStatus("pending", db, verbose, debug)
 	if err != nil {
 		return task, err
 	}
 	task.Pending = pending
 
-	running, err := database.GetRunningCount(db, verbose, debug)
+	running, err := database.GetCountByStatus("running", db, verbose, debug)
 	if err != nil {
 		return task, err
 	}
 	task.Running = running
 
-	done, err := database.GetDoneCount(db, verbose, debug)
+	done, err := database.GetCountByStatus("done", db, verbose, debug)
 	if err != nil {
 		return task, err
 	}
 	task.Done = done
 
-	failed, err := database.GetFailedCount(db, verbose, debug)
+	failed, err := database.GetCountByStatus("failed", db, verbose, debug)
 	if err != nil {
 		return task, err
 	}
 	task.Failed = failed
 
-	deleted, err := database.GetDeletedCount(db, verbose, debug)
+	deleted, err := database.GetCountByStatus("deleted", db, verbose, debug)
 	if err != nil {
 		return task, err
 	}
@@ -48,6 +49,7 @@ func GetStatusTask(db *sql.DB, verbose, debug bool) (StatusTask, error) {
 	return task, nil
 }
 
+// GetStatusWorker func to get status up, down of workers
 func GetStatusWorker(db *sql.DB, verbose, debug bool) (StatusWorker, error) {
 	worker := StatusWorker{
 		Up:   0,

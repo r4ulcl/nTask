@@ -9,11 +9,13 @@ import (
 	"github.com/r4ulcl/nTask/manager/database"
 )
 
-func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
+// ManageTasks infinite loop to manage task
+func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, writeLock *sync.Mutex) {
 	// infinite loop eecuted with go routine
 	for {
 		// Get all tasks in order and if priority
-		tasks, err := database.GetTasksPending(100, db, verbose, debug)
+		workersThreads := getWorkersThreads(db, verbose, debug)
+		tasks, err := database.GetTasksPending(workersThreads, db, verbose, debug)
 		if err != nil {
 			log.Println(err.Error())
 		}
@@ -35,9 +37,9 @@ func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *syn
 				for _, worker := range workers {
 					// if WorkerName not send or set this worker, just sendAddTask
 					if task.WorkerName == "" || task.WorkerName == worker.Name {
-						err = SendAddTask(db, config, &worker, &task, verbose, debug, wg, writeLock)
+						err = sendAddTask(db, config, &worker, &task, verbose, debug, writeLock)
 						if err != nil {
-							log.Println("Utils Error SendAddTask", err.Error())
+							log.Println("Utils Error sendAddTask", err.Error())
 							//time.Sleep(time.Second * 1)
 							break
 						}
@@ -56,6 +58,8 @@ func ManageTasks(config *ManagerConfig, db *sql.DB, verbose, debug bool, wg *syn
 		} else {
 			if len(tasks) == 0 {
 				time.Sleep(time.Second * 1)
+			} else if len(workers) == 0 {
+				time.Sleep(time.Millisecond * 500)
 			}
 		}
 	}

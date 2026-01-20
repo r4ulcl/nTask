@@ -7,12 +7,14 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// WorkerConfig Worker Config file struct
 type WorkerConfig struct {
 	Name              string            `json:"name"`
-	IddleThreads      int               `json:"iddleThreads"`
+	DefaultThreads    int               `json:"defaultThreads"`
 	ManagerIP         string            `json:"managerIP"`
-	ManagerPort       string            `json:"managerPort"`
+	ManagerPort       int               `json:"managerPort"`
 	ManagerOauthToken string            `json:"managerOauthToken"`
+	DeleteFiles       bool              `json:"deleteFiles"`
 	CA                string            `json:"ca"`
 	InsecureModules   bool              `json:"insecureModules"`
 	Modules           map[string]string `json:"modules"`
@@ -20,6 +22,7 @@ type WorkerConfig struct {
 	Conn              *websocket.Conn   `json:"Conn"`
 }
 
+// Task Task struct
 type Task struct {
 	ID          string
 	Module      string

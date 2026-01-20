@@ -1,41 +1,37 @@
+# STEP 1: Compile a static Go binary
+FROM golang:1.23-alpine AS builder
 
-# STEP 1 build executable binary
-FROM golang:alpine as builder
-# copy files for compile
-COPY ./certs $GOPATH/src/github.com/r4ulcl/nTask/certs
-COPY ./docs $GOPATH/src/github.com/r4ulcl/nTask/docs
-COPY ./globalstructs $GOPATH/src/github.com/r4ulcl/nTask/globalstructs
-COPY ./go.mod $GOPATH/src/github.com/r4ulcl/nTask/go.mod
-COPY ./go.sum $GOPATH/src/github.com/r4ulcl/nTask/go.sum
-COPY ./main.go $GOPATH/src/github.com/r4ulcl/nTask/main.go
-COPY ./manager $GOPATH/src/github.com/r4ulcl/nTask/manager
-COPY ./worker $GOPATH/src/github.com/r4ulcl/nTask/worker
+# Install ca-certificates only
+RUN apk add --no-cache ca-certificates
 
-WORKDIR $GOPATH/src/github.com/r4ulcl/nTask
-#get dependancies
-#RUN apk -U add alpine-sdk
-#RUN go get -d -v
-#build the binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags '-w -s' -o /go/bin/nTask
+WORKDIR /go/src/github.com/r4ulcl/nTask
 
-#create config folder 
-RUN mkdir /config
+# Cache modules
+COPY go.mod go.sum ./
+RUN go mod download
 
-# STEP 2 build a small image
-# start from scratch for manager
+# Copy source (dockerignore limits context)
+COPY . .
+
+# Build static binary with optimizations
+RUN CGO_ENABLED=0 \
+    GOOS=linux GOARCH=amd64 \
+    go build -trimpath -ldflags="-s -w" -o /nTask ./main.go
+
+# STEP 2: Minimal runtime image
 FROM scratch
-#GOPATH doesn-t exists in scratch
-ENV GOPATH='/go' 
 
-# Copy our static executable
-COPY --from=builder /$GOPATH/bin/nTask /$GOPATH/bin/nTask
-#Copy SQL file
-COPY --from=builder /config/ /config/
-# Copy swagger
-COPY --from=builder $GOPATH/src/github.com/r4ulcl/nTask/docs/ /config/docs/
+# Add CA certificates for TLS
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
+# Copy binary
+COPY --from=builder /nTask /nTask
 
-# Set config folder
-WORKDIR  /config
+# Copy configuration and assets
+COPY --from=builder /go/src/github.com/r4ulcl/nTask/worker/modules /config/modules
+COPY --from=builder /go/src/github.com/r4ulcl/nTask/docs /config/docs
 
-ENTRYPOINT ["/go/bin/nTask"]
+# Set working directory
+WORKDIR /config
+
+ENTRYPOINT ["/nTask"]

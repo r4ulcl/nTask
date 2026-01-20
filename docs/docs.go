@@ -93,6 +93,12 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "description": "Task files",
+                        "name": "file",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "description": "Task name",
                         "name": "name",
                         "in": "query"
@@ -546,16 +552,10 @@ const docTemplate = `{
                 "args": {
                     "type": "string"
                 },
-                "fileContent": {
-                    "type": "string"
-                },
                 "module": {
                     "type": "string"
                 },
                 "output": {
-                    "type": "string"
-                },
-                "remoteFilePath": {
                     "type": "string"
                 }
             }
@@ -566,13 +566,7 @@ const docTemplate = `{
                 "args": {
                     "type": "string"
                 },
-                "fileContent": {
-                    "type": "string"
-                },
                 "module": {
-                    "type": "string"
-                },
-                "remoteFilePath": {
                     "type": "string"
                 }
             }
@@ -581,6 +575,17 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "globalstructs.File": {
+            "type": "object",
+            "properties": {
+                "fileContentB64": {
+                    "type": "string"
+                },
+                "remoteFilePath": {
                     "type": "string"
                 }
             }
@@ -594,7 +599,7 @@ const docTemplate = `{
                 "callbackURL": {
                     "type": "string"
                 },
-                "command": {
+                "commands": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/globalstructs.Command"
@@ -606,10 +611,19 @@ const docTemplate = `{
                 "executedAt": {
                     "type": "string"
                 },
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/globalstructs.File"
+                    }
+                },
                 "id": {
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "notes": {
                     "type": "string"
                 },
                 "priority": {
@@ -618,6 +632,10 @@ const docTemplate = `{
                 "status": {
                     "description": "pending, running, done, failed, deleted",
                     "type": "string"
+                },
+                "timeout": {
+                    "description": "timeout in seconds",
+                    "type": "integer"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -633,16 +651,29 @@ const docTemplate = `{
         "globalstructs.TaskSwagger": {
             "type": "object",
             "properties": {
-                "command": {
+                "commands": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/globalstructs.CommandSwagger"
                     }
                 },
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/globalstructs.File"
+                    }
+                },
                 "name": {
                     "type": "string"
                 },
+                "notes": {
+                    "type": "string"
+                },
                 "priority": {
+                    "type": "integer"
+                },
+                "timeout": {
+                    "description": "timeout in seconds",
                     "type": "integer"
                 }
             }
@@ -650,10 +681,13 @@ const docTemplate = `{
         "globalstructs.Worker": {
             "type": "object",
             "properties": {
-                "IddleThreads": {
+                "defaultThreads": {
                     "type": "integer"
                 },
                 "downCount": {
+                    "type": "integer"
+                },
+                "iddleThreads": {
                     "type": "integer"
                 },
                 "name": {
@@ -683,7 +717,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
+	Version:          "v0.1",
 	Host:             "",
 	BasePath:         "/",
 	Schemes:          []string{"https", "http"},

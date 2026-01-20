@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -16,6 +15,7 @@ import (
 	"github.com/r4ulcl/nTask/manager/utils"
 )
 
+// HandleTaskGet Get status of tasks
 // @description Get status of tasks
 // @summary Get all tasks
 // @Tags task
@@ -23,6 +23,7 @@ import (
 // @produce application/json
 // @param ID query string false "Task ID"
 // @param command query string false "Task command"
+// @param file query string false "Task files"
 // @param name query string false "Task name"
 // @param createdAt query string false "Task createdAt"
 // @param updatedAt query string false "Task updatedAt"
@@ -31,6 +32,7 @@ import (
 // @param workerName query string false "Task workerName"
 // @param username query string false "Task username"
 // @param priority query string false "Task priority"
+// @param timeout query string false "Task timeout"
 // @param callbackURL query string false "Task callbackURL"
 // @param callbackToken query string false "Task callbackToken"
 // @param limit query int false "limit output DB"
@@ -40,10 +42,9 @@ import (
 // @Failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /task [get]
-func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
-	_, ok := r.Context().Value("username").(string)
+func HandleTaskGet(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
+	ok, _ := getUsername(r, verbose, debug)
 	if !ok {
-		// if not username is a worker
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
@@ -74,9 +75,14 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, string(jsonData))
+	// Use json.NewEncoder for safe encoding
+	err = json.NewEncoder(w).Encode(tasks)
+	if err != nil {
+		http.Error(w, "{ \"error\" : \"Invalid tasks encode body:"+err.Error()+"\"}", http.StatusBadRequest)
+	}
 }
 
+// HandleTaskPost Add a new tasks
 // @description Add a new tasks
 // @summary Add a new tasks
 // @Tags task
@@ -88,12 +94,9 @@ func HandleTaskGet(w http.ResponseWriter, r *http.Request, config *utils.Manager
 // @Failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /task [post]
-func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
-	username, okUser := r.Context().Value("username").(string)
-	if !okUser {
-		if debug {
-			log.Println("API { \"error\" : \"Unauthorized\" }")
-		}
+func HandleTaskPost(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
+	ok, username := getUsername(r, verbose, debug)
+	if !ok {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
 	}
@@ -131,7 +134,7 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 		}
 	}
 
-	err = database.AddTask(db, request, verbose, debug, wg)
+	err = database.AddTask(db, request, verbose, debug)
 	if err != nil {
 		message := "{ \"error\" : \"Invalid task info: " + err.Error() + "\" }"
 		http.Error(w, message, http.StatusBadRequest)
@@ -149,18 +152,17 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 		return
 	}
 
-	jsonData, err := json.Marshal(task)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid callback body: "+err.Error()+"\"}", http.StatusBadRequest)
-		return
-	}
-
 	// Handle the result as needed
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, string(jsonData))
+	// Use json.NewEncoder for safe encoding
+	err = json.NewEncoder(w).Encode(task)
+	if err != nil {
+		http.Error(w, "{ \"error\" : \"Invalid tasks encode body:"+err.Error()+"\"}", http.StatusBadRequest)
+	}
 }
 
+// HandleTaskDelete Delete a tasks
 // @description Delete a tasks
 // @summary Delete a tasks
 // @Tags task
@@ -172,8 +174,8 @@ func HandleTaskPost(w http.ResponseWriter, r *http.Request, config *utils.Manage
 // @Failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /task/{ID} [delete]
-func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
-	_, ok := r.Context().Value("username").(string)
+func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, writeLock *sync.Mutex) {
+	_, ok := r.Context().Value(utils.UsernameKey).(string)
 	if !ok {
 		http.Error(w, "{ \"error\" : \"Username not found\" }", http.StatusUnauthorized)
 		return
@@ -193,7 +195,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 		// Has a worker set, check if its running
 		if task.Status == "running" {
 			// If its runing send stop signal to worker
-			err = utils.SendDeleteTask(db, config, &worker, &task, verbose, debug, wg, writeLock)
+			err = utils.SendDeleteTask(db, config, &worker, &task, verbose, debug, writeLock)
 			if err != nil {
 				http.Error(w, "{ \"error\" : \""+err.Error()+"\" }", http.StatusBadRequest)
 				return
@@ -208,7 +210,7 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 		return
 	}*/
 	// Set task as running
-	err = database.SetTaskStatus(db, id, "deleted", verbose, debug, wg)
+	err = database.SetTaskStatus(db, id, "deleted", verbose, debug)
 	if err != nil {
 		log.Println("Utils Error SetTaskStatus in request:", err)
 	}
@@ -216,17 +218,16 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	// Return task with deleted status
 	task.Status = "deleted"
 
-	jsonData, err := json.Marshal(task)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid callback body: "+err.Error()+"\"}", http.StatusBadRequest)
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, string(jsonData))
+	// Use json.NewEncoder for safe encoding
+	err = json.NewEncoder(w).Encode(task)
+	if err != nil {
+		http.Error(w, "{ \"error\" : \"Invalid tasks encode body:"+err.Error()+"\"}", http.StatusBadRequest)
+	}
 }
 
+// HandleTaskStatus Get status of a task
 // @description Get status of a task
 // @summary Get status of a task
 // @Tags task
@@ -238,39 +239,8 @@ func HandleTaskDelete(w http.ResponseWriter, r *http.Request, config *utils.Mana
 // @Failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /task/{ID} [get]
-func HandleTaskStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
-	_, ok := r.Context().Value("username").(string)
-	if !ok {
-		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
-		return
-	}
-
-	vars := mux.Vars(r)
-	id := vars["ID"]
-
-	// Access worker to update info if status running
-	// get task from ID
-	task, err := database.GetTask(db, id, verbose, debug)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid GetTask body: "+err.Error()+"\"}", http.StatusBadRequest)
-
-		return
-	}
-
-	jsonData, err := json.Marshal(task)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid Marshal body: "+err.Error()+"\"}", http.StatusBadRequest)
-		return
-	}
-
-	if debug {
-		// Print the JSON data
-		log.Println("API get task: ", string(jsonData))
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, string(jsonData))
+func HandleTaskStatus(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
+	handleEntityStatus(w, r, db, verbose, debug, database.GetTask, "ID")
 }
 
 // generateRandomID generates a random ID of the specified length
@@ -287,6 +257,10 @@ func generateRandomID(length int, verbose, debug bool) (string, error) {
 
 	// Convert random bytes to hex string
 	randomID := hex.EncodeToString(randomBytes)
+
+	if verbose || debug {
+		log.Println("generateRandomID executed", randomID)
+	}
 
 	return randomID, nil
 }

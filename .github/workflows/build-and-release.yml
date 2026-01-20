@@ -1,0 +1,67 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [1.21.6]  # Add more versions if needed
+        os: [windows, linux, darwin]
+        arch: [amd64, arm64, 386, arm]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go-version }}
+        # Set other Go-related options as needed
+
+    - name: Build binary
+      run: |
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          go build -o ${GITHUB_REPOSITORY}-${{ matrix.os }}-${{ matrix.arch }}.exe
+        else
+          go build -o ${GITHUB_REPOSITORY}-${{ matrix.os }}-${{ matrix.arch }}
+        fi
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Create Release Draft
+      if: startsWith(github.ref, 'refs/tags/v')
+      id: create_release
+      uses: actions/create-release@v1
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: true
+        body: |
+          Release notes for version ${{ github.ref }}
+
+    - name: Upload Release Assets
+      if: startsWith(github.ref, 'refs/tags/v')
+      id: upload-release-assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: |
+          ${GITHUB_REPOSITORY}-windows-amd64.exe
+          ${GITHUB_REPOSITORY}-windows-386.exe
+          ${GITHUB_REPOSITORY}-linux-amd64
+          ${GITHUB_REPOSITORY}-linux-arm64
+          ${GITHUB_REPOSITORY}-linux-386
+          ${GITHUB_REPOSITORY}-darwin-amd64
+          ${GITHUB_REPOSITORY}-darwin-arm64
+        asset_name: ${GITHUB_REPOSITORY}-${{ matrix.arch }}

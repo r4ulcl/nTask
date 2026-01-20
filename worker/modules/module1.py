@@ -1,10 +1,9 @@
-import csv
 import time
-import random
+import secrets
 import sys
 
 def generate_random_data():
-    return [random.randint(1, 100), random.uniform(0.0, 1.0), random.choice(['A', 'B', 'C'])]
+    return [secrets.randbelow(100) + 1, secrets.uniform(0.0, 1.0), secrets.choice(['A', 'B', 'C'])]
 
 def main():
 
@@ -20,7 +19,7 @@ def main():
     print(data)
 
     # Sleep for a random time between 1 and 30 seconds
-    sleep_time = random.uniform(5, 15)
+    sleep_time = 5 + (secrets.randbelow(100) / 10)
     print(f"Sleeping for {sleep_time:.2f} seconds...")
     time.sleep(sleep_time)
 

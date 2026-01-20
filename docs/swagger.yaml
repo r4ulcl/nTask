@@ -4,29 +4,28 @@ definitions:
     properties:
       args:
         type: string
-      fileContent:
-        type: string
       module:
         type: string
       output:
-        type: string
-      remoteFilePath:
         type: string
     type: object
   globalstructs.CommandSwagger:
     properties:
       args:
         type: string
-      fileContent:
-        type: string
       module:
-        type: string
-      remoteFilePath:
         type: string
     type: object
   globalstructs.Error:
     properties:
       error:
+        type: string
+    type: object
+  globalstructs.File:
+    properties:
+      fileContentB64:
+        type: string
+      remoteFilePath:
         type: string
     type: object
   globalstructs.Task:
@@ -35,7 +34,7 @@ definitions:
         type: string
       callbackURL:
         type: string
-      command:
+      commands:
         items:
           $ref: '#/definitions/globalstructs.Command'
         type: array
@@ -43,15 +42,24 @@ definitions:
         type: string
       executedAt:
         type: string
+      files:
+        items:
+          $ref: '#/definitions/globalstructs.File'
+        type: array
       id:
         type: string
       name:
+        type: string
+      notes:
         type: string
       priority:
         type: integer
       status:
         description: pending, running, done, failed, deleted
         type: string
+      timeout:
+        description: timeout in seconds
+        type: integer
       updatedAt:
         type: string
       username:
@@ -61,20 +69,31 @@ definitions:
     type: object
   globalstructs.TaskSwagger:
     properties:
-      command:
+      commands:
         items:
           $ref: '#/definitions/globalstructs.CommandSwagger'
         type: array
+      files:
+        items:
+          $ref: '#/definitions/globalstructs.File'
+        type: array
       name:
         type: string
+      notes:
+        type: string
       priority:
+        type: integer
+      timeout:
+        description: timeout in seconds
         type: integer
     type: object
   globalstructs.Worker:
     properties:
-      IddleThreads:
+      defaultThreads:
         type: integer
       downCount:
+        type: integer
+      iddleThreads:
         type: integer
       name:
         description: Workers name (unique)
@@ -92,7 +111,7 @@ info:
     name: GPL-3.0
     url: https://github.com/r4ulcl/nTask/blob/main/LICENSE
   title: nTask API
-  version: "1.0"
+  version: v0.1
 paths:
   /status:
     get:
@@ -130,6 +149,10 @@ paths:
       - description: Task command
         in: query
         name: command
+        type: string
+      - description: Task files
+        in: query
+        name: file
         type: string
       - description: Task name
         in: query

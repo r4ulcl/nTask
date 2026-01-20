@@ -8,8 +8,8 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"time"
 
-	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	globalstructs "github.com/r4ulcl/nTask/globalstructs"
 	"github.com/r4ulcl/nTask/manager/database"
@@ -17,7 +17,7 @@ import (
 	"github.com/r4ulcl/nTask/manager/websockets"
 )
 
-// HandleWorker Get handles the request to get workers
+// HandleWorkerGet Get handles the request to get workers
 // @description Handle worker request
 // @summary Get workers
 // @Tags worker
@@ -28,8 +28,8 @@ import (
 // @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /worker [get]
-func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
-	username, ok := r.Context().Value("username").(string)
+func HandleWorkerGet(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
+	username, ok := r.Context().Value(utils.UsernameKey).(string)
 	if !ok {
 		log.Println("API username", username)
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
@@ -58,7 +58,11 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, string(jsonData))
+	// Use json.NewEncoder for safe encoding
+	err = json.NewEncoder(w).Encode(workers)
+	if err != nil {
+		http.Error(w, "{ \"error\" : \"Invalid workers encode body:"+err.Error()+"\"}", http.StatusBadRequest)
+	}
 }
 
 // HandleWorkerPost handles the request to add a worker
@@ -73,9 +77,9 @@ func HandleWorkerGet(w http.ResponseWriter, r *http.Request, config *utils.Manag
 // @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /worker [post]
-func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
-	_, okUser := r.Context().Value("username").(string)
-	_, okWorker := r.Context().Value("worker").(string)
+func HandleWorkerPost(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
+	_, okUser := r.Context().Value(utils.UsernameKey).(string)
+	_, okWorker := r.Context().Value(utils.WorkerKey).(string)
 	if !okUser && !okWorker {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
@@ -88,7 +92,7 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 		http.Error(w, "{ \"error\" : \"Invalid Decode body: "+err.Error()+"\"}", http.StatusBadRequest)
 	}
 
-	err = addWorker(worker, db, verbose, debug, wg)
+	err = addWorker(worker, db, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \"Invalid Decode body: "+err.Error()+"\"}", http.StatusBadRequest)
 	}
@@ -98,44 +102,26 @@ func HandleWorkerPost(w http.ResponseWriter, r *http.Request, config *utils.Mana
 	w.WriteHeader(http.StatusOK)
 }
 
-func addWorker(worker globalstructs.Worker, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) error {
+func addWorker(worker globalstructs.Worker, db *sql.DB, verbose, debug bool) error {
 
 	if debug {
 		log.Println("API worker.Name", worker.Name)
 	}
 
-	err := database.AddWorker(db, &worker, verbose, debug, wg)
+	err := database.AddWorker(db, &worker, verbose, debug)
 	if err != nil {
-		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
-			if mysqlErr.Number == 1062 { // MySQL error number for duplicate entry
-				// Set as 'pending' all workers tasks to REDO
-				err = database.SetTasksWorkerPending(db, worker.Name, verbose, debug, wg)
-				if err != nil {
-					return err
-				}
-
-				// set worker up
-				err = database.SetWorkerUPto(true, db, &worker, verbose, debug, wg)
-				if err != nil {
-					return err
-				}
-
-				// reset down count
-				err = database.SetWorkerDownCount(0, db, &worker, verbose, debug, wg)
-				if err != nil {
-					return err
-				}
-			}
+		err = utils.HandleAddWorkerError(err, db, &worker, verbose, debug)
+		if err != nil {
 			return err
 		}
-
 	}
 
 	return nil
 }
 
-func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup, writeLock *sync.Mutex) {
-	_, okWorker := r.Context().Value("worker").(string)
+// HandleWorkerPostWebsocket HandleWorkerPostWebsocket
+func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, writeLock *sync.Mutex) {
+	_, okWorker := r.Context().Value(utils.WorkerKey).(string)
 	if !okWorker {
 		if verbose {
 			log.Println("API HandleCallback: { \"error\" : \"Unauthorized\" }")
@@ -152,8 +138,13 @@ func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *u
 		return
 	}
 
+	if tcpConn, ok := conn.UnderlyingConn().(*net.TCPConn); ok {
+		tcpConn.SetKeepAlive(true)
+		tcpConn.SetKeepAlivePeriod(30 * time.Second)
+	}
+
 	//go
-	websockets.GetWorkerMessage(conn, config, db, verbose, debug, wg, writeLock)
+	websockets.GetWorkerMessage(conn, config, db, verbose, debug)
 
 }
 
@@ -169,9 +160,9 @@ func HandleWorkerPostWebsocket(w http.ResponseWriter, r *http.Request, config *u
 // @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /worker/{NAME} [delete]
-func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool, wg *sync.WaitGroup) {
-	_, okUser := r.Context().Value("username").(string)
-	_, okWorker := r.Context().Value("worker").(string)
+func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
+	_, okUser := r.Context().Value(utils.UsernameKey).(string)
+	_, okWorker := r.Context().Value(utils.WorkerKey).(string)
 	if !okUser && !okWorker {
 		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
 		return
@@ -180,9 +171,7 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 	vars := mux.Vars(r)
 	name := vars["NAME"]
 
-	// TODO
-
-	err := database.RmWorkerName(db, name, verbose, debug, wg)
+	err := database.RmWorkerName(db, name, verbose, debug)
 	if err != nil {
 		http.Error(w, "{ \"error\" : \"RmWorkerName: "+err.Error()+"\"}", http.StatusBadRequest)
 
@@ -206,44 +195,15 @@ func HandleWorkerDeleteName(w http.ResponseWriter, r *http.Request, config *util
 // @failure 403 {object} globalstructs.Error
 // @security ApiKeyAuth
 // @router /worker/{NAME} [get]
-func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, config *utils.ManagerConfig, db *sql.DB, verbose, debug bool) {
-	_, ok := r.Context().Value("username").(string)
-	if !ok {
-		http.Error(w, "{ \"error\" : \"Unauthorized\" }", http.StatusUnauthorized)
-		return
-	}
-
-	vars := mux.Vars(r)
-	name := vars["NAME"]
-
-	worker, err := database.GetWorker(db, name, verbose, debug)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid GetWorker body: "+err.Error()+"\"}", http.StatusBadRequest)
-
-		return
-	}
-
-	jsonData, err := json.Marshal(worker)
-	if err != nil {
-		http.Error(w, "{ \"error\" : \"Invalid Marshal body: "+err.Error()+"\"}", http.StatusBadRequest)
-
-		return
-	}
-
-	if debug {
-		// Print the JSON data
-		log.Println("API HandleWorkerStatus", string(jsonData))
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, string(jsonData))
+func HandleWorkerStatus(w http.ResponseWriter, r *http.Request, db *sql.DB, verbose, debug bool) {
+	handleEntityStatus(w, r, db, verbose, debug, database.GetWorker, "NAME")
 }
 
 // Other functions
 
-// ReadUserIP reads the user's IP address from the request
-func ReadUserIP(r *http.Request, verbose, debug bool) string {
+/*
+// readUserIP reads the user's IP address from the request
+func readUserIP(r *http.Request, verbose, debug bool) string {
 	IPAddress := r.Header.Get("X-Real-Ip")
 	if IPAddress == "" {
 		IPAddress = r.Header.Get("X-Forwarded-For")
@@ -261,3 +221,4 @@ func ReadUserIP(r *http.Request, verbose, debug bool) string {
 	// If there's an error (e.g., no port found), return the original address
 	return IPAddress
 }
+*/

@@ -21,3 +21,5 @@
 go.work
 db/*
 output/*
+nTask
+.vscode/*

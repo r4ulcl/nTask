@@ -8,6 +8,7 @@ import (
 	"github.com/r4ulcl/nTask/globalstructs"
 )
 
+// SaveTaskToDisk Save Task To Disk
 func SaveTaskToDisk(task globalstructs.Task, path string, verbose, debug bool) error {
 	// Convert the struct to JSON format
 	jsonData, err := json.MarshalIndent(task, "", "    ")
@@ -26,7 +27,7 @@ func SaveTaskToDisk(task globalstructs.Task, path string, verbose, debug bool) e
 	filePath := path
 
 	// Open the file for writing
-	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0600)
 	if err != nil {
 		if verbose {
 			log.Println("Error creating file:", err)

@@ -7,22 +7,22 @@
     <img src="https://img.shields.io/github/v/release/r4ulcl/nTask" alt="GitHub releases">
   </a>
   <a href="https://github.com/r4ulcl/nTask/stargazers">
-    <img src="https://img.shields.io/github/stars/r4ulcl/nTask.svg" alt="GitHub stars">
+    <img src="https://img.shields.io/github/stars/r4ulcl/nTask.svg?style=flat" alt="GitHub stars">
   </a>
   <a href="https://github.com/r4ulcl/nTask/network">
-    <img src="https://img.shields.io/github/forks/r4ulcl/nTask.svg" alt="GitHub forks">
+    <img src="https://img.shields.io/github/forks/r4ulcl/nTask.svg?style=flat" alt="GitHub forks">
   </a>
   <a href="https://github.com/r4ulcl/nTask/issues">
-    <img src="https://img.shields.io/github/issues/r4ulcl/nTask.svg" alt="GitHub issues">
+    <img src="https://img.shields.io/github/issues/r4ulcl/nTask.svg?style=flat" alt="GitHub issues">
   </a>
   <a href="https://www.codefactor.io/repository/github/r4ulcl/nTask">
     <img src="https://www.codefactor.io/repository/github/r4ulcl/nTask/badge" alt="CodeFactor" />
   </a>
-    <a href="https://github.com/r4ulcl/nTask">
-    <img src="https://tokei.rs/b1/github/r4ulcl/nTask" alt="LoC" />
+  <a href="https://app.codacy.com/gh/r4ulcl/nTask/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade">
+    <img src="https://app.codacy.com/project/badge/Grade/61f29ad1815b446c821d1cb61cdb92a5"/>
   </a>
   <a href="https://github.com/r4ulcl/nTask/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/r4ulcl/nTask.svg" alt="GitHub license">
+    <img src="https://img.shields.io/github/license/r4ulcl/nTask.svg?style=flat" alt="GitHub license">
   </a>
 
   <br>
@@ -31,6 +31,13 @@
   </a>
     <a href="https://hub.docker.com/r/r4ulcl/ntask-worker">
     <img src="https://github.com/r4ulcl/nTask/actions/workflows/build-worker.yml/badge.svg" alt="ntask-worker Docker Image ">
+  </a>
+    <br>
+      <a href="https://hub.docker.com/r/r4ulcl/ntask-manager">
+    <img src="https://github.com/r4ulcl/nTask/actions/workflows/build-worker-dev.yml/badge.svg" alt="ntask-worker Docker Image ">
+  </a>
+      <a href="https://hub.docker.com/r/r4ulcl/ntask-worker">
+    <img src="https://github.com/r4ulcl/nTask/actions/workflows/build-manager-dev.yml/badge.svg" alt="ntask-worker Docker Image ">
   </a>
   
   </p>
@@ -78,6 +85,8 @@ You can connect another API, Telegram bot ot a simple bash script to the manager
 - **Callback Option**: Users can configure callback options for task execution, enabling further processing or notifications.
 
 - **Logging**: Output logging to file is supported, facilitating easy tracking and analysis of task execution.
+
+- **Timeout**: Timeout on tasks.
 
 - **Documentation and Web Interface**: nTask provides Swagger documentation for easy integration and interaction with the API, along with an optional web interface for a more user-friendly experience.
 
@@ -140,7 +149,8 @@ The manager requires a configuration file named `manager.conf` to be present in 
   },
   "statusCheckSeconds": 10,
   "StatusCheckDown": 360,
-  "port": "8080",
+  "httpPort": 8080,
+  "httpsPort": 8443,
   "dbUsername": "your_username",
   "dbPassword": "your_password",
   "dbHost": "db",
@@ -155,7 +165,8 @@ The manager requires a configuration file named `manager.conf` to be present in 
 - `workers`: A map of worker names and their corresponding tokens for authentication. (In this case all workers use the same token called workers)
 - `statusCheckSeconds`: The interval in seconds between status check requests from the manager to the workers.
 - `StatusCheckDown`: The number of seconds after which a worker is marked as down if the status check request fails.
-- `port`: The port on which the manager should listen for incoming connections.
+- `httpPort`: The port on which the manager should listen for incoming connections without TLS.
+- `httpsPort`: The port on which the manager should listen for incoming connections with TLS.
 - `dbUsername`: The username for the database connection.
 - `dbPassword`: The password for the database connection.
 - `dbHost`: The hostname of the database server.
@@ -173,7 +184,7 @@ The worker requires a configuration file named `workerouter.conf` to be present 
   "name": "",
   "iddleThreads": 2,
   "managerIP": "127.0.0.1",
-  "managerPort": "8080",
+  "managerPort": 8443,
   "managerOauthToken": "IeH0vpYFz2Yol6RdLvYZz62TFMv5FF",
   "CA": "./certs/ca-cert.pem",
   "insecureModules": true,
@@ -381,6 +392,54 @@ ssh -L local_port:remote_server:remote_port -R remote_port:localhost:local_port 
 
    This command establishes a tunnel between the manager and the worker, allowing secure communication without exposing the API to the internet.
 
+## Using Cloud
+
+### Digital Ocean 
+
+You can use Digital Ocean as cloud for the workers. 
+
+#### Configure workers and snapshot
+
+- Install tool in workers
+- Start worker as a service
+- Shutdown and create snapshot
+
+#### Configure manager
+
+cloud.conf
+
+``` bash
+{
+    "provider": "digitalocean",
+    "apiKey": "<API>",
+    "snapshotName": "ntask-worker",
+    "servers": 4,
+    "region": "<REGION>",
+    "size": "<SIZE>",
+    "sshKeys": "a3:32:a3:f3:4a:d4:dd:33:c2:87:98:33:aa:a1:a1:dd",
+    "sshPort": 22,
+    "recreate": false
+}
+```
+
+- Replace "ntask-worker" with your spanshot name
+
+
+#### Usage
+
+ Add the following flag to the worker `--configCloudFile ./cloud.conf`
+
+
+You can use my referral link to get 200$ in credit over 60 days:
+
+<a href="https://www.digitalocean.com/?refcode=f36ecfd0f9a2&utm_campaign=Referral_Invite&utm_medium=Referral_Program&utm_source=badge"><img src="https://web-platforms.sfo2.cdn.digitaloceanspaces.com/WWW/Badge%201.svg" alt="DigitalOcean Referral Badge" /></a>
+
+WARNING: If you run too many very intensive tasks on the same droplet, the worker may start to crash and become unstable, as tasks are closed and the connection is cut off. Don't run a large number of tasks on the same worker simultaneously causing the CPU usage to reach 100%. (In s-2vcpu-2gb-90gb-intel max 6 threads to execute big tasks)
+
+### Other clouds
+
+TODO
+
 ## Global flags
 
 The nTask Manager supports the following global flags:
@@ -442,11 +501,15 @@ To generate the Swagger documentation, follow these steps:
 The diagram above illustrates the architecture of the nTask Manager and its interactions with the workers.
 
 ## TODO
-- Code tests
-- DigitalOcean API
-  - Get list of droplets to SSH connect
-  - Dinamic number of droplets between min and max
-- Optimize small tasks
+- [ ] Code tests
+- [x] Timeouts
+- [x] Notes in tasks
+- [x] DigitalOcean API
+  - [x] Get list of droplets to SSH connect
+  - [x] Create droplets from snapshot
+  - [ ] Dinamic number of droplets between min and max
+- [ ] Oracle cloud
+- [ ] Optimize small tasks
 
 ## Author
 

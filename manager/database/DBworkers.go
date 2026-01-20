@@ -4,382 +4,231 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"strconv"
-	"sync"
 
 	globalstructs "github.com/r4ulcl/nTask/globalstructs"
 )
 
-// AddWorker adds a worker to the database.
-func AddWorker(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
-	defer wg.Done()
-	wg.Add(1)
-	// Insert the JSON data into the MySQL table
-	_, err := db.Exec("INSERT INTO worker (name, IddleThreads, up, downCount)"+
-		" VALUES (?, ?, ?, ?)",
-		worker.Name, worker.IddleThreads, worker.UP, worker.DownCount)
+// -------------------------------------------------------------------------
+// Inserts / deletes
+// -------------------------------------------------------------------------
+
+// AddWorker inserts a new worker row.
+func AddWorker(db *sql.DB, w *globalstructs.Worker, verbose, debug bool) error {
+	const q = `INSERT INTO worker (name, defaultThreads, iddleThreads, up, downCount, updatedAt)
+	           VALUES (?, ?, ?, ?, ?, NOW())`
+	if _, err := execWithRetry(db, true, q, w.Name, w.DefaultThreads, w.IddleThreads, w.UP, w.DownCount); err != nil {
+		return fmt.Errorf("AddWorker: %w", err)
+	}
+	return nil
+}
+
+// RmWorkerName deletes a worker by name and detaches its running tasks.
+func RmWorkerName(db *sql.DB, name string, verbose, debug bool) error {
+	const del = `DELETE FROM worker WHERE name = ?`
+	res, err := execWithRetry(db, false, del, name)
 	if err != nil {
+		return fmt.Errorf("RmWorkerName: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return fmt.Errorf("RmWorkerName: worker %s not found", name)
+	}
+	// orphan tasks → pending
+	if err := SetTasksWorkerPending(db, name, verbose, debug); err != nil {
+		return err
+	}
+	if err := clearWorkerName(db, name, verbose, debug); err != nil {
 		return err
 	}
 	return nil
 }
 
-// RmWorkerName deletes a worker by its name.
-func RmWorkerName(db *sql.DB, name string, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
-	defer wg.Done()
-	wg.Add(1)
-	// Worker exists, proceed with deletion
-	sqlStatement := "DELETE FROM worker WHERE name = ?"
-	log.Println("DB Delete worker Name: ", name)
-	result, err := db.Exec(sqlStatement, name)
-	if err != nil {
-		return err
-	}
+// -------------------------------------------------------------------------
+// Select helpers
+// -------------------------------------------------------------------------
 
-	a, _ := result.RowsAffected()
+const workerSelectCols = `name, defaultThreads, iddleThreads, up, downCount, updatedAt`
 
-	if a < 1 {
-		return fmt.Errorf("{\"error\": \"worker not found\"}")
-	}
-
-	// Set workers task to any worker
-	err = SetTasksWorkerEmpty(db, name, verbose, debug, wg)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// GetWorkers retrieves all workers from the database.
+// GetWorkers returns every row in the worker table.
 func GetWorkers(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
-	// Slice to store all workers
-	var workers []globalstructs.Worker
-
-	// Query all workers from the worker table
-	rows, err := db.Query("SELECT name, IddleThreads, up, downCount FROM worker")
-	if err != nil {
-		if debug {
-			log.Println("DB Error DBworkers: ", err)
-		}
-		return workers, err
-	}
-	defer rows.Close()
-
-	// Iterate over the rows
-	for rows.Next() {
-		// Declare variables to store JSON data
-		var name string
-		var IddleThreads int
-		var up bool
-		var downCount int
-
-		// Scan the values from the row into variables
-		err := rows.Scan(&name, &IddleThreads, &up, &downCount)
-		if err != nil {
-			if debug {
-				log.Println("DB Error DBworkers: ", err)
-			}
-			return workers, err
-		}
-
-		// Data into a Worker struct
-		var worker globalstructs.Worker
-		worker.Name = name
-		worker.IddleThreads = IddleThreads
-		worker.UP = up
-		worker.DownCount = downCount
-
-		// Append the worker to the slice
-		workers = append(workers, worker)
-	}
-
-	// Check for errors from iterating over rows
-	if err := rows.Err(); err != nil {
-		if debug {
-			log.Println("DB Error DBworkers: ", err)
-		}
-		return workers, err
-	}
-
-	return workers, nil
+	q := "SELECT " + workerSelectCols + " FROM worker"
+	return getWorkerSQL(q, db, verbose, debug)
 }
 
-// GetWorker retrieves a worker from the database by its name.
+// GetWorker fetches a single worker by name.
 func GetWorker(db *sql.DB, name string, verbose, debug bool) (globalstructs.Worker, error) {
-	var worker globalstructs.Worker
-	// Retrieve the JSON data from the MySQL table
-	var name2 string
-	var IddleThreads int
-	var up bool
-	var downCount int
-
-	err := db.QueryRow("SELECT name,  IddleThreads, up, downCount FROM worker WHERE name = ?",
-		name).Scan(
-		&name2, &IddleThreads, &up, &downCount)
+	q := "SELECT " + workerSelectCols + " FROM worker WHERE name = ?"
+	rows, err := getWorkerSQL(q, db, verbose, debug, name)
 	if err != nil {
-		if debug {
-			log.Println("DB Error DBworkers: ", err)
-		}
-		return worker, err
+		return globalstructs.Worker{}, err
 	}
-
-	// Data into the struct
-	worker.Name = name
-	worker.IddleThreads = IddleThreads
-	worker.UP = up
-	worker.DownCount = downCount
-
-	return worker, nil
+	if len(rows) == 0 {
+		return globalstructs.Worker{}, sql.ErrNoRows
+	}
+	return rows[0], nil
 }
 
-// UpdateWorker updates the information of a worker in the database.
-func UpdateWorker(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
-	defer wg.Done()
-	wg.Add(1)
-	// Update the JSON data in the MySQL table based on the worker's name
-	_, err := db.Exec("UPDATE worker SET"+
-		" IddleThreads = ?, up = ?, downCount = ? WHERE name = ?",
-		worker.IddleThreads, worker.UP, worker.DownCount, worker.Name)
-	if err != nil {
-		if debug {
-			log.Println("DB Error DBworkers: ", err)
-		}
-		return err
-	}
-	return nil
-}
-
-// SetWorkerUPto sets the status of a worker to the specified value.
-func SetWorkerUPto(up bool, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
-	defer wg.Done()
-	wg.Add(1)
-	_, err := db.Exec("UPDATE worker SET up = ? WHERE name = ?",
-		up, worker.Name)
-	if err != nil {
-		if debug {
-			log.Println("DB Error DBworkers: ", err)
-		}
-		return err
-	}
-
-	if debug {
-		log.Println("DB Worker set to:", up, worker.Name)
-	}
-
-	return nil
-}
-
-// SetWorkerworkingToString sets the status of a worker to the specified working value using the worker's name.
-func SetIddleThreadsTo(IddleThreads int, db *sql.DB, worker string, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
-	defer wg.Done()
-	wg.Add(1)
-	if debug {
-		log.Println("DB Set IddleThreads to", IddleThreads)
-	}
-	_, err := db.Exec("UPDATE worker SET IddleThreads = ? WHERE name = ?",
-		IddleThreads, worker)
-	if err != nil {
-		if debug {
-			log.Println("DB Error DBworkers: ", err)
-		}
-		return err
-	}
-
-	return nil
-}
-
-// SetWorkerworkingToString sets the status of a worker to the specified working value using the worker's name.
-func AddWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
-	defer wg.Done()
-	wg.Add(1)
-	if debug {
-		log.Println("DB AddWorkerIddleThreads1 worker name:", worker)
-	}
-	_, err := db.Exec("UPDATE worker SET IddleThreads = IddleThreads + 1 WHERE name = ?;",
-		worker)
-	if err != nil {
-		if debug {
-			log.Println("DB Error DBworkers: ", err)
-		}
-		return err
-	}
-	return nil
-}
-
-// SubtractWorkerIddleThreads1
-func SubtractWorkerIddleThreads1(db *sql.DB, worker string, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
-	defer wg.Done()
-	wg.Add(1)
-	if debug {
-		log.Println("DB SubtractWorkerIddleThreads1")
-	}
-
-	_, err := db.Exec("UPDATE worker SET IddleThreads = CASE WHEN IddleThreads > 0 THEN IddleThreads - 1 "+
-		"ELSE 0 END WHERE name = ?", worker)
-	if err != nil {
-		if debug {
-			log.Println("DB Error DBworkers: ", err)
-		}
-		return err
-	}
-	return nil
-}
-
-// GetWorkerIddle retrieves all workers that are iddle.
+// GetWorkerIddle returns workers that are up and have spare threads.
 func GetWorkerIddle(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
-	sql := "SELECT name, IddleThreads, up, downCount FROM worker WHERE up = true AND IddleThreads > 0 ORDER BY RAND();"
-	return GetWorkerSQL(sql, db, verbose, debug)
+	q := "SELECT " + workerSelectCols + " FROM worker WHERE up = TRUE AND iddleThreads > 0 ORDER BY RAND()"
+	return getWorkerSQL(q, db, verbose, debug)
 }
 
-// GetWorkerUP retrieves all workers that are up.
+// GetWorkerUP returns all workers with up = true.
 func GetWorkerUP(db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
-	sql := "SELECT name, IddleThreads, up, downCount FROM worker WHERE up = true;"
-	return GetWorkerSQL(sql, db, verbose, debug)
+	q := "SELECT " + workerSelectCols + " FROM worker WHERE up = TRUE"
+	return getWorkerSQL(q, db, verbose, debug)
 }
 
-// GetWorkerSQL retrieves workers information based on a SQL statement.
-func GetWorkerSQL(sql string, db *sql.DB, verbose, debug bool) ([]globalstructs.Worker, error) {
-	// Slice to store all workers
-	var workers []globalstructs.Worker
+// -------------------------------------------------------------------------
+// Updates
+// -------------------------------------------------------------------------
 
-	// Query all workers from the worker table
-	rows, err := db.Query(sql)
+// UpdateWorker replaces every mutable column of the given worker.
+func UpdateWorker(db *sql.DB, w *globalstructs.Worker, verbose, debug bool) error {
+	const q = `UPDATE worker SET defaultThreads = ?, iddleThreads = ?, up = ?, downCount = ?, updatedAt = NOW() WHERE name = ?`
+	res, err := execWithRetry(db, false, q, w.DefaultThreads, w.IddleThreads, w.UP, w.DownCount, w.Name)
 	if err != nil {
-		if debug {
-			log.Println("DB Error DBworkers: ", err)
-		}
-		return workers, err
+		return fmt.Errorf("UpdateWorker: %w", err)
 	}
-	defer rows.Close()
-
-	// Iterate over the rows
-	for rows.Next() {
-		// Declare variables to store JSON data
-		var name string
-		var IddleThreads int
-		var up bool
-		var downCount int
-
-		// Scan the values from the row into variables
-		err := rows.Scan(&name, &IddleThreads, &up, &downCount)
-		if err != nil {
-			if debug {
-				log.Println("DB Error DBworkers: ", err)
-			}
-			return workers, err
-		}
-
-		// Data into a Worker struct
-		var worker globalstructs.Worker
-		worker.Name = name
-
-		worker.IddleThreads = IddleThreads
-		worker.UP = up
-		worker.DownCount = downCount
-
-		// Append the worker to the slice
-		workers = append(workers, worker)
+	if n, _ := res.RowsAffected(); n == 0 {
+		return fmt.Errorf("UpdateWorker: worker %s not found", w.Name)
 	}
-
-	// Check for errors from iterating over rows
-	if err := rows.Err(); err != nil {
-		if debug {
-			log.Println("DB Error DBworkers: ", err)
-		}
-		return workers, err
-	}
-
-	return workers, nil
+	return nil
 }
 
-// GetWorkerCount get workers downCount by name (used to downCount until 3 to set down)
-func GetWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool) (int, error) {
-	var countS string
-	err := db.QueryRow("SELECT downCount FROM worker WHERE name = ?",
-		worker.Name).Scan(&countS)
+// SetWorkerUPto toggles the up column.
+func SetWorkerUPto(db *sql.DB, name string, up bool, verbose, debug bool) error {
+	const q = `UPDATE worker SET up = ?, updatedAt = NOW() WHERE name = ?`
+	res, err := execWithRetry(db, false, q, up, name)
 	if err != nil {
-		if debug {
-			log.Println("DB Error DBworkers: ", err)
-		}
-		return -1, err
+		return fmt.Errorf("SetWorkerUPto: %w", err)
 	}
-	downCount, err := strconv.Atoi(countS)
+
+	// RowsAffected==0 could mean “no matching row” OR “already in desired state”
+	n, err := res.RowsAffected()
 	if err != nil {
-		return -1, err
+		return fmt.Errorf("SetWorkerUPto (RowsAffected): %w", err)
+	}
+	if n == 0 {
+		// Check existence explicitly
+		var dummy int
+		err := db.QueryRow("SELECT 1 FROM worker WHERE name = ?", name).Scan(&dummy)
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("SetWorkerUPto: worker %s not found", name)
+		} else if err != nil {
+			return fmt.Errorf("SetWorkerUPto (existence check): %w", err)
+		}
+		// row exists but was already up/down as requested → treat as success
 	}
 
 	if debug {
-		log.Println("DB count worker:", worker.Name, "downCount:", downCount)
+		log.Printf("SetWorkerUPto: worker %s up set to %t", name, up)
 	}
-	return downCount, nil
-}
-
-// SetWorkerCount set worker downCount to downCount int
-func SetWorkerDownCount(count int, db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
-	defer wg.Done()
-	wg.Add(1)
-	_, err := db.Exec("UPDATE worker SET downCount = ? WHERE name = ?",
-		count, worker.Name)
-	if err != nil {
-		if debug {
-			log.Println("DB Error DBworkers: ", err)
-		}
-		return err
-	}
-
 	return nil
 }
 
-// AddWorkerCount add 1 to worker downCount
-func AddWorkerDownCount(db *sql.DB, worker *globalstructs.Worker, verbose, debug bool, wg *sync.WaitGroup) error {
-	// Add to the WaitGroup when the goroutine starts and done when exits
-	defer wg.Done()
-	wg.Add(1)
-	_, err := db.Exec("UPDATE worker SET downCount = downCount + 1 WHERE name = ?",
-		worker.Name)
+// SetIddleThreadsTo sets the iddleThreads value.
+func SetIddleThreadsTo(db *sql.DB, name string, idle int, verbose, debug bool) error {
+	const q = `UPDATE worker SET iddleThreads = ?, updatedAt = NOW() WHERE name = ?`
+	res, err := execWithRetry(db, false, q, idle, name)
 	if err != nil {
-		if debug {
-			log.Println("DB Error DBworkers: ", err)
-		}
-		return err
+		return fmt.Errorf("SetIddleThreadsTo: %w", err)
 	}
-
+	if n, _ := res.RowsAffected(); n == 0 {
+		return fmt.Errorf("SetIddleThreadsTo: worker %s not found", name)
+	}
 	return nil
 }
 
-func GetUpCount(db *sql.DB, verbose, debug bool) (int, error) {
-	// Prepare the SQL query
-	query := "SELECT COUNT(*) FROM worker where up = true"
-
-	// Execute the query
-	var count int
-	err := db.QueryRow(query).Scan(&count)
+// SubtractWorkerIddleThreads1 decrements iddleThreads by 1 if > 0.
+func SubtractWorkerIddleThreads1(db *sql.DB, name string, verbose, debug bool) error {
+	const q = `UPDATE worker SET iddleThreads = CASE WHEN iddleThreads > 0 THEN iddleThreads - 1 ELSE 0 END, updatedAt = NOW() WHERE name = ?`
+	res, err := execWithRetry(db, false, q, name)
 	if err != nil {
+		return fmt.Errorf("SubtractWorkerIddleThreads1: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return fmt.Errorf("SubtractWorkerIddleThreads1: worker %s not found", name)
+	}
+	return nil
+}
+
+// Down‑count helpers -------------------------------------------------------
+
+func GetWorkerDownCount(db *sql.DB, name string, verbose, debug bool) (int, error) {
+	var dc int
+	if err := db.QueryRow("SELECT downCount FROM worker WHERE name = ?", name).Scan(&dc); err != nil {
 		return 0, err
 	}
+	return dc, nil
+}
 
-	return count, nil
+func SetWorkerDownCount(db *sql.DB, name string, count int, verbose, debug bool) error {
+	const q = `UPDATE worker SET downCount = ?, updatedAt = NOW() WHERE name = ?`
+	res, err := execWithRetry(db, false, q, count, name)
+	if err != nil {
+		return fmt.Errorf("SetWorkerDownCount: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return fmt.Errorf("SetWorkerDownCount: worker %s not found", name)
+	}
+	return nil
+}
+
+func AddWorkerDownCount(db *sql.DB, name string, verbose, debug bool) error {
+	const q = `UPDATE worker SET downCount = downCount + 1, updatedAt = NOW() WHERE name = ?`
+	res, err := execWithRetry(db, false, q, name)
+	if err != nil {
+		return fmt.Errorf("AddWorkerDownCount: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return fmt.Errorf("AddWorkerDownCount: worker %s not found", name)
+	}
+	return nil
+}
+
+// -------------------------------------------------------------------------
+// Simple aggregates
+// -------------------------------------------------------------------------
+
+func GetUpCount(db *sql.DB, verbose, debug bool) (int, error) {
+	return getBoolCount(db, true)
 }
 
 func GetDownCount(db *sql.DB, verbose, debug bool) (int, error) {
-	// Prepare the SQL query
-	query := "SELECT COUNT(*) FROM worker where up = false"
+	return getBoolCount(db, false)
+}
 
-	// Execute the query
-	var count int
-	err := db.QueryRow(query).Scan(&count)
-	if err != nil {
+func getBoolCount(db *sql.DB, up bool) (int, error) {
+	query := "SELECT COUNT(*) FROM worker WHERE up = ?"
+	var c int
+	if err := db.QueryRow(query, up).Scan(&c); err != nil {
 		return 0, err
 	}
+	return c, nil
+}
 
-	return count, nil
+// -------------------------------------------------------------------------
+// Row‑mapper
+// -------------------------------------------------------------------------
+
+func getWorkerSQL(sqlStr string, db *sql.DB, verbose, debug bool, args ...interface{}) ([]globalstructs.Worker, error) {
+	rows, err := db.Query(sqlStr, args...)
+	if err != nil {
+		if debug {
+			log.Println("getWorkerSQL query error:", err)
+		}
+		return nil, err
+	}
+	defer rows.Close()
+
+	var workers []globalstructs.Worker
+	for rows.Next() {
+		var w globalstructs.Worker
+		if err = rows.Scan(&w.Name, &w.DefaultThreads, &w.IddleThreads, &w.UP, &w.DownCount, &w.UpdatedAt); err != nil {
+			return nil, err
+		}
+		workers = append(workers, w)
+	}
+	return workers, rows.Err()
 }

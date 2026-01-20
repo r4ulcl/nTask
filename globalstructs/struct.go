@@ -1,6 +1,10 @@
 package globalstructs
 
-import "github.com/gorilla/websocket"
+import (
+	"time"
+
+	"github.com/gorilla/websocket"
+)
 
 // package for structs used in manager and workers
 // in case I want to separate the project one day
@@ -8,71 +12,92 @@ import "github.com/gorilla/websocket"
 // Task Struct to store all Task information.
 type Task struct {
 	ID            string    `json:"id"`
-	Commands      []Command `json:"command"`
+	Notes         string    `json:"notes"`
+	Commands      []Command `json:"commands"`
+	Files         []File    `json:"files"`
 	Name          string    `json:"name"`
 	CreatedAt     string    `json:"createdAt"`
 	UpdatedAt     string    `json:"updatedAt"`
 	ExecutedAt    string    `json:"executedAt"`
 	Status        string    `json:"status"` // pending, running, done, failed, deleted
+	Duration      float64   `json:"duration"`
 	WorkerName    string    `json:"workerName"`
 	Username      string    `json:"username"`
 	Priority      int       `json:"priority"`
+	Timeout       int       `json:"timeout"` // timeout in seconds
 	CallbackURL   string    `json:"callbackURL"`
 	CallbackToken string    `json:"callbackToken"`
 }
 
 // Command struct for Commands in a task
 type Command struct {
-	Module         string `json:"module"`
-	Args           string `json:"args"`
-	FileContent    string `json:"fileContent"`
-	RemoteFilePath string `json:"remoteFilePath"`
-	Output         string `json:"output"`
+	Module string `json:"module"`
+	Args   string `json:"args"`
+	Output string `json:"output"`
 }
 
-// Task Struct for swagger docs, for the POST
+// File Files struct to encapsulate FileContent and RemoteFilePath
+type File struct {
+	FileContentB64 string `json:"fileContentB64"`
+	RemoteFilePath string `json:"remoteFilePath"`
+}
+
+// TaskSwagger Task Struct for swagger docs, for the POST
 type TaskSwagger struct {
-	Commands []CommandSwagger `json:"command"`
+	Commands []CommandSwagger `json:"commands"`
+	Files    []File           `json:"files"`
 	Name     string           `json:"name"`
+	Notes    string           `json:"notes"`
 	Priority int              `json:"priority"`
+	Timeout  int              `json:"timeout"` // timeout in seconds
 }
 
-// Command struct for swagger documentation
+// CommandSwagger Command struct for swagger documentation
 type CommandSwagger struct {
-	Module         string `json:"module"`
-	Args           string `json:"args"`
-	FileContent    string `json:"fileContent"`
-	RemoteFilePath string `json:"remoteFilePath"`
+	Module string `json:"module"`
+	Args   string `json:"args"`
 }
 
 // Worker struct to store all worker information.
 type Worker struct {
 	// Workers name (unique)
-	Name         string `json:"name"`
-	IddleThreads int    `json:"IddleThreads"`
-	UP           bool   `json:"up"`
-	DownCount    int    `json:"downCount"`
+	Name           string `json:"name"`
+	DefaultThreads int    `json:"defaultThreads"`
+	IddleThreads   int    `json:"iddleThreads"`
+	UP             bool   `json:"up"`
+	DownCount      int    `json:"downCount"`
+	UpdatedAt      string `json:"updatedAt"`
 }
 
 // WorkerStatus struct to process the worker status response.
 type WorkerStatus struct {
 	Name         string         `json:"name"`
-	IddleThreads int            `json:"IddleThreads"`
+	IddleThreads int            `json:"iddleThreads"`
 	WorkingIDs   map[string]int `json:"workingIds"`
 }
 
+// Error struct to JSON error
 type Error struct {
 	Error string `json:"error"`
 }
 
 // websockets
 
+// Upgrader for websockets
 var Upgrader = websocket.Upgrader{
-	ReadBufferSize:  4096, // 4 kilobytes
-	WriteBufferSize: 4096, // 4 kilobytes
+	ReadBufferSize:  8192, // 8 kilobytes
+	WriteBufferSize: 8192, // 8 kilobytes
 }
 
+// WebsocketMessage Struct for websocket messages
 type WebsocketMessage struct {
 	Type string `json:"type"`
 	JSON string `json:"json"`
 }
+
+const (
+	WriteWait      = 10 * time.Second
+	PongWait       = 60 * time.Second
+	PingPeriod     = (PongWait * 9) / 10 // 54 s
+	MaxMessageSize = 1 << 20             // 1 MiB
+)

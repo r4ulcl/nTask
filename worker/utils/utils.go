@@ -31,6 +31,7 @@ func CreateTLSClientWithCACert(caCertPath string, verifyAltName, verbose, debug 
 	return client, nil
 }
 
+// LoadWorkerConfig funct to load worker config file
 func LoadWorkerConfig(filename string, verbose, debug bool) (*WorkerConfig, error) {
 	var config WorkerConfig
 	content, err := os.ReadFile(filename)
@@ -81,6 +82,7 @@ func LoadWorkerConfig(filename string, verbose, debug bool) (*WorkerConfig, erro
 	return &config, nil
 }
 
+// GenerateTLSConfig Function to generate the TLS config
 func GenerateTLSConfig(caCertPath string, verifyAltName, verbose, debug bool) (*tls.Config, error) {
 	var tlsConfig *tls.Config
 
@@ -101,6 +103,7 @@ func GenerateTLSConfig(caCertPath string, verifyAltName, verbose, debug bool) (*
 		tlsConfig = &tls.Config{
 			InsecureSkipVerify: true, // Enable server verification
 			RootCAs:            certPool,
+			MinVersion:         tls.VersionTLS12, // Minimum version set to TLS 1.2
 			VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 				if len(rawCerts) == 0 {
 					return fmt.Errorf("no certificates provided by the server")
